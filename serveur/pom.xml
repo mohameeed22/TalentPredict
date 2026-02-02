@@ -88,13 +88,6 @@
             <version>0.18.2</version>
         </dependency>
 
-        <!-- Jira REST Client -->
-        <dependency>
-            <groupId>com.atlassian.jira</groupId>
-            <artifactId>jira-rest-java-client-core</artifactId>
-            <version>5.2.6</version>
-        </dependency>
-
         <!-- Camunda BPM (alternative à Operaton) -->
         <dependency>
             <groupId>org.camunda.bpm.springboot</groupId>
