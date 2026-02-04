@@ -1,0 +1,77 @@
+# Docker Compose for TalentPredict
+# Usage: docker-compose up -d
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: talentpredict-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-talentpredict}
+      POSTGRES_USER: ${POSTGRES_USER:-talentpredict}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - talentpredict-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-talentpredict}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Spring Boot Backend
+  backend:
+    image: ${DOCKER_REGISTRY:-registry.gitlab.com/your-project}/backend:${IMAGE_TAG:-latest}
+    container_name: talentpredict-backend
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-talentpredict}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-talentpredict}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE:-prod}
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - talentpredict-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Angular Frontend
+  frontend:
+    image: ${DOCKER_REGISTRY:-registry.gitlab.com/your-project}/frontend:${IMAGE_TAG:-latest}
+    container_name: talentpredict-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    networks:
+      - talentpredict-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  talentpredict-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
