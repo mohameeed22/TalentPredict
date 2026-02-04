@@ -8,9 +8,9 @@ services:
     environment:
       POSTGRES_DB: talentpredict
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: 52119947
     ports:
-      - "5433:5433"
+      - "5433:5432"  # Map host port 5433 to container port 5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -37,7 +37,7 @@ services:
       JIRA_PROJECT_KEY: ${JIRA_PROJECT_KEY:-TRN}
       JIRA_ENABLED: ${JIRA_ENABLED:-false}
     ports:
-      - "8080:8080"
+      - "8090:8090"  # Match the server.port in application.properties
     depends_on:
       postgres:
         condition: service_healthy
