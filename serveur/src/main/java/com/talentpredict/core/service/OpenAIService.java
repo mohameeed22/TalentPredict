@@ -15,7 +15,7 @@ import java.util.List;
 @Slf4j
 public class OpenAIService {
     
-    @Value("${openai.api.key}")
+    @Value("${openai.api.key:}")
     private String openaiApiKey;
     
     @Value("${openai.model:gpt-4}")
@@ -24,6 +24,10 @@ public class OpenAIService {
     private OpenAiService openAiService;
     
     private OpenAiService getService() {
+        if (openaiApiKey == null || openaiApiKey.isBlank()) {
+            log.warn("OpenAI API key is not configured. AI features will not work.");
+            return null;
+        }
         if (openAiService == null) {
             openAiService = new OpenAiService(openaiApiKey, Duration.ofSeconds(60));
         }
@@ -81,6 +85,11 @@ public class OpenAIService {
     
     private String executePrompt(String prompt) {
         try {
+            OpenAiService service = getService();
+            if (service == null) {
+                return "Fonctionnalité IA non disponible. Clé API OpenAI non configurée.";
+            }
+            
             List<ChatMessage> messages = new ArrayList<>();
             messages.add(new ChatMessage("user", prompt));
             
@@ -91,7 +100,7 @@ public class OpenAIService {
                 .temperature(0.7)
                 .build();
             
-            var response = getService().createChatCompletion(request);
+            var response = service.createChatCompletion(request);
             return response.getChoices().get(0).getMessage().getContent();
             
         } catch (Exception e) {
