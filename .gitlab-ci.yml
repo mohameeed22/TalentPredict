@@ -1,6 +1,6 @@
-# ============================================================================
+# ============================================================================ 
 # TalentPredict Ultimate Pipeline (Fusion)
-# ============================================================================
+# ============================================================================ 
 stages:
   - build
   - test
@@ -53,11 +53,11 @@ backend:build:
   <<: *maven_template
   stage: build
   script:
-    - mvn $MAVEN_CLI_OPTS clean compile -DskipTests
+    - mvn $MAVEN_CLI_OPTS clean install -DskipTests  # Changed to install and skip tests for build validation
   artifacts:
     paths:
-      - serveur/target/
-    expire_in: 1 hour
+      - serveur/target/  # Capture build artifacts
+    expire_in: 1 hour  # Adjust expiration time if needed
 
 frontend:build:
   <<: *node_template
@@ -83,23 +83,23 @@ backend:test:
     POSTGRES_PASSWORD: postgres
     SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/talentpredict_test"
   script:
-    - mvn $MAVEN_CLI_OPTS test jacoco:report
+    - mvn $MAVEN_CLI_OPTS test jacoco:report  # Runs tests and generates Jacoco coverage report
   artifacts:
     reports:
-      junit: serveur/target/surefire-reports/TEST-*.xml
+      junit: serveur/target/surefire-reports/TEST-*.xml  # JUnit reports
     paths:
-      - serveur/target/site/jacoco/
-  coverage: '/Total.*?([0-9]{1,3})%/'
+      - serveur/target/site/jacoco/  # Jacoco coverage reports
+  coverage: '/Total.*?([0-9]{1,3})%/'  # Coverage regex for GitLab UI
 
 frontend:test:
   <<: *node_template
   stage: test
   script:
-    - npm run test -- --run --coverage
+    - npm run test -- --run --coverage  # Runs frontend tests
   artifacts:
     reports:
       coverage_report:
-        coverage_format: cobertura
+        coverage_format: cobertura  # Coverage in Cobertura format
         path: client/coverage/cobertura-coverage.xml
 
 # ==================== QUALITY & SECURITY ====================
@@ -109,23 +109,23 @@ quality:sonarqube:
   stage: quality
   script:
     - mvn sonar:sonar -Dsonar.projectKey=talentpredict -Dsonar.host.url=$SONARQUBE_URL -Dsonar.login=$SONARQUBE_TOKEN
-  allow_failure: true
+  allow_failure: true  # Allow failure to not block pipeline
 
 security:trivy_scan:
   stage: security
   image: aquasec/trivy:latest
   script:
-    - trivy fs --severity HIGH,CRITICAL --format sarif -o results.sarif .
+    - trivy fs --severity HIGH,CRITICAL --format sarif -o results.sarif .  # Run Trivy security scan
   artifacts:
     reports:
-      sast: results.sarif
+      sast: results.sarif  # Store security scan results
 
 security:dependency_check:
   <<: *maven_template
   stage: security
   script:
-    - mvn org.owasp:dependency-check-maven:check
-  allow_failure: true
+    - mvn org.owasp:dependency-check-maven:check  # OWASP dependency check
+  allow_failure: true  # Allow failure to not block pipeline
 
 # ==================== PACKAGE STAGE ====================
 
@@ -134,18 +134,18 @@ package:backend:
   stage: package
   script:
     - cd serveur
-    - docker build -t $BACKEND_IMAGE:$IMAGE_TAG -t $BACKEND_IMAGE:latest .
-    - docker push $BACKEND_IMAGE:$IMAGE_TAG
-    - docker push $BACKEND_IMAGE:latest
+    - docker build -t $BACKEND_IMAGE:$IMAGE_TAG -t $BACKEND_IMAGE:latest .  # Build backend Docker image
+    - docker push $BACKEND_IMAGE:$IMAGE_TAG  # Push backend image
+    - docker push $BACKEND_IMAGE:latest  # Push latest backend image
 
 package:frontend:
   <<: *docker_template
   stage: package
   script:
     - cd client
-    - docker build -t $FRONTEND_IMAGE:$IMAGE_TAG -t $FRONTEND_IMAGE:latest .
-    - docker push $FRONTEND_IMAGE:$IMAGE_TAG
-    - docker push $FRONTEND_IMAGE:latest
+    - docker build -t $FRONTEND_IMAGE:$IMAGE_TAG -t $FRONTEND_IMAGE:latest .  # Build frontend Docker image
+    - docker push $FRONTEND_IMAGE:$IMAGE_TAG  # Push frontend image
+    - docker push $FRONTEND_IMAGE:latest  # Push latest frontend image
 
 # ==================== DEPLOY STAGE ====================
 
@@ -154,9 +154,9 @@ package:frontend:
   before_script:
     - apk add --no-cache openssh-client docker-compose
     - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -  # Add private key
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
-    - ssh-keyscan $SERVER_HOST >> ~/.ssh/known_hosts
+    - ssh-keyscan $SERVER_HOST >> ~/.ssh/known_hosts  # Ensure server SSH key is known
 
 deploy:staging:
   <<: *deploy_template
@@ -169,7 +169,7 @@ deploy:staging:
   environment:
     name: staging
   only:
-    - develop
+    - develop  # Triggered on develop branch
 
 deploy:production:
   <<: *deploy_template
@@ -179,17 +179,17 @@ deploy:production:
     SERVER_HOST: "$PROD_SERVER_HOST"
   script:
     - ssh $PROD_USER@$PROD_SERVER_HOST "cd /opt/talentpredict && docker-compose up -d"
-  when: manual
+  when: manual  # Manual trigger for production deployment
   environment:
     name: production
   only:
-    - main
+    - main  # Triggered on main branch
 
 rollback:production:
   stage: deploy
   script:
     - echo "Executing rollback to previous stable version..."
-    # Script SSH pour relancer l'ancienne version
-  when: manual
+    # Add rollback script to revert to a previous version
+  when: manual  # Manual trigger for rollback
   only:
-    - main
+    - main  # Triggered on main branch
