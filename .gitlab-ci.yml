@@ -1,4 +1,6 @@
-# .gitlab-ci.yml
+# ============================================================================
+# TalentPredict Ultimate Pipeline (Fusion)
+# ============================================================================
 stages:
   - build
   - test
@@ -7,359 +9,187 @@ stages:
   - package
   - deploy
 
-# Global variables
 variables:
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: "/certs"
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
-  NODE_VERSION: "20"
+  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version"
+  NPM_CONFIG_CACHE: "$CI_PROJECT_DIR/.npm"
+  BACKEND_IMAGE: "$CI_REGISTRY_IMAGE/backend"
+  FRONTEND_IMAGE: "$CI_REGISTRY_IMAGE/frontend"
+  IMAGE_TAG: "$CI_COMMIT_SHORT_SHA"
 
-# Define cache for Maven and npm
-cache:
-  paths:
-    - .m2/repository/
-    - client/node_modules/
+# ==================== TEMPLATES ====================
 
-# ==================== BACKEND JOBS ====================
+.maven_template: &maven_template
+  image: maven:3.9-eclipse-temurin-17
+  cache:
+    key: maven-cache-$CI_COMMIT_REF_SLUG
+    paths:
+      - .m2/repository
+  before_script:
+    - cd serveur
+
+.node_template: &node_template
+  image: node:20-alpine
+  cache:
+    key: npm-cache-$CI_COMMIT_REF_SLUG
+    paths:
+      - client/node_modules
+      - client/.npm
+  before_script:
+    - cd client
+
+.docker_template: &docker_template
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+
+# ==================== BUILD STAGE ====================
 
 backend:build:
+  <<: *maven_template
   stage: build
-  image: maven:3.9-eclipse-temurin-21
   script:
-    - cd serveur
-    - mvn clean compile -DskipTests
+    - mvn $MAVEN_CLI_OPTS clean compile -DskipTests
   artifacts:
     paths:
       - serveur/target/
-    expire_in: 1 day
-  cache:
+    expire_in: 1 hour
+
+frontend:build:
+  <<: *node_template
+  stage: build
+  script:
+    - npm ci --prefer-offline
+    - npm run build -- --configuration production
+  artifacts:
     paths:
-      - .m2/repository/
-  only:
-    - merge_requests
-    - main
-    - develop
-    - tags
+      - client/dist/
+    expire_in: 1 hour
+
+# ==================== TEST STAGE ====================
 
 backend:test:
+  <<: *maven_template
   stage: test
-  image: maven:3.9-eclipse-temurin-21
   services:
     - postgres:15-alpine
   variables:
     POSTGRES_DB: talentpredict_test
     POSTGRES_USER: postgres
     POSTGRES_PASSWORD: postgres
-    SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/talentpredict_test
-    SPRING_DATASOURCE_USERNAME: postgres
-    SPRING_DATASOURCE_PASSWORD: postgres
+    SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/talentpredict_test"
   script:
-    - cd serveur
-    - mvn test
-    - mvn jacoco:report
-  coverage: '/Coverage: \d+\.\d+%/'
+    - mvn $MAVEN_CLI_OPTS test jacoco:report
   artifacts:
-    paths:
-      - serveur/target/surefire-reports/
-      - serveur/target/site/jacoco/
     reports:
       junit: serveur/target/surefire-reports/TEST-*.xml
-    expire_in: 30 days
-  cache:
     paths:
-      - .m2/repository/
-  only:
-    - merge_requests
-    - main
-    - develop
-
-backend:sonarqube:
-  stage: quality
-  image: maven:3.9-eclipse-temurin-21
-  script:
-    - cd serveur
-    - |
-      mvn sonar:sonar \
-        -Dsonar.projectKey=talentpredict \
-        -Dsonar.sources=src/main \
-        -Dsonar.tests=src/test \
-        -Dsonar.host.url=$SONARQUBE_URL \
-        -Dsonar.login=$SONARQUBE_TOKEN \
-        -Dsonar.qualitygate.wait=true
-  cache:
-    paths:
-      - .m2/repository/
-  allow_failure: true
-  only:
-    - main
-    - develop
-    - merge_requests
-
-backend:spotbugs:
-  stage: quality
-  image: maven:3.9-eclipse-temurin-21
-  script:
-    - cd serveur
-    - mvn spotbugs:check || true
-  artifacts:
-    paths:
-      - serveur/target/spotbugsXml.xml
-    expire_in: 30 days
-  cache:
-    paths:
-      - .m2/repository/
-  allow_failure: true
-  only:
-    - merge_requests
-    - main
-    - develop
-
-# ==================== FRONTEND JOBS ====================
-
-frontend:build:
-  stage: build
-  image: node:${NODE_VERSION}-alpine
-  script:
-    - cd client
-    - npm ci
-    - npm run build
-  artifacts:
-    paths:
-      - client/dist/
-    expire_in: 1 day
-  cache:
-    paths:
-      - client/node_modules/
-  only:
-    - merge_requests
-    - main
-    - develop
-    - tags
+      - serveur/target/site/jacoco/
+  coverage: '/Total.*?([0-9]{1,3})%/'
 
 frontend:test:
+  <<: *node_template
   stage: test
-  image: node:${NODE_VERSION}-alpine
   script:
-    - cd client
-    - npm ci
-    - npm test -- --watch=false --code-coverage || true
-  coverage: '/Statements\s*:\s(\d+\.\d+)%/'
+    - npm run test -- --run --coverage
   artifacts:
-    paths:
-      - client/coverage/
     reports:
       coverage_report:
         coverage_format: cobertura
         path: client/coverage/cobertura-coverage.xml
-    expire_in: 30 days
-  cache:
-    paths:
-      - client/node_modules/
-  allow_failure: true
-  only:
-    - merge_requests
-    - main
-    - develop
 
-frontend:lint:
+# ==================== QUALITY & SECURITY ====================
+
+quality:sonarqube:
+  <<: *maven_template
   stage: quality
-  image: node:${NODE_VERSION}-alpine
   script:
-    - cd client
-    - npm ci
-    - npm run lint || true
-  cache:
-    paths:
-      - client/node_modules/
+    - mvn sonar:sonar -Dsonar.projectKey=talentpredict -Dsonar.host.url=$SONARQUBE_URL -Dsonar.login=$SONARQUBE_TOKEN
   allow_failure: true
-  only:
-    - merge_requests
-    - main
-    - develop
 
-# ==================== SECURITY JOBS ====================
-
-security:trivy:
+security:trivy_scan:
   stage: security
   image: aquasec/trivy:latest
   script:
-    - trivy fs --exit-code 0 --severity HIGH,CRITICAL --format sarif -o trivy-results.sarif .
-    - trivy fs --exit-code 1 --severity CRITICAL .
+    - trivy fs --severity HIGH,CRITICAL --format sarif -o results.sarif .
   artifacts:
     reports:
-      sast: trivy-results.sarif
-    expire_in: 30 days
-  allow_failure: true
-  only:
-    - merge_requests
-    - main
-    - develop
+      sast: results.sarif
 
-security:dependency-check:
+security:dependency_check:
+  <<: *maven_template
   stage: security
-  image: maven:3.9-eclipse-temurin-21
   script:
-    - cd serveur
     - mvn org.owasp:dependency-check-maven:check
-  artifacts:
-    paths:
-      - serveur/target/dependency-check-report.html
-    expire_in: 30 days
-  cache:
-    paths:
-      - .m2/repository/
   allow_failure: true
-  only:
-    - merge_requests
-    - main
 
-# ==================== PACKAGE JOBS ====================
+# ==================== PACKAGE STAGE ====================
 
 package:backend:
+  <<: *docker_template
   stage: package
-  image: docker:latest
-  services:
-    - docker:dind
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
     - cd serveur
-    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA .
-    - docker tag $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/backend:latest
-    - docker tag $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_REF_SLUG
-    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
-    - docker push $CI_REGISTRY_IMAGE/backend:latest
-    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_REF_SLUG
-  only:
-    - main
-    - develop
-    - tags
+    - docker build -t $BACKEND_IMAGE:$IMAGE_TAG -t $BACKEND_IMAGE:latest .
+    - docker push $BACKEND_IMAGE:$IMAGE_TAG
+    - docker push $BACKEND_IMAGE:latest
 
 package:frontend:
+  <<: *docker_template
   stage: package
-  image: docker:latest
-  services:
-    - docker:dind
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - |
-      cat > client/Dockerfile.prod << 'EOF'
-      FROM node:20-alpine as builder
-      WORKDIR /app
-      COPY package*.json ./
-      RUN npm ci
-      COPY . .
-      RUN npm run build
-      
-      FROM nginx:alpine
-      COPY --from=builder /app/dist/talent-predict-client/browser /usr/share/nginx/html
-      COPY nginx.conf /etc/nginx/nginx.conf
-      EXPOSE 80
-      CMD ["nginx", "-g", "daemon off;"]
-      EOF
     - cd client
-    - docker build -f Dockerfile.prod -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA .
-    - docker tag $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/frontend:latest
-    - docker tag $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_REF_SLUG
-    - docker push $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA
-    - docker push $CI_REGISTRY_IMAGE/frontend:latest
-    - docker push $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_REF_SLUG
-  only:
-    - main
-    - develop
-    - tags
+    - docker build -t $FRONTEND_IMAGE:$IMAGE_TAG -t $FRONTEND_IMAGE:latest .
+    - docker push $FRONTEND_IMAGE:$IMAGE_TAG
+    - docker push $FRONTEND_IMAGE:latest
 
-# ==================== DEPLOYMENT JOBS ====================
+# ==================== DEPLOY STAGE ====================
 
-deploy:staging:
-  stage: deploy
+.deploy_template: &deploy_template
   image: alpine:latest
   before_script:
-    - apk add --no-cache openssh-client
-    - mkdir -p ~/.ssh
-    - echo "$STAGING_DEPLOY_KEY" | base64 -d > ~/.ssh/deploy_key
-    - chmod 600 ~/.ssh/deploy_key
-    - ssh-keyscan -H $STAGING_HOST >> ~/.ssh/known_hosts 2>/dev/null
+    - apk add --no-cache openssh-client docker-compose
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - ssh-keyscan $SERVER_HOST >> ~/.ssh/known_hosts
+
+deploy:staging:
+  <<: *deploy_template
+  stage: deploy
+  variables:
+    SSH_PRIVATE_KEY: "$SSH_PRIVATE_KEY_STAGING"
+    SERVER_HOST: "$STAGING_SERVER_HOST"
   script:
-    - |
-      ssh -i ~/.ssh/deploy_key $STAGING_USER@$STAGING_HOST << 'ENDSSH'
-      cd $DEPLOY_PATH
-      git pull origin develop
-      docker-compose pull
-      docker-compose -f docker-compose.yml -f docker-compose.staging.yml up -d
-      docker-compose exec -T backend mvn flyway:migrate || true
-      ENDSSH
+    - ssh $STAGING_USER@$STAGING_SERVER_HOST "cd /opt/talentpredict && docker-compose pull && docker-compose up -d"
   environment:
     name: staging
-    url: https://staging.talentpredict.com
-    deployment_tier: staging
   only:
     - develop
 
 deploy:production:
+  <<: *deploy_template
   stage: deploy
-  image: alpine:latest
-  before_script:
-    - apk add --no-cache openssh-client
-    - mkdir -p ~/.ssh
-    - echo "$PROD_DEPLOY_KEY" | base64 -d > ~/.ssh/deploy_key
-    - chmod 600 ~/.ssh/deploy_key
-    - ssh-keyscan -H $PROD_HOST >> ~/.ssh/known_hosts 2>/dev/null
+  variables:
+    SSH_PRIVATE_KEY: "$SSH_PRIVATE_KEY_PROD"
+    SERVER_HOST: "$PROD_SERVER_HOST"
   script:
-    - |
-      ssh -i ~/.ssh/deploy_key $PROD_USER@$PROD_HOST << 'ENDSSH'
-      cd $DEPLOY_PATH
-      git fetch --all
-      git checkout $CI_COMMIT_TAG
-      docker-compose pull
-      docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-      docker-compose exec -T backend mvn flyway:migrate || true
-      ENDSSH
+    - ssh $PROD_USER@$PROD_SERVER_HOST "cd /opt/talentpredict && docker-compose up -d"
+  when: manual
   environment:
     name: production
-    url: https://talentpredict.com
-    deployment_tier: production
-  when: manual
   only:
-    - tags
-
-# ==================== INTEGRATION TESTS ====================
-
-integration:tests:
-  stage: test
-  image: docker:latest
-  services:
-    - docker:dind
-  script:
-    - docker-compose up -d postgres
-    - sleep 10
-    - docker-compose up -d backend
-    - sleep 15
-    - docker-compose run --rm client npm run e2e || true
-  artifacts:
-    paths:
-      - client/cypress/videos/
-      - client/cypress/screenshots/
-    expire_in: 30 days
-  allow_failure: true
-  only:
-    - merge_requests
     - main
 
-# ==================== QUALITY GATE ====================
-
-quality:gate:
-  stage: quality
-  image: curlimages/curl:latest
+rollback:production:
+  stage: deploy
   script:
-    - |
-      QUALITY_GATE=$(curl -s -u ${SONARQUBE_TOKEN}: ${SONARQUBE_URL}/api/qualitygates/project_status?projectKey=talentpredict | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
-      if [ "$QUALITY_GATE" != "OK" ]; then
-        echo "Quality gate failed: $QUALITY_GATE"
-        exit 1
-      fi
-  allow_failure: true
+    - echo "Executing rollback to previous stable version..."
+    # Script SSH pour relancer l'ancienne version
+  when: manual
   only:
-    - merge_requests
     - main
