@@ -1,9 +1,6 @@
 package com.talentpredict.core.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -11,9 +8,6 @@ import java.util.List;
 
 @Entity
 @Table(name = "predictions")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Prediction {
     
     @Id
@@ -46,6 +40,98 @@ public class Prediction {
     @Column(nullable = false)
     private StatutPrediction statut = StatutPrediction.EN_ANALYSE;
     
+    public Prediction() {
+        // JPA requirement
+    }
+
+    public Prediction(Long id, Utilisateur utilisateur, LocalDateTime datePrediction, String analyse,
+                      String recommandationSoft, String recommandationTech, Double scoreConfiance,
+                      List<Formation> formationsProposees, StatutPrediction statut) {
+        this.id = id;
+        this.utilisateur = utilisateur;
+        this.datePrediction = datePrediction;
+        this.analyse = analyse;
+        this.recommandationSoft = recommandationSoft;
+        this.recommandationTech = recommandationTech;
+        this.scoreConfiance = scoreConfiance;
+        if (formationsProposees != null) {
+            this.formationsProposees = formationsProposees;
+        }
+        this.statut = statut;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Utilisateur getUtilisateur() {
+        return utilisateur;
+    }
+
+    public void setUtilisateur(Utilisateur utilisateur) {
+        this.utilisateur = utilisateur;
+    }
+
+    public LocalDateTime getDatePrediction() {
+        return datePrediction;
+    }
+
+    public void setDatePrediction(LocalDateTime datePrediction) {
+        this.datePrediction = datePrediction;
+    }
+
+    public String getAnalyse() {
+        return analyse;
+    }
+
+    public void setAnalyse(String analyse) {
+        this.analyse = analyse;
+    }
+
+    public String getRecommandationSoft() {
+        return recommandationSoft;
+    }
+
+    public void setRecommandationSoft(String recommandationSoft) {
+        this.recommandationSoft = recommandationSoft;
+    }
+
+    public String getRecommandationTech() {
+        return recommandationTech;
+    }
+
+    public void setRecommandationTech(String recommandationTech) {
+        this.recommandationTech = recommandationTech;
+    }
+
+    public Double getScoreConfiance() {
+        return scoreConfiance;
+    }
+
+    public void setScoreConfiance(Double scoreConfiance) {
+        this.scoreConfiance = scoreConfiance;
+    }
+
+    public List<Formation> getFormationsProposees() {
+        return formationsProposees;
+    }
+
+    public void setFormationsProposees(List<Formation> formationsProposees) {
+        this.formationsProposees = formationsProposees;
+    }
+
+    public StatutPrediction getStatut() {
+        return statut;
+    }
+
+    public void setStatut(StatutPrediction statut) {
+        this.statut = statut;
+    }
+
     public enum StatutPrediction {
         EN_ANALYSE,
         COMPLETEE,

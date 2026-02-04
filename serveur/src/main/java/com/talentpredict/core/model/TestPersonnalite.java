@@ -1,9 +1,6 @@
 package com.talentpredict.core.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -11,9 +8,6 @@ import java.util.Map;
 
 @Entity
 @Table(name = "tests_personnalite")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class TestPersonnalite {
     
     @Id
@@ -44,4 +38,86 @@ public class TestPersonnalite {
     
     @Column
     private Integer score;
+
+    public TestPersonnalite() {
+        // JPA requirement
+    }
+
+    public TestPersonnalite(Long id, Utilisateur utilisateur, LocalDateTime dateTest, String typeTest,
+                            Map<String, String> reponses, String resultats, String analyseLlm, Integer score) {
+        this.id = id;
+        this.utilisateur = utilisateur;
+        this.dateTest = dateTest;
+        this.typeTest = typeTest;
+        if (reponses != null) {
+            this.reponses = reponses;
+        }
+        this.resultats = resultats;
+        this.analyseLlm = analyseLlm;
+        this.score = score;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Utilisateur getUtilisateur() {
+        return utilisateur;
+    }
+
+    public void setUtilisateur(Utilisateur utilisateur) {
+        this.utilisateur = utilisateur;
+    }
+
+    public LocalDateTime getDateTest() {
+        return dateTest;
+    }
+
+    public void setDateTest(LocalDateTime dateTest) {
+        this.dateTest = dateTest;
+    }
+
+    public String getTypeTest() {
+        return typeTest;
+    }
+
+    public void setTypeTest(String typeTest) {
+        this.typeTest = typeTest;
+    }
+
+    public Map<String, String> getReponses() {
+        return reponses;
+    }
+
+    public void setReponses(Map<String, String> reponses) {
+        this.reponses = reponses;
+    }
+
+    public String getResultats() {
+        return resultats;
+    }
+
+    public void setResultats(String resultats) {
+        this.resultats = resultats;
+    }
+
+    public String getAnalyseLlm() {
+        return analyseLlm;
+    }
+
+    public void setAnalyseLlm(String analyseLlm) {
+        this.analyseLlm = analyseLlm;
+    }
+
+    public Integer getScore() {
+        return score;
+    }
+
+    public void setScore(Integer score) {
+        this.score = score;
+    }
 }

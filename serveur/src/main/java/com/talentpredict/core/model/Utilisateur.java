@@ -1,9 +1,6 @@
 package com.talentpredict.core.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -11,9 +8,6 @@ import java.util.List;
 
 @Entity
 @Table(name = "utilisateurs")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Utilisateur {
     
     @Id
@@ -54,6 +48,132 @@ public class Utilisateur {
     @OneToMany(mappedBy = "utilisateur", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Formation> formations = new ArrayList<>();
     
+    public Utilisateur() {
+        // JPA requirement
+    }
+
+    public Utilisateur(Long id, String nom, String prenom, String email, String motDePasse, Role role,
+                        LocalDateTime dateCreation, LocalDateTime dateModification,
+                        List<TestPersonnalite> tests, List<Skill> skills,
+                        List<Prediction> predictions, List<Formation> formations) {
+        this.id = id;
+        this.nom = nom;
+        this.prenom = prenom;
+        this.email = email;
+        this.motDePasse = motDePasse;
+        this.role = role;
+        this.dateCreation = dateCreation;
+        this.dateModification = dateModification;
+        if (tests != null) {
+            this.tests = tests;
+        }
+        if (skills != null) {
+            this.skills = skills;
+        }
+        if (predictions != null) {
+            this.predictions = predictions;
+        }
+        if (formations != null) {
+            this.formations = formations;
+        }
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getNom() {
+        return nom;
+    }
+
+    public void setNom(String nom) {
+        this.nom = nom;
+    }
+
+    public String getPrenom() {
+        return prenom;
+    }
+
+    public void setPrenom(String prenom) {
+        this.prenom = prenom;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getMotDePasse() {
+        return motDePasse;
+    }
+
+    public void setMotDePasse(String motDePasse) {
+        this.motDePasse = motDePasse;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
+    public LocalDateTime getDateCreation() {
+        return dateCreation;
+    }
+
+    public void setDateCreation(LocalDateTime dateCreation) {
+        this.dateCreation = dateCreation;
+    }
+
+    public LocalDateTime getDateModification() {
+        return dateModification;
+    }
+
+    public void setDateModification(LocalDateTime dateModification) {
+        this.dateModification = dateModification;
+    }
+
+    public List<TestPersonnalite> getTests() {
+        return tests;
+    }
+
+    public void setTests(List<TestPersonnalite> tests) {
+        this.tests = tests;
+    }
+
+    public List<Skill> getSkills() {
+        return skills;
+    }
+
+    public void setSkills(List<Skill> skills) {
+        this.skills = skills;
+    }
+
+    public List<Prediction> getPredictions() {
+        return predictions;
+    }
+
+    public void setPredictions(List<Prediction> predictions) {
+        this.predictions = predictions;
+    }
+
+    public List<Formation> getFormations() {
+        return formations;
+    }
+
+    public void setFormations(List<Formation> formations) {
+        this.formations = formations;
+    }
+
     public enum Role {
         USER, ADMIN
     }
