@@ -48,17 +48,16 @@ variables:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
 
 # ==================== BUILD STAGE ====================
-
 backend:build:
   <<: *maven_template
   stage: build
   script:
-    - mvn $MAVEN_CLI_OPTS clean install -DskipTests  # Changed to install and skip tests for build validation
+    - mvn clean install -X -DskipTests  # Added -X to enable full debug logging
   artifacts:
     paths:
-      - serveur/target/  # Capture build artifacts
-    expire_in: 1 hour  # Adjust expiration time if needed
-
+      - serveur/target/
+    expire_in: 1 hour
+    
 frontend:build:
   <<: *node_template
   stage: build
