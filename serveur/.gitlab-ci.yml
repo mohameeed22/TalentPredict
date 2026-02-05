@@ -1,32 +1,57 @@
+# ============================================
+# TalentPredict Backend - GitLab CI/CD
+# Java 21 | Maven 3.9
+# ============================================
+
 stages:
   - build
   - test
+  - package
 
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
   MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version"
+  JAVA_VERSION: "21"
 
 cache:
-  key: ${CI_COMMIT_REF_SLUG}
+  key: maven-${CI_COMMIT_REF_SLUG}
   paths:
     - .m2/repository
+  policy: pull-push
 
 build:
   stage: build
-  image: eclipse-temurin:24-jdk
+  image: maven:3.9-eclipse-temurin-21
   script:
-    - ./mvnw $MAVEN_CLI_OPTS clean package -DskipTests
+    - echo "Building with Java $JAVA_VERSION"
+    - mvn $MAVEN_CLI_OPTS clean compile
+  artifacts:
+    paths:
+      - target/classes/
+    expire_in: 1 day
+
+test:
+  stage: test
+  image: maven:3.9-eclipse-temurin-21
+  script:
+    - mvn $MAVEN_CLI_OPTS test
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - target/surefire-reports/*.xml
+    paths:
+      - target/surefire-reports/
+    expire_in: 1 week
+
+package:
+  stage: package
+  image: maven:3.9-eclipse-temurin-21
+  script:
+    - mvn $MAVEN_CLI_OPTS package -DskipTests
   artifacts:
     paths:
       - target/*.jar
     expire_in: 1 week
-
-test:
-  stage: test
-  image: eclipse-temurin:24-jdk
-  script:
-    - ./mvnw $MAVEN_CLI_OPTS test
-  artifacts:
-    reports:
-      junit:
-        - target/surefire-reports/*.xml
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
