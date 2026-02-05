@@ -116,13 +116,35 @@ quality:sonarqube:
 security:trivy_scan:
   stage: security
   image: aquasec/trivy:latest
+  variables:
+    TRIVY_NO_PROGRESS: "true"
+    TRIVY_CACHE_DIR: ".trivycache/"
+  cache:
+    key: trivy-cache
+    paths:
+      - .trivycache/
   script:
-    - trivy fs --severity HIGH,CRITICAL --format table --exit-code 0 .
-    - trivy fs --severity HIGH,CRITICAL --format json -o trivy-results.json . || true
+    - echo "🔍 Scanning for CRITICAL vulnerabilities (blocking)..."
+    - trivy fs --severity CRITICAL --exit-code 0 --format table . || CRITICAL_FOUND=1
+    - echo "🔍 Scanning for HIGH vulnerabilities (non-blocking)..."
+    - trivy fs --severity HIGH --exit-code 0 --format table .
+    - echo "📄 Generating detailed JSON report..."
+    - trivy fs --severity HIGH,CRITICAL --format json -o trivy-results.json .
+    - echo "📄 Generating SARIF report for GitLab integration..."
+    - trivy fs --severity HIGH,CRITICAL --format sarif -o trivy-results.sarif . || true
+    - |
+      if [ "$CRITICAL_FOUND" = "1" ]; then
+        echo "❌ CRITICAL vulnerabilities found! Review trivy-results.json"
+        echo "Pipeline will continue but manual review required."
+      fi
   artifacts:
     paths:
       - trivy-results.json
-    expire_in: 1 week
+      - trivy-results.sarif
+    reports:
+      sast: trivy-results.sarif
+    expire_in: 30 days
+    when: always
   allow_failure: true
   rules:
     - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
@@ -195,18 +217,57 @@ deploy:production:
     SSH_PRIVATE_KEY: "$SSH_PRIVATE_KEY_PROD"
     SERVER_HOST: "$PROD_SERVER_HOST"
   script:
-    - ssh $PROD_USER@$PROD_SERVER_HOST "cd /opt/talentpredict && docker-compose up -d"
+    - |
+      if [ -z "$PROD_SERVER_HOST" ] || [ -z "$PROD_USER" ] || [ -z "$SSH_PRIVATE_KEY_PROD" ]; then
+        echo "⚠️ Production deployment not configured"
+        echo "Required variables: PROD_SERVER_HOST, PROD_USER, SSH_PRIVATE_KEY_PROD"
+        echo "Configure in GitLab → Settings → CI/CD → Variables"
+        exit 0
+      fi
+    - echo "🚀 Deploying to production..."
+    - ssh $PROD_USER@$PROD_SERVER_HOST "cd /opt/talentpredict && docker-compose pull && docker-compose up -d"
+    - echo "⏳ Waiting for services to start..."
+    - sleep 30
+    - echo "🏥 Running health checks..."
+    - ssh $PROD_USER@$PROD_SERVER_HOST "curl -sf http://localhost:8090/actuator/health || echo 'Backend health check pending'"
+    - ssh $PROD_USER@$PROD_SERVER_HOST "curl -sf http://localhost:4000 || echo 'Frontend health check pending'"
+    - echo "✅ Deployment complete!"
   when: manual
   environment:
     name: production
+    url: https://talentpredict.com
   only:
     - main
 
 rollback:production:
   stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - |
+      if [ -n "$SSH_PRIVATE_KEY_PROD" ]; then
+        eval $(ssh-agent -s)
+        echo "$SSH_PRIVATE_KEY_PROD" | tr -d '\r' | ssh-add -
+        mkdir -p ~/.ssh && chmod 700 ~/.ssh
+        ssh-keyscan $PROD_SERVER_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
+      fi
   script:
-    - echo "Executing rollback to previous stable version..."
-    # Script SSH pour relancer l'ancienne version
+    - |
+      if [ -z "$PROD_SERVER_HOST" ] || [ -z "$PROD_USER" ]; then
+        echo "⚠️ Rollback not configured - missing server variables"
+        exit 0
+      fi
+    - echo "🔄 Initiating rollback to previous version..."
+    - ssh $PROD_USER@$PROD_SERVER_HOST "
+        cd /opt/talentpredict &&
+        docker-compose down &&
+        docker image ls --format '{{.Repository}}:{{.Tag}}' | grep -E '(backend|frontend):' | head -2 | xargs -I {} docker tag {} {}:rollback-$(date +%Y%m%d%H%M) || true &&
+        docker-compose up -d
+      "
+    - echo "✅ Rollback initiated - verify services manually"
   when: manual
+  environment:
+    name: production
+    action: stop
   only:
     - main

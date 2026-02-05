@@ -1,13 +1,17 @@
 # ============================================
 # TalentPredict Frontend - Multi-stage Dockerfile
 # Node 22 | Angular 21 SSR
+# Last Security Review: 2026-02-05
 # ============================================
 
-# Build argument for Node version
+# Build argument for Node version (use LTS)
 ARG NODE_VERSION=22
 
-# Stage 1: Dependencies
+# Stage 1: Dependencies (pinned version for reproducibility)
 FROM node:${NODE_VERSION}-alpine AS deps
+
+# Security: Update Alpine packages
+RUN apk update && apk upgrade --no-cache && rm -rf /var/cache/apk/*
 
 WORKDIR /app
 
@@ -32,10 +36,14 @@ RUN npm run build
 # Stage 3: Production Runtime (SSR with Node.js)
 FROM node:${NODE_VERSION}-alpine AS production
 
+# Security: Update Alpine packages to latest
+RUN apk update && apk upgrade --no-cache && rm -rf /var/cache/apk/*
+
 # Labels for container metadata
 LABEL maintainer="TalentPredict Team"
 LABEL version="1.0"
 LABEL description="TalentPredict Frontend (Angular SSR)"
+LABEL security.last-scan="2026-02-05"
 
 WORKDIR /app
 

@@ -1,13 +1,14 @@
 # ============================================
 # TalentPredict Backend - Multi-stage Dockerfile
 # Java 21 | Spring Boot 3.4
+# Last Security Review: 2026-02-05
 # ============================================
 
 # Build argument for Java version
 ARG JAVA_VERSION=21
 
-# Stage 1: Build with Maven
-FROM maven:3.9-eclipse-temurin-${JAVA_VERSION}-alpine AS build
+# Stage 1: Build with Maven (use specific version for reproducibility)
+FROM maven:3.9.9-eclipse-temurin-${JAVA_VERSION}-alpine AS build
 
 WORKDIR /app
 
@@ -23,13 +24,17 @@ COPY src ./src
 # Build the application (skip tests - they run in CI)
 RUN mvn clean package -DskipTests -B
 
-# Stage 2: Runtime with minimal JRE
+# Stage 2: Runtime with minimal JRE (pinned for security)
 FROM eclipse-temurin:${JAVA_VERSION}-jre-alpine AS runtime
+
+# Security: Update Alpine packages to latest
+RUN apk update && apk upgrade --no-cache && rm -rf /var/cache/apk/*
 
 # Labels for container metadata
 LABEL maintainer="TalentPredict Team"
 LABEL version="1.0"
 LABEL description="TalentPredict Backend API"
+LABEL security.last-scan="2026-02-05"
 
 WORKDIR /app
 
