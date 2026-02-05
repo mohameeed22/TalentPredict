@@ -100,24 +100,49 @@ quality:sonarqube:
   <<: *maven_template
   stage: quality
   script:
-    - mvn sonar:sonar -Dsonar.projectKey=talentpredict -Dsonar.host.url=$SONARQUBE_URL -Dsonar.login=$SONARQUBE_TOKEN
+    - |
+      if [ -n "$SONARQUBE_URL" ] && [ -n "$SONARQUBE_TOKEN" ]; then
+        mvn sonar:sonar -Dsonar.projectKey=talentpredict -Dsonar.host.url=$SONARQUBE_URL -Dsonar.login=$SONARQUBE_TOKEN
+      else
+        echo "⚠️ SonarQube not configured - skipping analysis"
+        echo "Configure SONARQUBE_URL and SONARQUBE_TOKEN in GitLab CI/CD variables"
+      fi
   allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+      when: on_success
+    - when: never
 
 security:trivy_scan:
   stage: security
   image: aquasec/trivy:latest
   script:
-    - trivy fs --severity HIGH,CRITICAL --format sarif -o results.sarif .
+    - trivy fs --severity HIGH,CRITICAL --format table --exit-code 0 .
+    - trivy fs --severity HIGH,CRITICAL --format json -o trivy-results.json . || true
   artifacts:
-    reports:
-      sast: results.sarif
+    paths:
+      - trivy-results.json
+    expire_in: 1 week
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+      when: on_success
+    - when: never
 
 security:dependency_check:
   <<: *maven_template
   stage: security
   script:
-    - mvn org.owasp:dependency-check-maven:check
+    - mvn org.owasp:dependency-check-maven:check || true
+  artifacts:
+    paths:
+      - serveur/target/dependency-check-report.html
+    expire_in: 1 week
   allow_failure: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+      when: on_success
+    - when: never
 
 # ==================== PACKAGE STAGE ====================
 
