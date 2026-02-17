@@ -1,0 +1,55 @@
+<div class="register-container">
+  <div class="register-card">
+    <h1>Inscription</h1>
+    <p class="subtitle">Créez votre compte TalentPredict</p>
+
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="nom">Nom</label>
+          <input id="nom" type="text" formControlName="nom" placeholder="Nom" required />
+        </div>
+
+        <div class="form-group">
+          <label for="prenom">Prénom</label>
+          <input id="prenom" type="text" formControlName="prenom" placeholder="Prénom" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          placeholder="votre@email.com"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Mot de passe</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          placeholder="••••••••"
+          required
+        />
+      </div>
+
+      <button type="submit" [disabled]="registerForm.invalid || loading" class="btn-primary">
+        @if (loading) {
+          <span>Inscription...</span>
+        } @else {
+          <span>S'inscrire</span>
+        }
+      </button>
+    </form>
+
+    <p class="login-link">
+      Déjà un compte ?
+      <a routerLink="/auth/login">Se connecter</a>
+    </p>
+  </div>
+</div>

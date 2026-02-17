@@ -1,0 +1,82 @@
+<div class="github-analyzer">
+  <div class="analyzer-header">
+    <h2>Analyseur de Profil GitHub</h2>
+    <p class="description">
+      Analysez votre profil GitHub pour identifier automatiquement vos compétences techniques
+    </p>
+  </div>
+
+  <div class="analyzer-form">
+    <div class="form-group">
+      <label for="githubUsername">Nom d'utilisateur GitHub</label>
+      <div class="input-wrapper">
+        <span class="input-icon">@</span>
+        <input
+          id="githubUsername"
+          type="text"
+          [value]="githubUsername()"
+          (input)="onUsernameChange($any($event.target).value)"
+          placeholder="username"
+          [disabled]="analyzing()"
+          (keyup.enter)="analyzeGithubProfile()"
+        />
+      </div>
+      @if (error()) {
+        <span class="error-message">{{ error() }}</span>
+      }
+    </div>
+
+    <div class="form-actions">
+      <button
+        class="btn-analyze"
+        (click)="analyzeGithubProfile()"
+        [disabled]="analyzing() || !githubUsername()">
+        @if (analyzing()) {
+          <span class="spinner"></span>
+          Analyse en cours...
+        } @else {
+          Analyser le profil
+        }
+      </button>
+      @if (analysisComplete()) {
+        <button class="btn-reset" (click)="reset()">
+          Nouvelle analyse
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (analyzing()) {
+    <div class="analyzing-status">
+      <div class="status-content">
+        <div class="loader"></div>
+        <p>Analyse du profil GitHub en cours...</p>
+        <span class="status-subtitle">Récupération des repositories et langages</span>
+      </div>
+    </div>
+  }
+
+  @if (analysisComplete() && analyzedSkills().length > 0) {
+    <div class="analysis-results">
+      <h3>Compétences détectées</h3>
+      <div class="skills-list">
+        @for (skill of analyzedSkills(); track skill.id) {
+          <div class="skill-item">
+            <div class="skill-info">
+              <span class="skill-name">{{ skill.nom }}</span>
+              <span class="skill-type">{{ skill.type }}</span>
+            </div>
+            <div class="skill-level">
+              <div class="level-bars">
+                @for (level of [1,2,3,4,5]; track level) {
+                  <div class="level-bar" [class.active]="level <= skill.niveau"></div>
+                }
+              </div>
+              <span class="level-text">{{ skill.niveau }}/5</span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

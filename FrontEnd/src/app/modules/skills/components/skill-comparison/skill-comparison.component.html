@@ -1,0 +1,74 @@
+<div class="skill-comparison">
+  <div class="comparison-header">
+    <h2>Comparaison de Compétences</h2>
+    <p class="description">Comparez vos compétences avec la moyenne des utilisateurs</p>
+  </div>
+
+  @if (loading()) {
+    <div class="loading">
+      <div class="loader"></div>
+      <p>Chargement des comparaisons...</p>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="error">
+      <p>{{ error() }}</p>
+      <button (click)="loadSkillComparisons()">Réessayer</button>
+    </div>
+  }
+
+  @if (!loading() && !error() && comparisons().length > 0) {
+    <div class="comparison-container">
+      <div class="legend">
+        <div class="legend-item">
+          <span class="legend-color user"></span>
+          <span>Votre niveau</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-color average"></span>
+          <span>Niveau moyen</span>
+        </div>
+      </div>
+
+      <div class="comparisons-list">
+        @for (comparison of comparisons(); track comparison.skillName) {
+          <div class="comparison-item">
+            <div class="skill-header">
+              <h3 class="skill-name">{{ comparison.skillName }}</h3>
+              <span 
+                class="gap-badge" 
+                [ngClass]="getGapClass(comparison.gap)">
+                {{ getGapText(comparison.gap) }}
+              </span>
+            </div>
+
+            <div class="bars-container">
+              <div class="bar-row">
+                <span class="bar-label">Vous</span>
+                <div class="bar-track">
+                  <div 
+                    class="bar-fill user"
+                    [style.width.%]="getBarWidth(comparison.userLevel)">
+                  </div>
+                </div>
+                <span class="bar-value">{{ comparison.userLevel.toFixed(1) }}</span>
+              </div>
+
+              <div class="bar-row">
+                <span class="bar-label">Moyenne</span>
+                <div class="bar-track">
+                  <div 
+                    class="bar-fill average"
+                    [style.width.%]="getBarWidth(comparison.averageLevel)">
+                  </div>
+                </div>
+                <span class="bar-value">{{ comparison.averageLevel.toFixed(1) }}</span>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

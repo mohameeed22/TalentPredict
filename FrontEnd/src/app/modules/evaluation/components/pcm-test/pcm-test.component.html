@@ -1,0 +1,72 @@
+<div class="pcm-test-container">
+  <div class="test-header">
+    <h1>PCM Personality Test</h1>
+    <p class="test-description">
+      Answer the following questions to discover your PCM personality profile.
+      Rate each statement from 1 (Strongly Disagree) to 5 (Strongly Agree).
+    </p>
+  </div>
+
+  <div class="progress-section">
+    <div class="progress-info">
+      <span>Step {{ currentStep + 1 }} of {{ totalSteps }}</span>
+      <span>{{ progress | number: '1.0-0' }}% Complete</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" [style.width.%]="progress"></div>
+    </div>
+  </div>
+
+  @if (error) {
+    <div class="error-message">
+      <p>{{ error }}</p>
+    </div>
+  }
+
+  <div class="questions-container">
+    @for (question of currentQuestions; track question.id; let i = $index) {
+      <app-question-card
+        [question]="question.question"
+        [questionNumber]="currentStep * 2 + i + 1"
+        [currentAnswer]="responses[question.id]"
+        (answer)="onAnswerChange(question.id, $event)"
+      />
+    }
+  </div>
+
+  <div class="navigation-buttons">
+    <button 
+      class="btn btn-secondary" 
+      (click)="previousStep()"
+      [disabled]="currentStep === 0"
+    >
+      ← Previous
+    </button>
+
+    @if (currentStep < totalSteps - 1) {
+      <button 
+        class="btn btn-primary" 
+        (click)="nextStep()"
+        [disabled]="!canProceed"
+      >
+        Next →
+      </button>
+    } @else {
+      <button 
+        class="btn btn-success" 
+        (click)="submitTest()"
+        [disabled]="!canProceed || loading"
+      >
+        @if (loading) {
+          <span>Submitting...</span>
+        } @else {
+          <span>Submit Test ✓</span>
+        }
+      </button>
+    }
+  </div>
+
+  <div class="test-footer">
+    <p>Your responses are confidential and will be used to generate your personalized PCM profile.</p>
+  </div>
+</div>

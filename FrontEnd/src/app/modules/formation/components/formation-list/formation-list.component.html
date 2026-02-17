@@ -1,0 +1,56 @@
+<div class="formation-list-container">
+  <div class="header">
+    <h2>Mes Formations</h2>
+    <div class="filter-buttons">
+      <button 
+        class="filter-btn"
+        [class.active]="isFilterActive('ALL')"
+        (click)="filterByStatus('ALL')">
+        Toutes
+      </button>
+      <button 
+        class="filter-btn"
+        [class.active]="isFilterActive(StatutFormation.PROPOSEE)"
+        (click)="filterByStatus(StatutFormation.PROPOSEE)">
+        Proposées
+      </button>
+      <button 
+        class="filter-btn"
+        [class.active]="isFilterActive(StatutFormation.EN_COURS)"
+        (click)="filterByStatus(StatutFormation.EN_COURS)">
+        En cours
+      </button>
+      <button 
+        class="filter-btn"
+        [class.active]="isFilterActive(StatutFormation.TERMINEE)"
+        (click)="filterByStatus(StatutFormation.TERMINEE)">
+        Terminées
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading">
+      <p>Chargement des formations...</p>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="error">
+      <p>{{ error() }}</p>
+      <button (click)="loadFormations()">Réessayer</button>
+    </div>
+  }
+
+  @if (!loading() && !error()) {
+    <div class="formations-grid">
+      @for (formation of filteredFormations(); track formation.id) {
+        <app-formation-card [formation]="formation" />
+      } @empty {
+        <div class="empty-state">
+          <p>Aucune formation trouvée</p>
+        </div>
+      }
+    </div>
+  }
+</div>

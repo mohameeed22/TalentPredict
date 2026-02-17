@@ -1,0 +1,146 @@
+.formation-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    gap: 0.75rem;
+
+    .type-badge,
+    .status-badge {
+      padding: 0.375rem 0.875rem;
+      border-radius: 20px;
+      font-size: 0.813rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .type-badge {
+      background: rgba(255, 255, 255, 0.3);
+      color: white;
+    }
+
+    .status-badge {
+      background: white;
+      
+      &.status-proposed {
+        color: #3182ce;
+      }
+
+      &.status-in-progress {
+        color: #d69e2e;
+      }
+
+      &.status-completed {
+        color: #38a169;
+      }
+
+      &.status-cancelled {
+        color: #e53e3e;
+      }
+    }
+  }
+
+  .card-body {
+    padding: 1.5rem;
+
+    .formation-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 0.75rem;
+      line-height: 1.4;
+    }
+
+    .formation-description {
+      color: #4a5568;
+      font-size: 0.938rem;
+      line-height: 1.6;
+      margin-bottom: 1.25rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .formation-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.625rem;
+      margin-bottom: 1.25rem;
+      padding: 1rem;
+      background: #f7fafc;
+      border-radius: 8px;
+
+      .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.875rem;
+
+        .info-label {
+          color: #718096;
+          font-weight: 500;
+        }
+
+        .info-value {
+          color: #2d3748;
+          font-weight: 600;
+        }
+      }
+    }
+
+    .progress-section {
+      margin-bottom: 1.25rem;
+
+      .progress-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+      }
+    }
+
+    .card-actions {
+      padding-top: 1rem;
+      border-top: 1px solid #e2e8f0;
+
+      .btn-link {
+        display: inline-flex;
+        align-items: center;
+        color: #667eea;
+        font-weight: 600;
+        font-size: 0.938rem;
+        text-decoration: none;
+        transition: color 0.2s ease;
+
+        &:hover {
+          color: #764ba2;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .formation-card {
+    .card-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+}

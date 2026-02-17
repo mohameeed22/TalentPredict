@@ -1,0 +1,51 @@
+<div class="formation-card">
+  <div class="card-header">
+    <div class="type-badge">{{ getTypeLabel(formation().type) }}</div>
+    <div class="status-badge" [ngClass]="getStatusClass(formation().statut)">
+      {{ getStatusLabel(formation().statut) }}
+    </div>
+  </div>
+
+  <div class="card-body">
+    <h3 class="formation-title">{{ formation().titre }}</h3>
+    <p class="formation-description">{{ formation().description }}</p>
+
+    <div class="formation-info">
+      <div class="info-item">
+        <span class="info-label">Durée:</span>
+        <span class="info-value">{{ formation().duree }}h</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Date de proposition:</span>
+        <span class="info-value">{{ formatDate(formation().dateProposition) }}</span>
+      </div>
+      @if (formation().dateDebut) {
+        <div class="info-item">
+          <span class="info-label">Date de début:</span>
+          <span class="info-value">{{ formatDate(formation().dateDebut) }}</span>
+        </div>
+      }
+      @if (formation().dateFin) {
+        <div class="info-item">
+          <span class="info-label">Date de fin:</span>
+          <span class="info-value">{{ formatDate(formation().dateFin) }}</span>
+        </div>
+      }
+    </div>
+
+    @if (formation().statut === 'EN_COURS' || formation().progression > 0) {
+      <div class="progress-section">
+        <span class="progress-label">Progression</span>
+        <app-progress-tracker [progression]="formation().progression" />
+      </div>
+    }
+
+    @if (formation().url) {
+      <div class="card-actions">
+        <a [href]="formation().url" target="_blank" class="btn-link">
+          Accéder à la formation →
+        </a>
+      </div>
+    }
+  </div>
+</div>

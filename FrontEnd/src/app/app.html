@@ -1,0 +1,62 @@
+@if (showNavigation && isAuthenticated()) {
+  <nav class="navbar">
+    <div class="navbar-container">
+      <div class="logo">
+        <a routerLink="/dashboard">TalentPredict</a>
+      </div>
+
+      <ul class="nav-links">
+        <li>
+          <a routerLink="/dashboard" routerLinkActive="active">
+            <span class="icon">📊</span>
+            Dashboard
+          </a>
+        </li>
+        <li>
+          <a routerLink="/evaluation/test" routerLinkActive="active">
+            <span class="icon">🧠</span>
+            Test PCM
+          </a>
+        </li>
+        <li>
+          <a routerLink="/skills/github" routerLinkActive="active">
+            <span class="icon">💻</span>
+            Compétences
+          </a>
+        </li>
+        <li>
+          <a routerLink="/formations" routerLinkActive="active">
+            <span class="icon">📚</span>
+            Formations
+          </a>
+        </li>
+        <li>
+          <a routerLink="/jira" routerLinkActive="active">
+            <span class="icon">🎫</span>
+            Jira
+          </a>
+        </li>
+        @if (isAdmin()) {
+          <li>
+            <a routerLink="/admin/dashboard" routerLinkActive="active">
+              <span class="icon">⚙️</span>
+              Admin
+            </a>
+          </li>
+        }
+      </ul>
+
+      <div class="user-menu">
+        <span class="user-name">{{ getCurrentUser()?.prenom }} {{ getCurrentUser()?.nom }}</span>
+        <button class="logout-btn" (click)="logout()">
+          <span class="icon">🚪</span>
+          Déconnexion
+        </button>
+      </div>
+    </div>
+  </nav>
+}
+
+<main class="main-content">
+  <router-outlet />
+</main>

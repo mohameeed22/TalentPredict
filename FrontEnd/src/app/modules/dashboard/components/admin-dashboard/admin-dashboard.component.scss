@@ -1,0 +1,268 @@
+.admin-dashboard-container {
+  padding: 2rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  background-color: #f5f7fa;
+  min-height: 100vh;
+}
+
+.dashboard-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: #1a202c;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 500px;
+  font-size: 1.25rem;
+  color: #718096;
+}
+
+.error-message {
+  background-color: #fff5f5;
+  border: 2px solid #fc8181;
+  border-radius: 12px;
+  padding: 1.5rem;
+  color: #c53030;
+  text-align: center;
+  font-weight: 500;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border-left: 4px solid transparent;
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+  }
+
+  &.primary {
+    border-left-color: #4299e1;
+  }
+
+  &.success {
+    border-left-color: #48bb78;
+  }
+
+  &.info {
+    border-left-color: #667eea;
+  }
+
+  &.warning {
+    border-left-color: #ed8936;
+  }
+
+  &.success-alt {
+    border-left-color: #38b2ac;
+  }
+
+  &.gradient {
+    border-left-color: #9f7aea;
+  }
+}
+
+.stat-icon {
+  font-size: 3rem;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.stat-content {
+  flex: 1;
+
+  h3 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+  color: #1a202c;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #a0aec0;
+  margin: 0;
+}
+
+.charts-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 2rem;
+}
+
+.chart-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 2rem 0;
+    color: #1a202c;
+  }
+}
+
+.skills-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.skill-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.skill-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.skill-name {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.skill-value {
+  color: #718096;
+  font-weight: 500;
+}
+
+.bar-container {
+  height: 12px;
+  background-color: #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 6px;
+  transition: width 0.6s ease;
+}
+
+.formation-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 1rem;
+  position: relative;
+
+  &:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 12px;
+    top: 30px;
+    bottom: -24px;
+    width: 2px;
+    background-color: #e2e8f0;
+  }
+}
+
+.timeline-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+
+  &.dot-en-cours {
+    background-color: #ed8936;
+    box-shadow: 0 0 0 4px rgba(237, 137, 54, 0.2);
+  }
+
+  &.dot-complete {
+    background-color: #48bb78;
+    box-shadow: 0 0 0 4px rgba(72, 187, 120, 0.2);
+  }
+
+  &.dot-pending {
+    background-color: #4299e1;
+    box-shadow: 0 0 0 4px rgba(66, 153, 225, 0.2);
+  }
+}
+
+.timeline-content {
+  flex: 1;
+
+  h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2d3748;
+  }
+}
+
+.timeline-meta {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.meta-status {
+  padding: 0.25rem 0.75rem;
+  background-color: #edf2f7;
+  color: #4a5568;
+  border-radius: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.meta-progress {
+  color: #718096;
+  font-weight: 500;
+}
+
+.meta-date {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  margin: 0;
+}
+
+.empty-message {
+  text-align: center;
+  color: #a0aec0;
+  padding: 3rem 1rem;
+  font-size: 1rem;
+  font-style: italic;
+}

@@ -1,0 +1,119 @@
+<div class="admin-dashboard-container">
+  <h1 class="dashboard-title">Admin Dashboard - System Statistics</h1>
+
+  @if (loading) {
+    <div class="loading-spinner">
+      <p>Loading system statistics...</p>
+    </div>
+  }
+
+  @if (error) {
+    <div class="error-message">
+      <p>{{ error }}</p>
+    </div>
+  }
+
+  @if (systemStats && !loading) {
+    <div class="stats-grid">
+      <div class="stat-card primary">
+        <div class="stat-icon">👥</div>
+        <div class="stat-content">
+          <h3>Total Tests</h3>
+          <p class="stat-value">{{ totalTests }}</p>
+          <p class="stat-label">System-wide</p>
+        </div>
+      </div>
+
+      <div class="stat-card success">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-content">
+          <h3>Total Skills</h3>
+          <p class="stat-value">{{ totalSkills }}</p>
+          <p class="stat-label">Tracked</p>
+        </div>
+      </div>
+
+      <div class="stat-card info">
+        <div class="stat-icon">📚</div>
+        <div class="stat-content">
+          <h3>Total Formations</h3>
+          <p class="stat-value">{{ totalFormations }}</p>
+          <p class="stat-label">Available</p>
+        </div>
+      </div>
+
+      <div class="stat-card warning">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-content">
+          <h3>Active Formations</h3>
+          <p class="stat-value">{{ activeFormations }}</p>
+          <p class="stat-label">In Progress</p>
+        </div>
+      </div>
+
+      <div class="stat-card success-alt">
+        <div class="stat-icon">✅</div>
+        <div class="stat-content">
+          <h3>Completed</h3>
+          <p class="stat-value">{{ completedFormations }}</p>
+          <p class="stat-label">Formations</p>
+        </div>
+      </div>
+
+      <div class="stat-card gradient">
+        <div class="stat-icon">📈</div>
+        <div class="stat-content">
+          <h3>Average Progress</h3>
+          <p class="stat-value">{{ averageProgress }}%</p>
+          <p class="stat-label">Overall</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-section">
+      <div class="chart-card">
+        <h2>Most Popular Skills</h2>
+        @if (systemStats.topSkills.length > 0) {
+          <div class="skills-chart">
+            @for (skill of systemStats.topSkills; track skill.nom) {
+              <div class="skill-bar">
+                <div class="skill-label">
+                  <span class="skill-name">{{ skill.nom }}</span>
+                  <span class="skill-value">Level {{ skill.niveau }}</span>
+                </div>
+                <div class="bar-container">
+                  <div class="bar-fill" [style.width.%]="(skill.niveau / 5) * 100"></div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="empty-message">No skill data available</p>
+        }
+      </div>
+
+      <div class="chart-card">
+        <h2>Recent Formation Activity</h2>
+        @if (systemStats.recentFormations.length > 0) {
+          <div class="formation-timeline">
+            @for (formation of systemStats.recentFormations; track formation.titre) {
+              <div class="timeline-item">
+                <div class="timeline-dot" [class]="'dot-' + formation.statut"></div>
+                <div class="timeline-content">
+                  <h4>{{ formation.titre }}</h4>
+                  <div class="timeline-meta">
+                    <span class="meta-status">{{ formation.statut }}</span>
+                    <span class="meta-progress">{{ formation.progression }}% complete</span>
+                  </div>
+                  <p class="meta-date">{{ formation.dateDebut | date: 'medium' }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <p class="empty-message">No formation activity</p>
+        }
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,312 @@
+.jira-tickets {
+  padding: 2rem;
+  max-width: 1600px;
+  margin: 0 auto;
+
+  .tickets-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+
+    h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .btn-refresh {
+      padding: 0.75rem 1.5rem;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+
+      &:hover:not(:disabled) {
+        background: #764ba2;
+        transform: translateY(-2px);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .filters {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+
+      label {
+        font-size: 0.938rem;
+        font-weight: 600;
+        color: #4a5568;
+      }
+
+      select {
+        padding: 0.625rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 0.938rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+
+        &:focus {
+          outline: none;
+          border-color: #667eea;
+        }
+      }
+    }
+  }
+
+  .loading,
+  .error {
+    text-align: center;
+    padding: 3rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .loader {
+      width: 50px;
+      height: 50px;
+      border: 4px solid #e2e8f0;
+      border-top-color: #667eea;
+      border-radius: 50%;
+      margin: 0 auto 1rem;
+      animation: spin 1s linear infinite;
+    }
+
+    p {
+      font-size: 1.125rem;
+      color: #4a5568;
+    }
+
+    button {
+      margin-top: 1rem;
+      padding: 0.75rem 1.5rem;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+
+      &:hover {
+        background: #764ba2;
+      }
+    }
+  }
+
+  .tickets-table-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+
+    .tickets-table {
+      width: 100%;
+      border-collapse: collapse;
+
+      thead {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        
+        th {
+          padding: 1rem;
+          text-align: left;
+          font-size: 0.875rem;
+          font-weight: 700;
+          color: white;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+      }
+
+      tbody {
+        .ticket-row {
+          border-bottom: 1px solid #e2e8f0;
+          transition: background 0.2s ease;
+
+          &:hover {
+            background: #f7fafc;
+          }
+
+          td {
+            padding: 1rem;
+            font-size: 0.938rem;
+
+            .jira-key {
+              font-family: monospace;
+              font-size: 0.875rem;
+              font-weight: 700;
+              color: #667eea;
+              background: #edf2f9;
+              padding: 0.25rem 0.5rem;
+              border-radius: 4px;
+            }
+
+            .ticket-title {
+              font-weight: 600;
+              color: #2d3748;
+              max-width: 300px;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+
+            .status-badge,
+            .priority-badge {
+              display: inline-block;
+              padding: 0.375rem 0.75rem;
+              border-radius: 12px;
+              font-size: 0.813rem;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 0.3px;
+            }
+
+            .status-badge {
+              &.status-open {
+                background: #bee3f8;
+                color: #2c5282;
+              }
+
+              &.status-in-progress {
+                background: #feebc8;
+                color: #7c2d12;
+              }
+
+              &.status-resolved {
+                background: #c6f6d5;
+                color: #22543d;
+              }
+
+              &.status-closed {
+                background: #e2e8f0;
+                color: #4a5568;
+              }
+            }
+
+            .priority-badge {
+              &.priority-low {
+                background: #e2e8f0;
+                color: #4a5568;
+              }
+
+              &.priority-medium {
+                background: #bee3f8;
+                color: #2c5282;
+              }
+
+              &.priority-high {
+                background: #feebc8;
+                color: #c05621;
+              }
+
+              &.priority-critical {
+                background: #fed7d7;
+                color: #742a2a;
+              }
+            }
+
+            .assignee {
+              color: #4a5568;
+              font-weight: 500;
+            }
+
+            .date {
+              color: #718096;
+              font-size: 0.875rem;
+            }
+
+            .btn-sync {
+              padding: 0.5rem;
+              background: transparent;
+              border: 2px solid #e2e8f0;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 1.125rem;
+              transition: all 0.2s ease;
+
+              &:hover {
+                border-color: #667eea;
+                color: #667eea;
+                transform: rotate(180deg);
+              }
+            }
+          }
+
+          &.empty-state {
+            td {
+              text-align: center;
+              padding: 3rem;
+              color: #a0aec0;
+              font-size: 1.125rem;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1200px) {
+  .jira-tickets {
+    .tickets-table-container {
+      overflow-x: auto;
+
+      .tickets-table {
+        min-width: 1000px;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .jira-tickets {
+    padding: 1rem;
+
+    .tickets-header {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: flex-start;
+
+      h2 {
+        font-size: 1.5rem;
+      }
+    }
+
+    .filters {
+      flex-direction: column;
+      gap: 1rem;
+
+      .filter-group {
+        width: 100%;
+        
+        select {
+          flex: 1;
+        }
+      }
+    }
+  }
+}

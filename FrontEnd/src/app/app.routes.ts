@@ -1,0 +1,111 @@
+import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
+import { roleGuard } from './core/guards/role.guard';
+
+export const routes: Routes = [
+  {
+    path: '',
+    redirectTo: '/dashboard',
+    pathMatch: 'full'
+  },
+  {
+    path: 'auth',
+    children: [
+      {
+        path: 'login',
+        loadComponent: () => 
+          import('./modules/auth/components/login/login.component').then(m => m.LoginComponent)
+      },
+      {
+        path: 'register',
+        loadComponent: () => 
+          import('./modules/auth/components/register/register.component').then(m => m.RegisterComponent)
+      }
+    ]
+  },
+  {
+    path: 'dashboard',
+    canActivate: [authGuard],
+    loadComponent: () => 
+      import('./modules/dashboard/components/user-dashboard/user-dashboard.component')
+        .then(m => m.UserDashboardComponent)
+  },
+  {
+    path: 'admin',
+    canActivate: [authGuard, roleGuard(['ADMIN'])],
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () => 
+          import('./modules/dashboard/components/admin-dashboard/admin-dashboard.component')
+            .then(m => m.AdminDashboardComponent)
+      },
+      {
+        path: 'users',
+        loadComponent: () => 
+          import('./modules/admin/components/user-management/user-management.component')
+            .then(m => m.UserManagementComponent)
+      },
+      {
+        path: 'reports',
+        loadComponent: () => 
+          import('./modules/admin/components/reports/reports.component')
+            .then(m => m.ReportsComponent)
+      }
+    ]
+  },
+  {
+    path: 'evaluation',
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'test',
+        loadComponent: () => 
+          import('./modules/evaluation/components/pcm-test/pcm-test.component')
+            .then(m => m.PcmTestComponent)
+      },
+      {
+        path: 'results',
+        loadComponent: () => 
+          import('./modules/evaluation/components/test-results/test-results.component')
+            .then(m => m.TestResultsComponent)
+      }
+    ]
+  },
+  {
+    path: 'skills',
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'github',
+        loadComponent: () => 
+          import('./modules/skills/components/github-analyzer/github-analyzer.component')
+            .then(m => m.GithubAnalyzerComponent)
+      },
+      {
+        path: 'comparison',
+        loadComponent: () => 
+          import('./modules/skills/components/skill-comparison/skill-comparison.component')
+            .then(m => m.SkillComparisonComponent)
+      }
+    ]
+  },
+  {
+    path: 'formations',
+    canActivate: [authGuard],
+    loadComponent: () => 
+      import('./modules/formation/components/formation-list/formation-list.component')
+        .then(m => m.FormationListComponent)
+  },
+  {
+    path: 'jira',
+    canActivate: [authGuard],
+    loadComponent: () => 
+      import('./modules/jira/components/jira-tickets/jira-tickets.component')
+        .then(m => m.JiraTicketsComponent)
+  },
+  {
+    path: '**',
+    redirectTo: '/dashboard'
+  }
+];

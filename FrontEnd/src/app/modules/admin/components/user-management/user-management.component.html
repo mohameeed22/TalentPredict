@@ -1,0 +1,113 @@
+<div class="user-management">
+  <div class="management-header">
+    <h2>Gestion des Utilisateurs</h2>
+    <button class="btn-refresh" (click)="loadUsers()" [disabled]="loading()">
+      ↻ Actualiser
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading">
+      <div class="loader"></div>
+      <p>Chargement des utilisateurs...</p>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="error-banner">
+      <span>{{ error() }}</span>
+      <button (click)="loadUsers()">Réessayer</button>
+    </div>
+  }
+
+  @if (!loading()) {
+    <div class="users-table-container">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nom</th>
+            <th>Prénom</th>
+            <th>Email</th>
+            <th>Rôle</th>
+            <th>Date d'inscription</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of users(); track user.id) {
+            <tr class="user-row">
+              <td>
+                <span class="user-id">#{{ user.id }}</span>
+              </td>
+              <td>
+                <span class="user-name">{{ user.nom }}</span>
+              </td>
+              <td>
+                <span class="user-name">{{ user.prenom }}</span>
+              </td>
+              <td>
+                <span class="user-email">{{ user.email }}</span>
+              </td>
+              <td>
+                <span 
+                  class="role-badge" 
+                  [ngClass]="getRoleBadgeClass(user.role)">
+                  {{ getRoleLabel(user.role) }}
+                </span>
+              </td>
+              <td>
+                <span class="date">{{ formatDate(user.dateInscription) }}</span>
+              </td>
+              <td>
+                <div class="actions">
+                  <select 
+                    class="role-select"
+                    [value]="user.role"
+                    (change)="updateUserRole(user.id, $any($event.target).value)"
+                    title="Changer le rôle">
+                    <option [value]="Role.USER">Utilisateur</option>
+                    <option [value]="Role.ADMIN">Administrateur</option>
+                  </select>
+                  <button 
+                    class="btn-delete"
+                    (click)="confirmDelete(user)"
+                    title="Supprimer l'utilisateur">
+                    🗑️
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="empty-state">
+                Aucun utilisateur trouvé
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+@if (showDeleteConfirm()) {
+  <div class="modal-overlay" (click)="cancelDelete()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h3>Confirmer la suppression</h3>
+      <p>
+        Êtes-vous sûr de vouloir supprimer l'utilisateur 
+        <strong>{{ selectedUser()?.prenom }} {{ selectedUser()?.nom }}</strong> ?
+      </p>
+      <p class="warning">Cette action est irréversible.</p>
+      <div class="modal-actions">
+        <button class="btn-cancel" (click)="cancelDelete()">
+          Annuler
+        </button>
+        <button class="btn-confirm" (click)="deleteUser()">
+          Supprimer
+        </button>
+      </div>
+    </div>
+  </div>
+}

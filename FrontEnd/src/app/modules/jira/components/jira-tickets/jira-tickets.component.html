@@ -1,0 +1,122 @@
+<div class="jira-tickets">
+  <div class="tickets-header">
+    <h2>Tickets Jira</h2>
+    <button class="btn-refresh" (click)="loadTickets()" [disabled]="loading()">
+      ↻ Actualiser
+    </button>
+  </div>
+
+  <div class="filters">
+    <div class="filter-group">
+      <label>Statut:</label>
+      <select 
+        [value]="selectedStatus()" 
+        (change)="selectedStatus.set($any($event.target).value)">
+        <option value="ALL">Tous</option>
+        <option [value]="StatutTicket.OUVERT">Ouvert</option>
+        <option [value]="StatutTicket.EN_COURS">En cours</option>
+        <option [value]="StatutTicket.RESOLU">Résolu</option>
+        <option [value]="StatutTicket.FERME">Fermé</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label>Priorité:</label>
+      <select 
+        [value]="selectedPriority()" 
+        (change)="selectedPriority.set($any($event.target).value)">
+        <option value="ALL">Toutes</option>
+        <option [value]="PrioriteTicket.BASSE">Basse</option>
+        <option [value]="PrioriteTicket.MOYENNE">Moyenne</option>
+        <option [value]="PrioriteTicket.HAUTE">Haute</option>
+        <option [value]="PrioriteTicket.CRITIQUE">Critique</option>
+      </select>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading">
+      <div class="loader"></div>
+      <p>Chargement des tickets...</p>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="error">
+      <p>{{ error() }}</p>
+      <button (click)="loadTickets()">Réessayer</button>
+    </div>
+  }
+
+  @if (!loading() && !error()) {
+    <div class="tickets-table-container">
+      <table class="tickets-table">
+        <thead>
+          <tr>
+            <th>Clé Jira</th>
+            <th>Titre</th>
+            <th>Statut</th>
+            <th>Priorité</th>
+            <th>Assigné à</th>
+            <th>Date de création</th>
+            <th>Dernière mise à jour</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (ticket of filteredTickets(); track ticket.id) {
+            <tr class="ticket-row">
+              <td>
+                <span class="jira-key">{{ ticket.jiraKey }}</span>
+              </td>
+              <td>
+                <div class="ticket-title">
+                  {{ ticket.titre }}
+                </div>
+              </td>
+              <td>
+                <span 
+                  class="status-badge" 
+                  [ngClass]="getStatusClass(ticket.statut)">
+                  {{ getStatusLabel(ticket.statut) }}
+                </span>
+              </td>
+              <td>
+                <span 
+                  class="priority-badge" 
+                  [ngClass]="getPriorityClass(ticket.priorite)">
+                  {{ getPriorityLabel(ticket.priorite) }}
+                </span>
+              </td>
+              <td>
+                <span class="assignee">
+                  {{ ticket.assignee || 'Non assigné' }}
+                </span>
+              </td>
+              <td>
+                <span class="date">{{ formatDate(ticket.dateCreation) }}</span>
+              </td>
+              <td>
+                <span class="date">{{ formatDate(ticket.dateMiseAJour) }}</span>
+              </td>
+              <td>
+                <button 
+                  class="btn-sync" 
+                  (click)="syncTicket(ticket.id, $event)"
+                  title="Synchroniser avec Jira">
+                  ⟳
+                </button>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="8" class="empty-state">
+                Aucun ticket trouvé
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

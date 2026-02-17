@@ -1,0 +1,158 @@
+<div class="reports">
+  <div class="reports-header">
+    <h2>Rapports et Statistiques</h2>
+    <button class="btn-refresh" (click)="loadStats()" [disabled]="loading()">
+      ↻ Actualiser
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading">
+      <div class="loader"></div>
+      <p>Chargement des statistiques...</p>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="error">
+      <p>{{ error() }}</p>
+      <button (click)="loadStats()">Réessayer</button>
+    </div>
+  }
+
+  @if (!loading() && !error()) {
+    <div class="stats-grid">
+      <!-- Total Users -->
+      <div class="stat-card users">
+        <div class="stat-icon">👥</div>
+        <div class="stat-content">
+          <h3>Utilisateurs</h3>
+          <p class="stat-number">{{ stats().totalUsers }}</p>
+          <span class="stat-label">Total d'utilisateurs</span>
+        </div>
+      </div>
+
+      <!-- Active Users -->
+      <div class="stat-card active-users">
+        <div class="stat-icon">✓</div>
+        <div class="stat-content">
+          <h3>Utilisateurs Actifs</h3>
+          <p class="stat-number">{{ stats().activeUsers }}</p>
+          <span class="stat-label">
+            {{ getActiveUserRate() }}% d'utilisateurs actifs
+          </span>
+        </div>
+      </div>
+
+      <!-- Total Formations -->
+      <div class="stat-card formations">
+        <div class="stat-icon">📚</div>
+        <div class="stat-content">
+          <h3>Formations</h3>
+          <p class="stat-number">{{ stats().totalFormations }}</p>
+          <span class="stat-label">Formations créées</span>
+        </div>
+      </div>
+
+      <!-- Completed Formations -->
+      <div class="stat-card completed">
+        <div class="stat-icon">🎓</div>
+        <div class="stat-content">
+          <h3>Formations Terminées</h3>
+          <p class="stat-number">{{ stats().completedFormations }}</p>
+          <span class="stat-label">
+            {{ getCompletionRate() }}% de taux de complétion
+          </span>
+        </div>
+      </div>
+
+      <!-- Total Evaluations -->
+      <div class="stat-card evaluations">
+        <div class="stat-icon">📊</div>
+        <div class="stat-content">
+          <h3>Évaluations</h3>
+          <p class="stat-number">{{ stats().totalEvaluations }}</p>
+          <span class="stat-label">Tests PCM effectués</span>
+        </div>
+      </div>
+
+      <!-- Total Tickets -->
+      <div class="stat-card tickets">
+        <div class="stat-icon">🎫</div>
+        <div class="stat-content">
+          <h3>Tickets Jira</h3>
+          <p class="stat-number">{{ stats().totalTickets }}</p>
+          <span class="stat-label">Tickets créés</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-section">
+      <div class="chart-card">
+        <h3>Taux d'Activité</h3>
+        <div class="progress-chart">
+          <div class="progress-item">
+            <div class="progress-header">
+              <span class="progress-label">Utilisateurs Actifs</span>
+              <span class="progress-percentage">{{ getActiveUserRate() }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div 
+                class="progress-fill active-users-fill"
+                [style.width.%]="getActiveUserRate()">
+              </div>
+            </div>
+          </div>
+
+          <div class="progress-item">
+            <div class="progress-header">
+              <span class="progress-label">Formations Complétées</span>
+              <span class="progress-percentage">{{ getCompletionRate() }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div 
+                class="progress-fill formations-fill"
+                [style.width.%]="getCompletionRate()">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h3>Résumé du Système</h3>
+        <div class="summary-list">
+          <div class="summary-item">
+            <span class="summary-icon">👤</span>
+            <div class="summary-content">
+              <span class="summary-value">{{ stats().totalUsers }}</span>
+              <span class="summary-label">Utilisateurs inscrits</span>
+            </div>
+          </div>
+          <div class="summary-item">
+            <span class="summary-icon">📖</span>
+            <div class="summary-content">
+              <span class="summary-value">{{ stats().totalFormations }}</span>
+              <span class="summary-label">Formations disponibles</span>
+            </div>
+          </div>
+          <div class="summary-item">
+            <span class="summary-icon">✅</span>
+            <div class="summary-content">
+              <span class="summary-value">{{ stats().completedFormations }}</span>
+              <span class="summary-label">Formations terminées</span>
+            </div>
+          </div>
+          <div class="summary-item">
+            <span class="summary-icon">📈</span>
+            <div class="summary-content">
+              <span class="summary-value">{{ stats().totalEvaluations }}</span>
+              <span class="summary-label">Évaluations complétées</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>
