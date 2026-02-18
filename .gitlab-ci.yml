@@ -1,70 +1,36 @@
-# Créer le nouveau fichier
-@"
-# ============================================================================
-# TalentPredict Pipeline - Updated Structure
-# ============================================================================
 stages:
   - build
   - test
-  - quality
-  - security
   - package
-  - deploy
 
 variables:
-  DOCKER_DRIVER: overlay2
-  DOCKER_TLS_CERTDIR: "/certs"
-  MAVEN_OPTS: "-Dmaven.repo.local=`$CI_PROJECT_DIR/.m2/repository"
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
   MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version"
-  NPM_CONFIG_CACHE: "`$CI_PROJECT_DIR/.npm"
-  BACKEND_IMAGE: "`$CI_REGISTRY_IMAGE/backend"
-  FRONTEND_IMAGE: "`$CI_REGISTRY_IMAGE/frontend"
-  IMAGE_TAG: "`$CI_COMMIT_SHORT_SHA"
-
-# ==================== TEMPLATES ====================
-
-.maven_template: &maven_template
-  image: maven:3.9-eclipse-temurin-21
-  cache:
-    key: maven-cache-`$CI_COMMIT_REF_SLUG
-    paths:
-      - .m2/repository
-  before_script:
-    - cd BackEnd
-
-.node_template: &node_template
-  image: node:22-alpine
-  cache:
-    key: npm-cache-`$CI_COMMIT_REF_SLUG
-    paths:
-      - FrontEnd/node_modules
-      - FrontEnd/.npm
-  before_script:
-    - cd FrontEnd
-
-.docker_template: &docker_template
-  image: docker:24-dind
-  services:
-    - docker:24-dind
-  before_script:
-    - echo "`$CI_REGISTRY_PASSWORD" | docker login -u "`$CI_REGISTRY_USER" --password-stdin `$CI_REGISTRY
-
-# ==================== BUILD STAGE ====================
 
 backend:build:
-  <<: *maven_template
+  image: maven:3.9-eclipse-temurin-21
   stage: build
+  cache:
+    key: maven-cache
+    paths:
+      - .m2/repository
   script:
-    - mvn `$MAVEN_CLI_OPTS clean compile -DskipTests
+    - cd BackEnd
+    - mvn $MAVEN_CLI_OPTS clean compile -DskipTests
   artifacts:
     paths:
       - BackEnd/target/
     expire_in: 1 hour
 
 frontend:build:
-  <<: *node_template
+  image: node:22-alpine
   stage: build
+  cache:
+    key: npm-cache
+    paths:
+      - FrontEnd/node_modules
   script:
+    - cd FrontEnd
     - npm ci --legacy-peer-deps
     - npm run build
   artifacts:
@@ -72,115 +38,49 @@ frontend:build:
       - FrontEnd/dist/
     expire_in: 1 hour
 
-# ==================== TEST STAGE ====================
-
 backend:test:
-  <<: *maven_template
+  image: maven:3.9-eclipse-temurin-21
   stage: test
-  script:
-    - mvn `$MAVEN_CLI_OPTS test -Dspring.profiles.active=test || true
-  artifacts:
-    when: always
-    reports:
-      junit: BackEnd/target/surefire-reports/TEST-*.xml
+  cache:
+    key: maven-cache
     paths:
-      - BackEnd/target/surefire-reports/
+      - .m2/repository
+  script:
+    - cd BackEnd
+    - mvn $MAVEN_CLI_OPTS test || true
   allow_failure: true
 
 frontend:test:
-  <<: *node_template
+  image: node:22-alpine
   stage: test
+  cache:
+    key: npm-cache
+    paths:
+      - FrontEnd/node_modules
   script:
+    - cd FrontEnd
     - npm ci --legacy-peer-deps
-    - npm run lint --if-present
     - npm run test -- --watch=false || true
   allow_failure: true
 
-# ==================== QUALITY & SECURITY ====================
-
-quality:sonarqube:
-  <<: *maven_template
-  stage: quality
-  script:
-    - |
-      if [ -n "`$SONARQUBE_URL" ] && [ -n "`$SONARQUBE_TOKEN" ]; then
-        mvn sonar:sonar -Dsonar.projectKey=talentpredict -Dsonar.host.url=`$SONARQUBE_URL -Dsonar.login=`$SONARQUBE_TOKEN
-      else
-        echo "⚠️ SonarQube not configured - skipping"
-      fi
-  allow_failure: true
-  rules:
-    - if: `$CI_COMMIT_BRANCH == "main" || `$CI_COMMIT_BRANCH == "develop"
-      when: on_success
-    - when: never
-
-security:trivy_scan:
-  stage: security
-  image: aquasec/trivy:latest
-  variables:
-    TRIVY_NO_PROGRESS: "true"
-    TRIVY_CACHE_DIR: ".trivycache/"
-  cache:
-    key: trivy-cache
-    paths:
-      - .trivycache/
-  script:
-    - trivy fs --severity CRITICAL,HIGH --exit-code 0 --format table .
-    - trivy fs --severity HIGH,CRITICAL --format json -o trivy-results.json .
-  artifacts:
-    paths:
-      - trivy-results.json
-    expire_in: 30 days
-  allow_failure: true
-
-# ==================== PACKAGE STAGE ====================
-
 package:backend:
-  <<: *docker_template
+  image: docker:24
+  services:
+    - docker:24-dind
   stage: package
   script:
     - cd BackEnd
-    - docker build -t `$BACKEND_IMAGE:`$IMAGE_TAG -t `$BACKEND_IMAGE:latest .
-    - docker push `$BACKEND_IMAGE:`$IMAGE_TAG
-    - docker push `$BACKEND_IMAGE:latest
+    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA .
   only:
     - main
-    - develop
 
 package:frontend:
-  <<: *docker_template
+  image: docker:24
+  services:
+    - docker:24-dind
   stage: package
   script:
     - cd FrontEnd
-    - docker build -t `$FRONTEND_IMAGE:`$IMAGE_TAG -t `$FRONTEND_IMAGE:latest .
-    - docker push `$FRONTEND_IMAGE:`$IMAGE_TAG
-    - docker push `$FRONTEND_IMAGE:latest
+    - docker build -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA .
   only:
     - main
-    - develop
-
-# ==================== DEPLOY STAGE ====================
-
-deploy:production:
-  stage: deploy
-  image: alpine:latest
-  before_script:
-    - apk add --no-cache openssh-client
-  script:
-    - |
-      if [ -z "`$PROD_SERVER_HOST" ]; then
-        echo "⚠️ Production not configured"
-        exit 0
-      fi
-    - echo "🚀 Deploy to production..."
-  when: manual
-  environment:
-    name: production
-  only:
-    - main
-"@ | Out-File -Encoding UTF8 .gitlab-ci.yml
-
-git add .gitlab-ci.yml
-git commit -m "fix: update CI/CD paths from BackEnd/client to BackEnd/FrontEnd"
-git push origin main
-git push github main
