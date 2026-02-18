@@ -32,12 +32,12 @@ frontend:build:
   script:
     - cd FrontEnd
     - npm ci --legacy-peer-deps
-    - npm run build -- --configuration production
+    # On force --ssr false et --prerender false ici pour écraser toute autre config
+    - npx ng build --configuration production --ssr false --prerender false
   artifacts:
     paths:
       - FrontEnd/dist/talent-predict-client/
     expire_in: 1 hour
-
 backend:test:
   image: maven:3.9-eclipse-temurin-21
   stage: test

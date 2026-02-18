@@ -1,78 +1,51 @@
 # ============================================
-# TalentPredict Frontend - Multi-stage Dockerfile
-# Node 22 | Angular 21 SSR
-# Last Security Review: 2026-02-05
+# TalentPredict Frontend - Production Ready
+# Nginx Static Serving (Non-SSR)
 # ============================================
 
-# Build argument for Node version (use LTS)
-ARG NODE_VERSION=22
-
-# Stage 1: Dependencies (pinned version for reproducibility)
-FROM node:${NODE_VERSION}-alpine AS deps
-
-# Security: Update Alpine packages
-RUN apk update && apk upgrade --no-cache && rm -rf /var/cache/apk/*
+# Stage 1: Build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
-# Copy package files
+# Installation des dépendances
 COPY package*.json ./
-
-# Install all dependencies (including devDependencies for build)
 RUN npm ci --legacy-peer-deps
 
-# Stage 2: Build
-FROM node:${NODE_VERSION}-alpine AS build
-
-WORKDIR /app
-
-# Copy dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
+# Copie du code et build
 COPY . .
+RUN npm run build -- --configuration production
 
-# Build for production
-RUN npm run build
+# Stage 2: Runtime (Nginx)
+FROM nginx:stable-alpine AS production
 
-# Stage 3: Production Runtime (SSR with Node.js)
-FROM node:${NODE_VERSION}-alpine AS production
-
-# Security: Update Alpine packages to latest
-RUN apk update && apk upgrade --no-cache && rm -rf /var/cache/apk/*
-
-# Labels for container metadata
+# Labels de métadonnées
 LABEL maintainer="TalentPredict Team"
 LABEL version="1.0"
-LABEL description="TalentPredict Frontend (Angular SSR)"
-LABEL security.last-scan="2026-02-05"
+LABEL description="TalentPredict Frontend (Static)"
 
-WORKDIR /app
+# Sécurité : On retire les fichiers par défaut de Nginx
+RUN rm -rf /usr/share/nginx/html/*
 
-# Copy built application
-COPY --from=build /app/dist/talent-predict-client ./dist/talent-predict-client
-COPY --from=build /app/package*.json ./
+# Copie des fichiers compilés depuis le stage build
+# Note : Le chemin correspond à la structure générée sans SSR
+COPY --from=build /app/dist/talent-predict-client /usr/share/nginx/html
 
-# Install only production dependencies
-RUN npm ci --omit=dev --legacy-peer-deps && \
-    npm cache clean --force
+# Configuration Nginx pour gérer les routes Angular (SPA)
+RUN echo "server { \
+    listen 80; \
+    location / { \
+    root /usr/share/nginx/html; \
+    index index.html index.htm; \
+    try_files \$uri \$uri/ /index.html; \
+    } \
+    }" > /etc/nginx/conf.d/default.conf
 
-# Add non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001 -G nodejs && \
-    chown -R nodejs:nodejs /app
+# Exposition du port standard web
+EXPOSE 80
 
-# Switch to non-root user
-USER nodejs
+# Santé de l'application
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost/ || exit 1
 
-# Expose port
-EXPOSE 4000
-
-# Environment variables
-ENV NODE_ENV=production
-ENV PORT=4000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:4000/ || exit 1
-
-# Start the SSR server
-CMD ["node", "dist/talent-predict-client/server/server.mjs"]
+CMD ["nginx", "-g", "daemon off;"]
