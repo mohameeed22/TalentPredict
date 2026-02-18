@@ -32,10 +32,10 @@ frontend:build:
   script:
     - cd FrontEnd
     - npm ci --legacy-peer-deps
-    - npm run build
+    - npm run build -- --configuration production
   artifacts:
     paths:
-      - FrontEnd/dist/
+      - FrontEnd/dist/talent-predict-client/browser
     expire_in: 1 hour
 
 backend:test:

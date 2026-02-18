@@ -4,15 +4,17 @@
  */
 package com.talentpredict.modules.auth.service;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.talentpredict.modules.auth.dto.InscriptionRequest;
 import com.talentpredict.modules.auth.model.User;
 import com.talentpredict.modules.auth.repository.UserRepository;
 import com.talentpredict.shared.exception.BadRequestException;
 import com.talentpredict.shared.exception.ResourceNotFoundException;
+
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor

@@ -1,10 +1,11 @@
 package com.talentpredict.modules.evaluation.repository;
 
-import com.talentpredict.modules.evaluation.model.PersonalityTest;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.talentpredict.modules.evaluation.model.PersonalityTest;
 
 @Repository
 public interface PersonalityTestRepository extends JpaRepository<PersonalityTest, Long> {

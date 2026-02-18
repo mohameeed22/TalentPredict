@@ -1,14 +1,24 @@
 package com.talentpredict.modules.auth.model;
 
-import com.talentpredict.modules.evaluation.model.PersonalityTest;
-import com.talentpredict.modules.skills.model.Skill;
-import com.talentpredict.modules.ai.model.Prediction;
-import com.talentpredict.modules.formation.model.Formation;
-import jakarta.persistence.*;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.talentpredict.modules.ai.model.Prediction;
+import com.talentpredict.modules.evaluation.model.PersonalityTest;
+import com.talentpredict.modules.formation.model.Formation;
+import com.talentpredict.modules.skills.model.Skill;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "utilisateurs")
