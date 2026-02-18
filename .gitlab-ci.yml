@@ -1,86 +1,87 @@
+# =============================================================================
+# APPROACH 2 (RECOMMENDED) — Root orchestrator using child pipelines
+# File: .gitlab-ci.yml
+#
+# HOW IT WORKS:
+#   This root file acts as a dispatcher. It detects which folder changed and
+#   triggers the matching child pipeline defined in ci/*.gitlab-ci.yml.
+#   Each child pipeline runs in complete isolation: its own stages, its own
+#   jobs, its own artifact scope.
+#
+# WHY THIS IS MORE SCALABLE THAN A SINGLE FILE:
+#   ┌────────────────────────────────────┬─────────────────────────────────┐
+#   │  Approach 1 (single file)          │  Approach 2 (child pipelines)   │
+#   ├────────────────────────────────────┼─────────────────────────────────┤
+#   │  One growing YAML                  │  Focused, small YAML per module │
+#   │  Mixed stage graphs                │  Independent stage graphs       │
+#   │  Harder to permission-scope        │  Teams own their pipeline file  │
+#   │  All jobs visible together         │  Clean per-module pipeline view │
+#   └────────────────────────────────────┴─────────────────────────────────┘
+#
+# CHILD PIPELINE DOCS:
+#   https://docs.gitlab.com/ee/ci/pipelines/downstream_pipelines.html
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Workflow — skip draft MR pipelines to save CI minutes
+# ---------------------------------------------------------------------------
+workflow:
+  rules:
+    - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:/'
+      when: never
+    - when: always
+
+# ---------------------------------------------------------------------------
+# The root pipeline has a single stage: trigger.
+# All actual work happens inside the child pipelines.
+# ---------------------------------------------------------------------------
 stages:
-  - build
-  - test
-  - package
+  - trigger
 
-variables:
-  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
-  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version"
+# ===========================================================================
+# FRONTEND CHILD PIPELINE TRIGGER
+# Activated only when files under FrontEnd/ change.
+# ===========================================================================
+trigger:frontend:
+  stage: trigger
+  # The `trigger:` keyword spins up a separate downstream pipeline
+  # from the YAML at the given path instead of running shell commands.
+  trigger:
+    include:
+      - local: ci/frontend.gitlab-ci.yml
+    # `strategy: depend` propagates the child pipeline result back here.
+    # If the child fails, this trigger job also fails → root pipeline fails.
+    strategy: depend
+  rules:
+    - if: '$CI_COMMIT_BRANCH || $CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - FrontEnd/**/*              # Any file change inside FrontEnd/ triggers this
+        - ci/frontend.gitlab-ci.yml  # Re-run if the pipeline definition itself changes
 
-backend:build:
-  image: maven:3.9-eclipse-temurin-21
-  stage: build
-  cache:
-    key: maven-cache
-    paths:
-      - .m2/repository
-  script:
-    - cd BackEnd
-    - mvn $MAVEN_CLI_OPTS clean compile -DskipTests
-  artifacts:
-    paths:
-      - BackEnd/target/
-    expire_in: 1 hour
+# ===========================================================================
+# BACKEND CHILD PIPELINE TRIGGER
+# Activated only when files under BackEnd/ change.
+# ===========================================================================
+trigger:backend:
+  stage: trigger
+  trigger:
+    include:
+      - local: ci/backend.gitlab-ci.yml
+    strategy: depend
+  rules:
+    - if: '$CI_COMMIT_BRANCH || $CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - BackEnd/**/*               # Any file change inside BackEnd/ triggers this
+        - ci/backend.gitlab-ci.yml   # Re-run if the pipeline definition itself changes
 
-frontend:build:
-  image: node:22-alpine
-  stage: build
-  cache:
-    key: npm-cache
-    paths:
-      - FrontEnd/node_modules
-  script:
-    - cd FrontEnd
-    - npm ci --legacy-peer-deps
-    - npm run build -- --configuration production
-  artifacts:
-    paths:
-      - FrontEnd/dist/talent-predict-client/
-    expire_in: 1 hour
-
-backend:test:
-  image: maven:3.9-eclipse-temurin-21
-  stage: test
-  cache:
-    key: maven-cache
-    paths:
-      - .m2/repository
-  script:
-    - cd BackEnd
-    - mvn $MAVEN_CLI_OPTS test || true
-  allow_failure: true
-
-frontend:test:
-  image: node:22-alpine
-  stage: test
-  cache:
-    key: npm-cache
-    paths:
-      - FrontEnd/node_modules
-  script:
-    - cd FrontEnd
-    - npm ci --legacy-peer-deps
-    - npm run test -- --watch=false || true
-  allow_failure: true
-
-package:backend:
-  image: docker:24
-  services:
-    - docker:24-dind
-  stage: package
-  script:
-    - cd BackEnd
-    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA .
-  only:
-    - main
-
-package:frontend:
-  image: docker:24
-  services:
-    - docker:24-dind
-  stage: package
-  script:
-    - cd FrontEnd
-    - docker build -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHORT_SHA .
-  only:
-    - main
+# ===========================================================================
+# OPTIONAL: Shared components (SAST, secret detection, Docker login, etc.)
+# ===========================================================================
+# Create ci/shared.gitlab-ci.yml and include it inside each child pipeline:
+#
+#   include:
+#     - local: ci/shared.gitlab-ci.yml
+#
+# Or use GitLab CI components from a catalog:
+#   include:
+#     - component: gitlab.example.com/devops/components/sast@1.0

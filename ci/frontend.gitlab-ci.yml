@@ -1,0 +1,131 @@
+# =============================================================================
+# FRONTEND CHILD PIPELINE — Angular 21 + SSR
+# File: ci/frontend.gitlab-ci.yml
+#
+# This file is NOT triggered directly. It is included by the root
+# .gitlab-ci.yml via a `trigger:` child pipeline when changes are detected
+# under FrontEnd/**
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Stages for this child pipeline
+# ---------------------------------------------------------------------------
+stages:
+  - install       # Resolve and cache npm dependencies
+  - build         # Compile Angular production bundle
+  - test          # Run Karma unit tests (headless Chrome)
+  - deploy        # Placeholder for future hosting deployment
+
+# ---------------------------------------------------------------------------
+# Maven local repository cache — reused across stages
+# ---------------------------------------------------------------------------
+.npm-cache: &npm-cache
+  cache:
+    key:
+      files:
+        - FrontEnd/package-lock.json   # Cache busted only when lock file changes
+    paths:
+      - FrontEnd/node_modules/
+    policy: pull                       # Download only; push is handled by install job
+
+# ===========================================================================
+# STAGE: install
+# ===========================================================================
+install:
+  stage: install
+  image: node:22-alpine
+  cache:
+    key:
+      files:
+        - FrontEnd/package-lock.json
+    paths:
+      - FrontEnd/node_modules/
+    policy: push                       # This job owns the cache write
+  script:
+    - cd FrontEnd
+    - echo ">>> Installing dependencies with npm ci..."
+    - npm ci --prefer-offline          # Strict reproducible install from lock file
+  artifacts:
+    paths:
+      - FrontEnd/node_modules/         # Forward node_modules to downstream jobs
+    expire_in: 1 hour
+
+# ===========================================================================
+# STAGE: build
+# ===========================================================================
+build:prod:
+  stage: build
+  image: node:22-alpine
+  needs: [install]
+  <<: *npm-cache
+  script:
+    - cd FrontEnd
+    - echo ">>> Building Angular app (production configuration)..."
+    # --no-progress keeps logs clean in CI (no animated spinner)
+    - npx ng build --configuration production --no-progress
+  artifacts:
+    name: "frontend-dist-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - FrontEnd/dist/                 # Contains browser/ and server/ SSR bundles
+    expire_in: 7 days
+
+# ===========================================================================
+# STAGE: test
+# ===========================================================================
+test:unit:
+  stage: test
+  image: node:22-alpine
+  needs: [install]                     # Runs in parallel with build:prod
+  <<: *npm-cache
+  before_script:
+    # Chromium is required by Angular Karma test runner in headless mode
+    - apk add --no-cache chromium
+    - export CHROME_BIN=/usr/bin/chromium-browser
+  script:
+    - cd FrontEnd
+    - echo ">>> Running unit tests (ChromeHeadless)..."
+    - npx ng test --watch=false --browsers=ChromeHeadless --no-progress
+  coverage: '/Statements\s*:\s*([\d.]+)%/'
+  artifacts:
+    when: always                        # Upload report even on test failure
+    reports:
+      # Requires karma-junit-reporter configured in karma.conf.js
+      junit: FrontEnd/junit-test-results.xml
+    expire_in: 7 days
+  allow_failure: false
+
+# ===========================================================================
+# STAGE: deploy
+# ===========================================================================
+
+# ── Production deploy (manual gate) ─────────────────────────────────────────
+deploy:production:
+  stage: deploy
+  image: alpine:3.19
+  needs: [build:prod, test:unit]       # Both must succeed before deploy is available
+  environment:
+    name: production
+    url: https://talentpredict.example.com
+  when: manual                         # Human approval required — good practice for prod
+  only:
+    - main                             # Limit production deploy to the main branch
+  script:
+    - echo ">>> DEPLOY PLACEHOLDER"
+    - echo "Replace this block with your actual deployment steps, for example:"
+    - echo "  - Firebase Hosting : firebase deploy --only hosting"
+    - echo "  - AWS S3 + CF      : aws s3 sync dist/ s3://my-bucket && aws cloudfront create-invalidation"
+    - echo "  - Azure Static WA  : az staticwebapp deploy --source FrontEnd/dist/browser"
+    - echo "  - Nginx upload     : rsync -avz FrontEnd/dist/browser/ user@host:/var/www/html/"
+
+# ── Staging deploy (automatic on merge-requests) ────────────────────────────
+deploy:staging:
+  stage: deploy
+  image: alpine:3.19
+  needs: [build:prod, test:unit]
+  environment:
+    name: staging
+    url: https://staging.talentpredict.example.com
+  only:
+    - merge_requests
+  script:
+    - echo ">>> Staging deploy placeholder"
