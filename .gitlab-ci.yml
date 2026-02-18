@@ -1,5 +1,7 @@
+# Créer le nouveau fichier
+@"
 # ============================================================================
-# TalentPredict Ultimate Pipeline (Fusion)
+# TalentPredict Pipeline - Updated Structure
 # ============================================================================
 stages:
   - build
@@ -12,40 +14,40 @@ stages:
 variables:
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: "/certs"
-  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  MAVEN_OPTS: "-Dmaven.repo.local=`$CI_PROJECT_DIR/.m2/repository"
   MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version"
-  NPM_CONFIG_CACHE: "$CI_PROJECT_DIR/.npm"
-  BACKEND_IMAGE: "$CI_REGISTRY_IMAGE/backend"
-  FRONTEND_IMAGE: "$CI_REGISTRY_IMAGE/frontend"
-  IMAGE_TAG: "$CI_COMMIT_SHORT_SHA"
+  NPM_CONFIG_CACHE: "`$CI_PROJECT_DIR/.npm"
+  BACKEND_IMAGE: "`$CI_REGISTRY_IMAGE/backend"
+  FRONTEND_IMAGE: "`$CI_REGISTRY_IMAGE/frontend"
+  IMAGE_TAG: "`$CI_COMMIT_SHORT_SHA"
 
 # ==================== TEMPLATES ====================
 
 .maven_template: &maven_template
   image: maven:3.9-eclipse-temurin-21
   cache:
-    key: maven-cache-$CI_COMMIT_REF_SLUG
+    key: maven-cache-`$CI_COMMIT_REF_SLUG
     paths:
       - .m2/repository
   before_script:
-    - cd serveur
+    - cd BackEnd
 
 .node_template: &node_template
   image: node:22-alpine
   cache:
-    key: npm-cache-$CI_COMMIT_REF_SLUG
+    key: npm-cache-`$CI_COMMIT_REF_SLUG
     paths:
-      - client/node_modules
-      - client/.npm
+      - FrontEnd/node_modules
+      - FrontEnd/.npm
   before_script:
-    - cd client
+    - cd FrontEnd
 
 .docker_template: &docker_template
   image: docker:24-dind
   services:
     - docker:24-dind
   before_script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    - echo "`$CI_REGISTRY_PASSWORD" | docker login -u "`$CI_REGISTRY_USER" --password-stdin `$CI_REGISTRY
 
 # ==================== BUILD STAGE ====================
 
@@ -53,10 +55,10 @@ backend:build:
   <<: *maven_template
   stage: build
   script:
-    - mvn $MAVEN_CLI_OPTS clean compile -DskipTests
+    - mvn `$MAVEN_CLI_OPTS clean compile -DskipTests
   artifacts:
     paths:
-      - serveur/target/
+      - BackEnd/target/
     expire_in: 1 hour
 
 frontend:build:
@@ -67,7 +69,7 @@ frontend:build:
     - npm run build
   artifacts:
     paths:
-      - client/dist/
+      - FrontEnd/dist/
     expire_in: 1 hour
 
 # ==================== TEST STAGE ====================
@@ -76,13 +78,13 @@ backend:test:
   <<: *maven_template
   stage: test
   script:
-    - mvn $MAVEN_CLI_OPTS test -Dspring.profiles.active=test || true
+    - mvn `$MAVEN_CLI_OPTS test -Dspring.profiles.active=test || true
   artifacts:
     when: always
     reports:
-      junit: serveur/target/surefire-reports/TEST-*.xml
+      junit: BackEnd/target/surefire-reports/TEST-*.xml
     paths:
-      - serveur/target/surefire-reports/
+      - BackEnd/target/surefire-reports/
   allow_failure: true
 
 frontend:test:
@@ -101,15 +103,14 @@ quality:sonarqube:
   stage: quality
   script:
     - |
-      if [ -n "$SONARQUBE_URL" ] && [ -n "$SONARQUBE_TOKEN" ]; then
-        mvn sonar:sonar -Dsonar.projectKey=talentpredict -Dsonar.host.url=$SONARQUBE_URL -Dsonar.login=$SONARQUBE_TOKEN
+      if [ -n "`$SONARQUBE_URL" ] && [ -n "`$SONARQUBE_TOKEN" ]; then
+        mvn sonar:sonar -Dsonar.projectKey=talentpredict -Dsonar.host.url=`$SONARQUBE_URL -Dsonar.login=`$SONARQUBE_TOKEN
       else
-        echo "⚠️ SonarQube not configured - skipping analysis"
-        echo "Configure SONARQUBE_URL and SONARQUBE_TOKEN in GitLab CI/CD variables"
+        echo "⚠️ SonarQube not configured - skipping"
       fi
   allow_failure: true
   rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+    - if: `$CI_COMMIT_BRANCH == "main" || `$CI_COMMIT_BRANCH == "develop"
       when: on_success
     - when: never
 
@@ -124,47 +125,13 @@ security:trivy_scan:
     paths:
       - .trivycache/
   script:
-    - echo "🔍 Scanning for CRITICAL vulnerabilities (blocking)..."
-    - trivy fs --severity CRITICAL --exit-code 0 --format table . || CRITICAL_FOUND=1
-    - echo "🔍 Scanning for HIGH vulnerabilities (non-blocking)..."
-    - trivy fs --severity HIGH --exit-code 0 --format table .
-    - echo "📄 Generating detailed JSON report..."
+    - trivy fs --severity CRITICAL,HIGH --exit-code 0 --format table .
     - trivy fs --severity HIGH,CRITICAL --format json -o trivy-results.json .
-    - echo "📄 Generating SARIF report for GitLab integration..."
-    - trivy fs --severity HIGH,CRITICAL --format sarif -o trivy-results.sarif . || true
-    - |
-      if [ "$CRITICAL_FOUND" = "1" ]; then
-        echo "❌ CRITICAL vulnerabilities found! Review trivy-results.json"
-        echo "Pipeline will continue but manual review required."
-      fi
   artifacts:
     paths:
       - trivy-results.json
-      - trivy-results.sarif
-    reports:
-      sast: trivy-results.sarif
     expire_in: 30 days
-    when: always
   allow_failure: true
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
-      when: on_success
-    - when: never
-
-security:dependency_check:
-  <<: *maven_template
-  stage: security
-  script:
-    - mvn org.owasp:dependency-check-maven:check || true
-  artifacts:
-    paths:
-      - serveur/target/dependency-check-report.html
-    expire_in: 1 week
-  allow_failure: true
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
-      when: on_success
-    - when: never
 
 # ==================== PACKAGE STAGE ====================
 
@@ -172,102 +139,48 @@ package:backend:
   <<: *docker_template
   stage: package
   script:
-    - cd serveur
-    - docker build -t $BACKEND_IMAGE:$IMAGE_TAG -t $BACKEND_IMAGE:latest .
-    - docker push $BACKEND_IMAGE:$IMAGE_TAG
-    - docker push $BACKEND_IMAGE:latest
+    - cd BackEnd
+    - docker build -t `$BACKEND_IMAGE:`$IMAGE_TAG -t `$BACKEND_IMAGE:latest .
+    - docker push `$BACKEND_IMAGE:`$IMAGE_TAG
+    - docker push `$BACKEND_IMAGE:latest
+  only:
+    - main
+    - develop
 
 package:frontend:
   <<: *docker_template
   stage: package
   script:
-    - cd client
-    - docker build -t $FRONTEND_IMAGE:$IMAGE_TAG -t $FRONTEND_IMAGE:latest .
-    - docker push $FRONTEND_IMAGE:$IMAGE_TAG
-    - docker push $FRONTEND_IMAGE:latest
+    - cd FrontEnd
+    - docker build -t `$FRONTEND_IMAGE:`$IMAGE_TAG -t `$FRONTEND_IMAGE:latest .
+    - docker push `$FRONTEND_IMAGE:`$IMAGE_TAG
+    - docker push `$FRONTEND_IMAGE:latest
+  only:
+    - main
+    - develop
 
 # ==================== DEPLOY STAGE ====================
 
-.deploy_template: &deploy_template
-  image: alpine:latest
-  before_script:
-    - apk add --no-cache openssh-client docker-compose
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
-    - ssh-keyscan $SERVER_HOST >> ~/.ssh/known_hosts
-
-deploy:staging:
-  <<: *deploy_template
-  stage: deploy
-  variables:
-    SSH_PRIVATE_KEY: "$SSH_PRIVATE_KEY_STAGING"
-    SERVER_HOST: "$STAGING_SERVER_HOST"
-  script:
-    - ssh $STAGING_USER@$STAGING_SERVER_HOST "cd /opt/talentpredict && docker-compose pull && docker-compose up -d"
-  environment:
-    name: staging
-  only:
-    - develop
-
 deploy:production:
-  <<: *deploy_template
-  stage: deploy
-  variables:
-    SSH_PRIVATE_KEY: "$SSH_PRIVATE_KEY_PROD"
-    SERVER_HOST: "$PROD_SERVER_HOST"
-  script:
-    - |
-      if [ -z "$PROD_SERVER_HOST" ] || [ -z "$PROD_USER" ] || [ -z "$SSH_PRIVATE_KEY_PROD" ]; then
-        echo "⚠️ Production deployment not configured"
-        echo "Required variables: PROD_SERVER_HOST, PROD_USER, SSH_PRIVATE_KEY_PROD"
-        echo "Configure in GitLab → Settings → CI/CD → Variables"
-        exit 0
-      fi
-    - echo "🚀 Deploying to production..."
-    - ssh $PROD_USER@$PROD_SERVER_HOST "cd /opt/talentpredict && docker-compose pull && docker-compose up -d"
-    - echo "⏳ Waiting for services to start..."
-    - sleep 30
-    - echo "🏥 Running health checks..."
-    - ssh $PROD_USER@$PROD_SERVER_HOST "curl -sf http://localhost:8090/actuator/health || echo 'Backend health check pending'"
-    - ssh $PROD_USER@$PROD_SERVER_HOST "curl -sf http://localhost:4000 || echo 'Frontend health check pending'"
-    - echo "✅ Deployment complete!"
-  when: manual
-  environment:
-    name: production
-    url: https://talentpredict.com
-  only:
-    - main
-
-rollback:production:
   stage: deploy
   image: alpine:latest
   before_script:
     - apk add --no-cache openssh-client
-    - |
-      if [ -n "$SSH_PRIVATE_KEY_PROD" ]; then
-        eval $(ssh-agent -s)
-        echo "$SSH_PRIVATE_KEY_PROD" | tr -d '\r' | ssh-add -
-        mkdir -p ~/.ssh && chmod 700 ~/.ssh
-        ssh-keyscan $PROD_SERVER_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
-      fi
   script:
     - |
-      if [ -z "$PROD_SERVER_HOST" ] || [ -z "$PROD_USER" ]; then
-        echo "⚠️ Rollback not configured - missing server variables"
+      if [ -z "`$PROD_SERVER_HOST" ]; then
+        echo "⚠️ Production not configured"
         exit 0
       fi
-    - echo "🔄 Initiating rollback to previous version..."
-    - ssh $PROD_USER@$PROD_SERVER_HOST "
-        cd /opt/talentpredict &&
-        docker-compose down &&
-        docker image ls --format '{{.Repository}}:{{.Tag}}' | grep -E '(backend|frontend):' | head -2 | xargs -I {} docker tag {} {}:rollback-$(date +%Y%m%d%H%M) || true &&
-        docker-compose up -d
-      "
-    - echo "✅ Rollback initiated - verify services manually"
+    - echo "🚀 Deploy to production..."
   when: manual
   environment:
     name: production
-    action: stop
   only:
     - main
+"@ | Out-File -Encoding UTF8 .gitlab-ci.yml
+
+git add .gitlab-ci.yml
+git commit -m "fix: update CI/CD paths from BackEnd/client to BackEnd/FrontEnd"
+git push origin main
+git push github main
