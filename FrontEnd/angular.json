@@ -30,7 +30,7 @@
               "src/styles.css"
             ],
             "scripts": [],
-            "outputMode": "browser",
+            "outputMode": "static",
             "ssr": false,
             "prerender": false
           },
