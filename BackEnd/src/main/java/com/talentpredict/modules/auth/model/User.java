@@ -1,5 +1,6 @@
 package com.talentpredict.modules.auth.model;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,22 +24,40 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "utilisateurs")
 public class User {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    @Column(unique = true, length = 50)
+    private String username;
+
     @Column(nullable = false)
     private String nom;
-    
+
     @Column(nullable = false)
     private String prenom;
-    
+
     @Column(unique = true, nullable = false)
     private String email;
-    
+
     @Column(nullable = false)
     private String motDePasse;
+
+    @Column(length = 100)
+    private String department;
+
+    @Column(length = 100)
+    private String position;
+
+    @Column(name = "hire_date")
+    private LocalDate hireDate;
+
+    @Column(name = "profile_picture_url")
+    private String profilePictureUrl;
+
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -138,6 +157,54 @@ public class User {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
+    }
+
+    public String getPosition() {
+        return position;
+    }
+
+    public void setPosition(String position) {
+        this.position = position;
+    }
+
+    public LocalDate getHireDate() {
+        return hireDate;
+    }
+
+    public void setHireDate(LocalDate hireDate) {
+        this.hireDate = hireDate;
+    }
+
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
+    }
+
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
+    }
+
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
     }
 
     public LocalDateTime getDateCreation() {
