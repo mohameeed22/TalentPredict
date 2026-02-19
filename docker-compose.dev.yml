@@ -1,0 +1,98 @@
+# ============================================
+# TalentPredict - Development Docker Compose
+# ============================================
+
+version: '3.8'
+
+services:
+  # Backend Service
+  backend:
+    build:
+      context: ./BackEnd
+      dockerfile: Dockerfile
+    container_name: talentpredict-backend-dev
+    ports:
+      - "8090:8090"
+    environment:
+      - SPRING_PROFILES_ACTIVE=development
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-dev:5432/talentpredict_dev
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=devpassword123
+      - JWT_SECRET=DevSecretKeyForJWTAuthenticationMustBeLongEnough256BitsForDevelopment
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+    networks:
+      - backend-dev
+    volumes:
+      - ./BackEnd/logs:/app/logs
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend-dev.rule=Host(`api-dev.talentpredict.local`)"
+      - "traefik.http.services.backend-dev.loadbalancer.server.port=8090"
+
+  # PostgreSQL Database
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: talentpredict-postgres-dev
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=talentpredict_dev
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=devpassword123
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./scripts/init-dev-db.sql:/docker-entrypoint-initdb.d/init-dev-db.sql:ro
+    networks:
+      - backend-dev
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d talentpredict_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Redis Cache (Optional for development)
+  redis-dev:
+    image: redis:7-alpine
+    container_name: talentpredict-redis-dev
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass devredispassword
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - backend-dev
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Adminer for database management
+  adminer:
+    image: adminer:4-standalone
+    container_name: talentpredict-adminer-dev
+    ports:
+      - "8080:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres-dev
+    networks:
+      - backend-dev
+    restart: unless-stopped
+
+networks:
+  backend-dev:
+    driver: bridge
+    name: talentpredict-backend-dev
+
+volumes:
+  postgres_dev_data:
+    name: talentpredict-postgres-dev-data
+  redis_dev_data:
+    name: talentpredict-redis-dev-data

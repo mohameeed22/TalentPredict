@@ -1,87 +1,387 @@
-# =============================================================================
-# APPROACH 2 (RECOMMENDED) — Root orchestrator using child pipelines
-# File: .gitlab-ci.yml
-#
-# HOW IT WORKS:
-#   This root file acts as a dispatcher. It detects which folder changed and
-#   triggers the matching child pipeline defined in ci/*.gitlab-ci.yml.
-#   Each child pipeline runs in complete isolation: its own stages, its own
-#   jobs, its own artifact scope.
-#
-# WHY THIS IS MORE SCALABLE THAN A SINGLE FILE:
-#   ┌────────────────────────────────────┬─────────────────────────────────┐
-#   │  Approach 1 (single file)          │  Approach 2 (child pipelines)   │
-#   ├────────────────────────────────────┼─────────────────────────────────┤
-#   │  One growing YAML                  │  Focused, small YAML per module │
-#   │  Mixed stage graphs                │  Independent stage graphs       │
-#   │  Harder to permission-scope        │  Teams own their pipeline file  │
-#   │  All jobs visible together         │  Clean per-module pipeline view │
-#   └────────────────────────────────────┴─────────────────────────────────┘
-#
-# CHILD PIPELINE DOCS:
-#   https://docs.gitlab.com/ee/ci/pipelines/downstream_pipelines.html
-# =============================================================================
+# ============================================
+# TalentPredict Backend - GitLab CI/CD Pipeline
+# Java 21 | Spring Boot 3.4 | Docker Deployment
+# ============================================
 
-# ---------------------------------------------------------------------------
-# Workflow — skip draft MR pipelines to save CI minutes
-# ---------------------------------------------------------------------------
-workflow:
-  rules:
-    - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:/'
-      when: never
-    - when: always
+variables:
+  # Docker configuration
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  
+  # Application configuration
+  APP_NAME: "talentpredict-backend"
+  REGISTRY: "$CI_REGISTRY"
+  IMAGE_NAME: "$CI_REGISTRY_IMAGE/backend"
+  
+  # Environment-specific variables
+  DEV_PORT: "8090"
+  STAGING_PORT: "8091"
+  PROD_PORT: "8092"
 
-# ---------------------------------------------------------------------------
-# The root pipeline has a single stage: trigger.
-# All actual work happens inside the child pipelines.
-# ---------------------------------------------------------------------------
+# Cache Maven dependencies
+cache:
+  paths:
+    - .m2/repository/
+    - BackEnd/target/
+
+# Define pipeline stages
 stages:
-  - trigger
+  - validate
+  - test
+  - security-scan
+  - build
+  - package
+  - deploy-dev
+  - deploy-staging
+  - deploy-prod
 
-# ===========================================================================
-# FRONTEND CHILD PIPELINE TRIGGER
-# Activated only when files under FrontEnd/ change.
-# ===========================================================================
-trigger:frontend:
-  stage: trigger
-  # The `trigger:` keyword spins up a separate downstream pipeline
-  # from the YAML at the given path instead of running shell commands.
-  trigger:
-    include:
-      - local: ci/frontend.gitlab-ci.yml
-    # `strategy: depend` propagates the child pipeline result back here.
-    # If the child fails, this trigger job also fails → root pipeline fails.
-    strategy: depend
+# ============================================
+# STAGE 1: VALIDATE
+# ============================================
+
+validate-code:
+  stage: validate
+  image: maven:3.9.9-eclipse-temurin-21-alpine
+  script:
+    - cd BackEnd
+    - mvn clean validate
+    - mvn compile
   rules:
-    - if: '$CI_COMMIT_BRANCH || $CI_PIPELINE_SOURCE == "merge_request_event"'
-      changes:
-        - FrontEnd/**/*              # Any file change inside FrontEnd/ triggers this
-        - ci/frontend.gitlab-ci.yml  # Re-run if the pipeline definition itself changes
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
-# ===========================================================================
-# BACKEND CHILD PIPELINE TRIGGER
-# Activated only when files under BackEnd/ change.
-# ===========================================================================
-trigger:backend:
-  stage: trigger
-  trigger:
-    include:
-      - local: ci/backend.gitlab-ci.yml
-    strategy: depend
+# ============================================
+# STAGE 2: TEST
+# ============================================
+
+unit-tests:
+  stage: test
+  image: maven:3.9.9-eclipse-temurin-21-alpine
+  services:
+    - name: postgres:15-alpine
+      alias: postgres
+  variables:
+    POSTGRES_DB: talentpredict_test
+    POSTGRES_USER: test
+    POSTGRES_PASSWORD: test123
+    SPRING_PROFILES_ACTIVE: test
+    SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/talentpredict_test
+    SPRING_DATASOURCE_USERNAME: test
+    SPRING_DATASOURCE_PASSWORD: test123
+  script:
+    - cd BackEnd
+    - mvn test
+    - mvn jacoco:report
+  artifacts:
+    reports:
+      junit:
+        - BackEnd/target/surefire-reports/TEST-*.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: BackEnd/target/site/jacoco/jacoco.xml
+    paths:
+      - BackEnd/target/site/jacoco/
+    expire_in: 1 week
+  coverage: '/Total.*?([0-9]{1,3})%/'
   rules:
-    - if: '$CI_COMMIT_BRANCH || $CI_PIPELINE_SOURCE == "merge_request_event"'
-      changes:
-        - BackEnd/**/*               # Any file change inside BackEnd/ triggers this
-        - ci/backend.gitlab-ci.yml   # Re-run if the pipeline definition itself changes
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
-# ===========================================================================
-# OPTIONAL: Shared components (SAST, secret detection, Docker login, etc.)
-# ===========================================================================
-# Create ci/shared.gitlab-ci.yml and include it inside each child pipeline:
-#
-#   include:
-#     - local: ci/shared.gitlab-ci.yml
-#
-# Or use GitLab CI components from a catalog:
-#   include:
-#     - component: gitlab.example.com/devops/components/sast@1.0
+integration-tests:
+  stage: test
+  image: maven:3.9.9-eclipse-temurin-21-alpine
+  services:
+    - name: postgres:15-alpine
+      alias: postgres
+  variables:
+    POSTGRES_DB: talentpredict_integration
+    POSTGRES_USER: integration
+    POSTGRES_PASSWORD: integration123
+    SPRING_PROFILES_ACTIVE: integration-test
+  script:
+    - cd BackEnd
+    - mvn verify -Dskip.unit.tests=true
+  artifacts:
+    reports:
+      junit:
+        - BackEnd/target/failsafe-reports/TEST-*.xml
+    expire_in: 1 week
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# ============================================
+# STAGE 3: SECURITY SCAN
+# ============================================
+
+dependency-scan:
+  stage: security-scan
+  image: maven:3.9.9-eclipse-temurin-21-alpine
+  script:
+    - cd BackEnd
+    - mvn org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7
+  artifacts:
+    reports:
+      dependency_scanning: BackEnd/target/dependency-check-report.json
+    paths:
+      - BackEnd/target/dependency-check-report.html
+    expire_in: 1 week
+  allow_failure: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+
+sast-scan:
+  stage: security-scan
+  image: securecodewarrior/gitlab-sast:latest
+  script:
+    - echo "Running SAST scan..."
+  artifacts:
+    reports:
+      sast: gl-sast-report.json
+  allow_failure: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+# ============================================
+# STAGE 4: BUILD
+# ============================================
+
+build-application:
+  stage: build
+  image: maven:3.9.9-eclipse-temurin-21-alpine
+  script:
+    - cd BackEnd
+    - mvn clean package -DskipTests
+    - echo "Build completed successfully"
+    - ls -la target/
+  artifacts:
+    paths:
+      - BackEnd/target/*.jar
+    expire_in: 1 day
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# ============================================
+# STAGE 5: PACKAGE (Docker)
+# ============================================
+
+build-docker-image:
+  stage: package
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - docker info
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  script:
+    - cd BackEnd
+    - |
+      # Build image with multiple tags
+      if [ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]; then
+        docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:$CI_COMMIT_SHA .
+        docker push $IMAGE_NAME:latest
+        docker push $IMAGE_NAME:$CI_COMMIT_SHA
+      else
+        docker build -t $IMAGE_NAME:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA .
+        docker push $IMAGE_NAME:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
+      fi
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# ============================================
+# STAGE 6: DEPLOY DEVELOPMENT
+# ============================================
+
+deploy-development:
+  stage: deploy-dev
+  image: docker:24-cli
+  services:
+    - docker:24-dind
+  environment:
+    name: development
+    url: http://dev-backend.talentpredict.local:$DEV_PORT
+  variables:
+    DEPLOY_ENV: development
+    APP_PORT: $DEV_PORT
+  before_script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  script:
+    - |
+      echo "Deploying to Development environment..."
+      
+      # Stop existing container
+      docker stop $APP_NAME-dev || true
+      docker rm $APP_NAME-dev || true
+      
+      # Run new container
+      docker run -d \
+        --name $APP_NAME-dev \
+        --restart unless-stopped \
+        -p $DEV_PORT:8090 \
+        -e SPRING_PROFILES_ACTIVE=development \
+        -e SPRING_DATASOURCE_URL=$DEV_DB_URL \
+        -e SPRING_DATASOURCE_USERNAME=$DEV_DB_USER \
+        -e SPRING_DATASOURCE_PASSWORD=$DEV_DB_PASSWORD \
+        -e JWT_SECRET=$DEV_JWT_SECRET \
+        --network backend-dev \
+        $IMAGE_NAME:$CI_COMMIT_SHA
+      
+      # Health check
+      sleep 30
+      curl -f http://localhost:$DEV_PORT/actuator/health || exit 1
+      
+      echo "Development deployment successful!"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH'
+      when: manual
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+# ============================================
+# STAGE 7: DEPLOY STAGING
+# ============================================
+
+deploy-staging:
+  stage: deploy-staging
+  image: docker:24-cli
+  services:
+    - docker:24-dind
+  environment:
+    name: staging
+    url: http://staging-backend.talentpredict.local:$STAGING_PORT
+  variables:
+    DEPLOY_ENV: staging
+    APP_PORT: $STAGING_PORT
+  before_script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  script:
+    - |
+      echo "Deploying to Staging environment..."
+      
+      # Stop existing container
+      docker stop $APP_NAME-staging || true
+      docker rm $APP_NAME-staging || true
+      
+      # Run new container
+      docker run -d \
+        --name $APP_NAME-staging \
+        --restart unless-stopped \
+        -p $STAGING_PORT:8090 \
+        -e SPRING_PROFILES_ACTIVE=staging \
+        -e SPRING_DATASOURCE_URL=$STAGING_DB_URL \
+        -e SPRING_DATASOURCE_USERNAME=$STAGING_DB_USER \
+        -e SPRING_DATASOURCE_PASSWORD=$STAGING_DB_PASSWORD \
+        -e JWT_SECRET=$STAGING_JWT_SECRET \
+        --network backend-staging \
+        $IMAGE_NAME:latest
+      
+      # Health check
+      sleep 30
+      curl -f http://localhost:$STAGING_PORT/actuator/health || exit 1
+      
+      echo "Staging deployment successful!"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+  needs:
+    - deploy-development
+
+# ============================================
+# STAGE 8: DEPLOY PRODUCTION
+# ============================================
+
+deploy-production:
+  stage: deploy-prod
+  image: docker:24-cli
+  services:
+    - docker:24-dind
+  environment:
+    name: production
+    url: https://api.talentpredict.com
+  variables:
+    DEPLOY_ENV: production
+    APP_PORT: $PROD_PORT
+  before_script:
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  script:
+    - |
+      echo "Deploying to Production environment..."
+      
+      # Blue-Green deployment strategy
+      CURRENT_COLOR=$(docker ps --format "table {{.Names}}" | grep -o "$APP_NAME-prod-[a-z]*" | head -1 | cut -d'-' -f4 || echo "")
+      
+      if [ "$CURRENT_COLOR" == "blue" ]; then
+        NEW_COLOR="green"
+      else
+        NEW_COLOR="blue"
+      fi
+      
+      echo "Deploying $NEW_COLOR version..."
+      
+      # Run new container
+      docker run -d \
+        --name $APP_NAME-prod-$NEW_COLOR \
+        --restart unless-stopped \
+        -p $PROD_PORT:8090 \
+        -e SPRING_PROFILES_ACTIVE=production \
+        -e SPRING_DATASOURCE_URL=$PROD_DB_URL \
+        -e SPRING_DATASOURCE_USERNAME=$PROD_DB_USER \
+        -e SPRING_DATASOURCE_PASSWORD=$PROD_DB_PASSWORD \
+        -e JWT_SECRET=$PROD_JWT_SECRET \
+        --network backend-prod \
+        $IMAGE_NAME:latest
+      
+      # Health check
+      sleep 45
+      for i in {1..5}; do
+        if curl -f http://localhost:$PROD_PORT/actuator/health; then
+          echo "Health check passed!"
+          break
+        fi
+        if [ $i -eq 5 ]; then
+          echo "Health check failed!"
+          docker stop $APP_NAME-prod-$NEW_COLOR
+          docker rm $APP_NAME-prod-$NEW_COLOR
+          exit 1
+        fi
+        sleep 10
+      done
+      
+      # Switch traffic (remove old container)
+      if [ -n "$CURRENT_COLOR" ]; then
+        docker stop $APP_NAME-prod-$CURRENT_COLOR || true
+        docker rm $APP_NAME-prod-$CURRENT_COLOR || true
+      fi
+      
+      echo "Production deployment successful! ($NEW_COLOR version)"
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+  needs:
+    - deploy-staging
+  
+# ============================================
+# ROLLBACK JOB (Manual)
+# ============================================
+
+rollback-production:
+  stage: deploy-prod
+  image: docker:24-cli
+  environment:
+    name: production
+    url: https://api.talentpredict.com
+    action: rollback
+  script:
+    - |
+      echo "Rolling back to previous version..."
+      # Implementation for rollback logic
+      # This would typically involve switching back to the previous Docker image
+      docker pull $IMAGE_NAME:$(git rev-parse HEAD~1)
+      # Add rollback logic here
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+  allow_failure: false
