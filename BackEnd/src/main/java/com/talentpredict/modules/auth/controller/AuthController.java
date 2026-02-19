@@ -4,7 +4,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -48,10 +47,19 @@ public class AuthController {
     
     @PostMapping("/connexion")
     public ResponseEntity<AuthResponse> connexion(@Valid @RequestBody AuthRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
+        return login(request);
+    }
+
+    /**
+     * Standard login endpoint (English alias for /connexion).
+     * Returns a JWT bearer token on success.
+     */
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
+        authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
-        
+
         User user = userService.getUserByEmail(request.getEmail());
         String token = jwtService.generateToken(user.getEmail());
         

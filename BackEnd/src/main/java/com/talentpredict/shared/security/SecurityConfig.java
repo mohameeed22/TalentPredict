@@ -3,6 +3,7 @@ package com.talentpredict.shared.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -32,9 +33,18 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
+                // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
-                .requestMatchers("/camunda/**").permitAll() // BPM endpoints
+                .requestMatchers("/camunda/**").permitAll()
+                // Utilisateur routes – ADMIN only
+                .requestMatchers(HttpMethod.POST,   "/api/utilisateurs").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET,    "/api/utilisateurs").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/utilisateurs/**").hasRole("ADMIN")
+                // Utilisateur routes – USER or ADMIN (fine-grained ownership check in service)
+                .requestMatchers(HttpMethod.GET,    "/api/utilisateurs/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers(HttpMethod.PUT,    "/api/utilisateurs/**").hasAnyRole("USER", "ADMIN")
+                // All other endpoints require authentication
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
