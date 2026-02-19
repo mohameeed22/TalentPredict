@@ -1,68 +1,46 @@
 # ============================================
-# TalentPredict Backend - GitLab CI/CD Pipeline
-# Java 21 | Spring Boot 3.4 | Docker Deployment
+# TalentPredict Backend - Simple CI/CD
+# Java 21 | Spring Boot 3.4
 # ============================================
 
 variables:
-  DOCKER_DRIVER: overlay2
-  DOCKER_TLS_CERTDIR: ""
-  DOCKER_HOST: tcp://docker:2375
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
-
-  APP_NAME: "talentpredict-backend"
   IMAGE_NAME: "$CI_REGISTRY_IMAGE/backend"
-
-  DEV_PORT: "8090"
-  STAGING_PORT: "8091"
-  PROD_PORT: "8092"
 
 cache:
   paths:
     - .m2/repository/
-    - BackEnd/target/
 
 stages:
-  - validate
-  - test
   - build
+  - test
+  - quality
+  - security
   - package
-  - deploy-dev
-  - deploy-staging
-  - deploy-prod
+  - deploy
 
 # ============================================
-# VALIDATE
+# BUILD
 # ============================================
 
-validate-code:
-  stage: validate
+build:
+  stage: build
   image: maven:3.9.9-eclipse-temurin-21-alpine
   script:
     - cd BackEnd
-    - mvn clean validate
-    - mvn compile
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - mvn clean compile
+  artifacts:
+    paths:
+      - BackEnd/target/
+    expire_in: 1 day
 
 # ============================================
 # TEST
 # ============================================
 
-unit-tests:
+test:
   stage: test
   image: maven:3.9.9-eclipse-temurin-21-alpine
-  services:
-    - name: postgres:15-alpine
-      alias: postgres
-  variables:
-    POSTGRES_DB: talentpredict_test
-    POSTGRES_USER: test
-    POSTGRES_PASSWORD: test123
-    SPRING_PROFILES_ACTIVE: test
-    SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/talentpredict_test
-    SPRING_DATASOURCE_USERNAME: test
-    SPRING_DATASOURCE_PASSWORD: test123
   script:
     - cd BackEnd
     - mvn test
@@ -70,140 +48,62 @@ unit-tests:
     reports:
       junit:
         - BackEnd/target/surefire-reports/TEST-*.xml
-    expire_in: 1 week
 
 # ============================================
-# BUILD
+# QUALITY (Code Quality Check)
 # ============================================
 
-build-application:
-  stage: build
+quality:
+  stage: quality
   image: maven:3.9.9-eclipse-temurin-21-alpine
   script:
     - cd BackEnd
-    - mvn clean package -DskipTests
-  artifacts:
-    paths:
-      - BackEnd/target/*.jar
-    expire_in: 1 day
+    - mvn verify -DskipTests
+  allow_failure: true
 
 # ============================================
-# DOCKER BUILD
+# SECURITY (Dependency Scan)
 # ============================================
 
-build-docker-image:
+security:
+  stage: security
+  image: maven:3.9.9-eclipse-temurin-21-alpine
+  script:
+    - cd BackEnd
+    - mvn org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=8
+  allow_failure: true
+
+# ============================================
+# PACKAGE (Docker Image)
+# ============================================
+
+package:
   stage: package
   image: docker:24
   services:
     - docker:24-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
   before_script:
-    - docker info
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
     - cd BackEnd
-    - docker build -t $IMAGE_NAME:$CI_COMMIT_SHA .
-    - docker push $IMAGE_NAME:$CI_COMMIT_SHA
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - docker build -t $IMAGE_NAME:$CI_COMMIT_SHORT_SHA .
+    - docker push $IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+  only:
+    - main
 
 # ============================================
-# DEPLOY DEVELOPMENT
+# DEPLOY (Simple)
 # ============================================
 
-deploy-development:
-  stage: deploy-dev
-  image: docker:24
-  services:
-    - docker:24-dind
-  environment:
-    name: development
-  before_script:
-    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+deploy:
+  stage: deploy
+  image: alpine:latest
   script:
-    - docker network create backend-dev || true
-    - docker stop $APP_NAME-dev || true
-    - docker rm $APP_NAME-dev || true
-    - docker run -d \
-        --name $APP_NAME-dev \
-        -p $DEV_PORT:8090 \
-        -e SPRING_PROFILES_ACTIVE=development \
-        --network backend-dev \
-        $IMAGE_NAME:$CI_COMMIT_SHA
-    - sleep 25
-    - docker exec $APP_NAME-dev curl -f http://localhost:8090/actuator/health
-  rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-
-# ============================================
-# DEPLOY STAGING
-# ============================================
-
-deploy-staging:
-  stage: deploy-staging
-  image: docker:24
-  services:
-    - docker:24-dind
-  environment:
-    name: staging
-  before_script:
-    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
-  script:
-    - docker network create backend-staging || true
-    - docker stop $APP_NAME-staging || true
-    - docker rm $APP_NAME-staging || true
-    - docker run -d \
-        --name $APP_NAME-staging \
-        -p $STAGING_PORT:8090 \
-        -e SPRING_PROFILES_ACTIVE=staging \
-        --network backend-staging \
-        $IMAGE_NAME:$CI_COMMIT_SHA
-    - sleep 25
-    - docker exec $APP_NAME-staging curl -f http://localhost:8090/actuator/health
+    - echo "Deploy step executed"
+    - echo "Here you can add SSH deploy or server deployment logic"
   when: manual
-  needs:
-    - deploy-development
-
-# ============================================
-# DEPLOY PRODUCTION
-# ============================================
-
-deploy-production:
-  stage: deploy-prod
-  image: docker:24
-  services:
-    - docker:24-dind
-  environment:
-    name: production
-    url: https://api.talentpredict.com
-  before_script:
-    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
-  script:
-    - docker network create backend-prod || true
-    - docker stop $APP_NAME-prod || true
-    - docker rm $APP_NAME-prod || true
-    - docker run -d \
-        --name $APP_NAME-prod \
-        -p $PROD_PORT:8090 \
-        -e SPRING_PROFILES_ACTIVE=production \
-        --network backend-prod \
-        $IMAGE_NAME:$CI_COMMIT_SHA
-    - sleep 30
-    - docker exec $APP_NAME-prod curl -f http://localhost:8090/actuator/health
-  when: manual
-  needs:
-    - deploy-staging
-
-# ============================================
-# ROLLBACK PRODUCTION
-# ============================================
-
-rollback-production:
-  stage: deploy-prod
-  image: docker:24
-  services:
-    - docker:24-dind
-  environment:
-    name: production
-  script:
-    - echo "Rollback logic here"
-  when: manual
+  only:
+    - main
