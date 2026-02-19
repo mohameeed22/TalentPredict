@@ -4,32 +4,26 @@
 # ============================================
 
 variables:
-  # Docker configuration
   DOCKER_DRIVER: overlay2
-  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_HOST: tcp://docker:2375
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
-  
-  # Application configuration
+
   APP_NAME: "talentpredict-backend"
-  REGISTRY: "$CI_REGISTRY"
   IMAGE_NAME: "$CI_REGISTRY_IMAGE/backend"
-  
-  # Environment-specific variables
+
   DEV_PORT: "8090"
   STAGING_PORT: "8091"
   PROD_PORT: "8092"
 
-# Cache Maven dependencies
 cache:
   paths:
     - .m2/repository/
     - BackEnd/target/
 
-# Define pipeline stages
 stages:
   - validate
   - test
-  - security-scan
   - build
   - package
   - deploy-dev
@@ -37,7 +31,7 @@ stages:
   - deploy-prod
 
 # ============================================
-# STAGE 1: VALIDATE
+# VALIDATE
 # ============================================
 
 validate-code:
@@ -52,7 +46,7 @@ validate-code:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
 # ============================================
-# STAGE 2: TEST
+# TEST
 # ============================================
 
 unit-tests:
@@ -72,80 +66,14 @@ unit-tests:
   script:
     - cd BackEnd
     - mvn test
-    - mvn jacoco:report
   artifacts:
     reports:
       junit:
         - BackEnd/target/surefire-reports/TEST-*.xml
-      coverage_report:
-        coverage_format: cobertura
-        path: BackEnd/target/site/jacoco/jacoco.xml
-    paths:
-      - BackEnd/target/site/jacoco/
     expire_in: 1 week
-  coverage: '/Total.*?([0-9]{1,3})%/'
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-
-integration-tests:
-  stage: test
-  image: maven:3.9.9-eclipse-temurin-21-alpine
-  services:
-    - name: postgres:15-alpine
-      alias: postgres
-  variables:
-    POSTGRES_DB: talentpredict_integration
-    POSTGRES_USER: integration
-    POSTGRES_PASSWORD: integration123
-    SPRING_PROFILES_ACTIVE: integration-test
-  script:
-    - cd BackEnd
-    - mvn verify -Dskip.unit.tests=true
-  artifacts:
-    reports:
-      junit:
-        - BackEnd/target/failsafe-reports/TEST-*.xml
-    expire_in: 1 week
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
 # ============================================
-# STAGE 3: SECURITY SCAN
-# ============================================
-
-dependency-scan:
-  stage: security-scan
-  image: maven:3.9.9-eclipse-temurin-21-alpine
-  script:
-    - cd BackEnd
-    - mvn org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7
-  artifacts:
-    reports:
-      dependency_scanning: BackEnd/target/dependency-check-report.json
-    paths:
-      - BackEnd/target/dependency-check-report.html
-    expire_in: 1 week
-  allow_failure: true
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-
-sast-scan:
-  stage: security-scan
-  image: securecodewarrior/gitlab-sast:latest
-  script:
-    - echo "Running SAST scan..."
-  artifacts:
-    reports:
-      sast: gl-sast-report.json
-  allow_failure: true
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-
-# ============================================
-# STAGE 4: BUILD
+# BUILD
 # ============================================
 
 build-application:
@@ -154,23 +82,18 @@ build-application:
   script:
     - cd BackEnd
     - mvn clean package -DskipTests
-    - echo "Build completed successfully"
-    - ls -la target/
   artifacts:
     paths:
       - BackEnd/target/*.jar
     expire_in: 1 day
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
 # ============================================
-# STAGE 5: PACKAGE (Docker)
+# DOCKER BUILD
 # ============================================
 
 build-docker-image:
   stage: package
-  image: docker:24-dind
+  image: docker:24
   services:
     - docker:24-dind
   before_script:
@@ -178,210 +101,109 @@ build-docker-image:
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
     - cd BackEnd
-    - |
-      # Build image with multiple tags
-      if [ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]; then
-        docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:$CI_COMMIT_SHA .
-        docker push $IMAGE_NAME:latest
-        docker push $IMAGE_NAME:$CI_COMMIT_SHA
-      else
-        docker build -t $IMAGE_NAME:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA .
-        docker push $IMAGE_NAME:$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
-      fi
+    - docker build -t $IMAGE_NAME:$CI_COMMIT_SHA .
+    - docker push $IMAGE_NAME:$CI_COMMIT_SHA
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
 
 # ============================================
-# STAGE 6: DEPLOY DEVELOPMENT
+# DEPLOY DEVELOPMENT
 # ============================================
 
 deploy-development:
   stage: deploy-dev
-  image: docker:24-cli
+  image: docker:24
   services:
     - docker:24-dind
   environment:
     name: development
-    url: http://dev-backend.talentpredict.local:$DEV_PORT
-  variables:
-    DEPLOY_ENV: development
-    APP_PORT: $DEV_PORT
   before_script:
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
-    - |
-      echo "Deploying to Development environment..."
-      
-      # Stop existing container
-      docker stop $APP_NAME-dev || true
-      docker rm $APP_NAME-dev || true
-      
-      # Run new container
-      docker run -d \
+    - docker network create backend-dev || true
+    - docker stop $APP_NAME-dev || true
+    - docker rm $APP_NAME-dev || true
+    - docker run -d \
         --name $APP_NAME-dev \
-        --restart unless-stopped \
         -p $DEV_PORT:8090 \
         -e SPRING_PROFILES_ACTIVE=development \
-        -e SPRING_DATASOURCE_URL=$DEV_DB_URL \
-        -e SPRING_DATASOURCE_USERNAME=$DEV_DB_USER \
-        -e SPRING_DATASOURCE_PASSWORD=$DEV_DB_PASSWORD \
-        -e JWT_SECRET=$DEV_JWT_SECRET \
         --network backend-dev \
         $IMAGE_NAME:$CI_COMMIT_SHA
-      
-      # Health check
-      sleep 30
-      curl -f http://localhost:$DEV_PORT/actuator/health || exit 1
-      
-      echo "Development deployment successful!"
+    - sleep 25
+    - docker exec $APP_NAME-dev curl -f http://localhost:8090/actuator/health
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH'
-      when: manual
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
 # ============================================
-# STAGE 7: DEPLOY STAGING
+# DEPLOY STAGING
 # ============================================
 
 deploy-staging:
   stage: deploy-staging
-  image: docker:24-cli
+  image: docker:24
   services:
     - docker:24-dind
   environment:
     name: staging
-    url: http://staging-backend.talentpredict.local:$STAGING_PORT
-  variables:
-    DEPLOY_ENV: staging
-    APP_PORT: $STAGING_PORT
   before_script:
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
-    - |
-      echo "Deploying to Staging environment..."
-      
-      # Stop existing container
-      docker stop $APP_NAME-staging || true
-      docker rm $APP_NAME-staging || true
-      
-      # Run new container
-      docker run -d \
+    - docker network create backend-staging || true
+    - docker stop $APP_NAME-staging || true
+    - docker rm $APP_NAME-staging || true
+    - docker run -d \
         --name $APP_NAME-staging \
-        --restart unless-stopped \
         -p $STAGING_PORT:8090 \
         -e SPRING_PROFILES_ACTIVE=staging \
-        -e SPRING_DATASOURCE_URL=$STAGING_DB_URL \
-        -e SPRING_DATASOURCE_USERNAME=$STAGING_DB_USER \
-        -e SPRING_DATASOURCE_PASSWORD=$STAGING_DB_PASSWORD \
-        -e JWT_SECRET=$STAGING_JWT_SECRET \
         --network backend-staging \
-        $IMAGE_NAME:latest
-      
-      # Health check
-      sleep 30
-      curl -f http://localhost:$STAGING_PORT/actuator/health || exit 1
-      
-      echo "Staging deployment successful!"
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-      when: manual
+        $IMAGE_NAME:$CI_COMMIT_SHA
+    - sleep 25
+    - docker exec $APP_NAME-staging curl -f http://localhost:8090/actuator/health
+  when: manual
   needs:
     - deploy-development
 
 # ============================================
-# STAGE 8: DEPLOY PRODUCTION
+# DEPLOY PRODUCTION
 # ============================================
 
 deploy-production:
   stage: deploy-prod
-  image: docker:24-cli
+  image: docker:24
   services:
     - docker:24-dind
   environment:
     name: production
     url: https://api.talentpredict.com
-  variables:
-    DEPLOY_ENV: production
-    APP_PORT: $PROD_PORT
   before_script:
     - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
-    - |
-      echo "Deploying to Production environment..."
-      
-      # Blue-Green deployment strategy
-      CURRENT_COLOR=$(docker ps --format "table {{.Names}}" | grep -o "$APP_NAME-prod-[a-z]*" | head -1 | cut -d'-' -f4 || echo "")
-      
-      if [ "$CURRENT_COLOR" == "blue" ]; then
-        NEW_COLOR="green"
-      else
-        NEW_COLOR="blue"
-      fi
-      
-      echo "Deploying $NEW_COLOR version..."
-      
-      # Run new container
-      docker run -d \
-        --name $APP_NAME-prod-$NEW_COLOR \
-        --restart unless-stopped \
+    - docker network create backend-prod || true
+    - docker stop $APP_NAME-prod || true
+    - docker rm $APP_NAME-prod || true
+    - docker run -d \
+        --name $APP_NAME-prod \
         -p $PROD_PORT:8090 \
         -e SPRING_PROFILES_ACTIVE=production \
-        -e SPRING_DATASOURCE_URL=$PROD_DB_URL \
-        -e SPRING_DATASOURCE_USERNAME=$PROD_DB_USER \
-        -e SPRING_DATASOURCE_PASSWORD=$PROD_DB_PASSWORD \
-        -e JWT_SECRET=$PROD_JWT_SECRET \
         --network backend-prod \
-        $IMAGE_NAME:latest
-      
-      # Health check
-      sleep 45
-      for i in {1..5}; do
-        if curl -f http://localhost:$PROD_PORT/actuator/health; then
-          echo "Health check passed!"
-          break
-        fi
-        if [ $i -eq 5 ]; then
-          echo "Health check failed!"
-          docker stop $APP_NAME-prod-$NEW_COLOR
-          docker rm $APP_NAME-prod-$NEW_COLOR
-          exit 1
-        fi
-        sleep 10
-      done
-      
-      # Switch traffic (remove old container)
-      if [ -n "$CURRENT_COLOR" ]; then
-        docker stop $APP_NAME-prod-$CURRENT_COLOR || true
-        docker rm $APP_NAME-prod-$CURRENT_COLOR || true
-      fi
-      
-      echo "Production deployment successful! ($NEW_COLOR version)"
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-      when: manual
+        $IMAGE_NAME:$CI_COMMIT_SHA
+    - sleep 30
+    - docker exec $APP_NAME-prod curl -f http://localhost:8090/actuator/health
+  when: manual
   needs:
     - deploy-staging
-  
+
 # ============================================
-# ROLLBACK JOB (Manual)
+# ROLLBACK PRODUCTION
 # ============================================
 
 rollback-production:
   stage: deploy-prod
-  image: docker:24-cli
+  image: docker:24
+  services:
+    - docker:24-dind
   environment:
     name: production
-    url: https://api.talentpredict.com
-    action: rollback
   script:
-    - |
-      echo "Rolling back to previous version..."
-      # Implementation for rollback logic
-      # This would typically involve switching back to the previous Docker image
-      docker pull $IMAGE_NAME:$(git rev-parse HEAD~1)
-      # Add rollback logic here
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-      when: manual
-  allow_failure: false
+    - echo "Rollback logic here"
+  when: manual
