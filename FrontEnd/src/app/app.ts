@@ -3,10 +3,11 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
 import { AuthService } from './modules/auth/services/auth.service';
+import { NotificationToastComponent } from './shared/components/notification-toast/notification-toast.component';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, NotificationToastComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

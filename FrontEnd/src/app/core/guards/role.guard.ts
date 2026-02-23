@@ -1,11 +1,17 @@
 import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
 import { AuthService } from '../../modules/auth/services/auth.service';
+import { NotificationService } from '../services/notification.service';
 
+/**
+ * Factory that returns a CanActivateFn restricting access to specific roles.
+ * Usage: canActivate: [authGuard, roleGuard(['ADMIN'])]
+ */
 export const roleGuard = (allowedRoles: string[]): CanActivateFn => {
   return (route, state) => {
     const authService = inject(AuthService);
     const router = inject(Router);
+    const notificationService = inject(NotificationService);
 
     const currentUser = authService.getCurrentUser();
     
@@ -13,7 +19,7 @@ export const roleGuard = (allowedRoles: string[]): CanActivateFn => {
       return true;
     }
 
-    // Redirect to unauthorized page or dashboard
+    notificationService.warning('Accès réservé aux administrateurs.');
     router.navigate(['/dashboard']);
     return false;
   };

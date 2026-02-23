@@ -301,6 +301,29 @@
   }
 }
 
+.status-active {
+  color: #22543d;
+  background: #c6f6d5;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.813rem;
+  font-weight: 600;
+}
+
+.status-inactive {
+  color: #742a2a;
+  background: #fed7d7;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.813rem;
+  font-weight: 600;
+}
+
+.department {
+  color: #4a5568;
+  font-size: 0.875rem;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);

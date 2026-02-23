@@ -31,6 +31,13 @@ export const routes: Routes = [
         .then(m => m.UserDashboardComponent)
   },
   {
+    path: 'profile',
+    canActivate: [authGuard],
+    loadComponent: () => 
+      import('./modules/dashboard/components/user-profile/user-profile.component')
+        .then(m => m.UserProfileComponent)
+  },
+  {
     path: 'admin',
     canActivate: [authGuard, roleGuard(['ADMIN'])],
     children: [

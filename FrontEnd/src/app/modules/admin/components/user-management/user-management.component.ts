@@ -1,17 +1,20 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../services/admin.service';
+import { NotificationService } from '../../../../core/services/notification.service';
 import { User, Role } from '../../../auth/models/user.model';
 
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './user-management.component.html',
   styleUrl: './user-management.component.scss'
 })
 export class UserManagementComponent implements OnInit {
   private adminService = inject(AdminService);
+  private notificationService = inject(NotificationService);
   
   users = signal<User[]>([]);
   loading = signal(false);
@@ -42,7 +45,7 @@ export class UserManagementComponent implements OnInit {
     });
   }
 
-  updateUserRole(userId: number, newRole: Role): void {
+  updateUserRole(userId: number, newRole: string): void {
     this.adminService.updateUserRole(userId, newRole).subscribe({
       next: (updatedUser) => {
         const users = this.users();
@@ -51,10 +54,11 @@ export class UserManagementComponent implements OnInit {
           users[index] = updatedUser;
           this.users.set([...users]);
         }
+        this.notificationService.success('Rôle mis à jour avec succès.');
       },
       error: (err) => {
         console.error('Error updating user role:', err);
-        this.error.set('Erreur lors de la mise à jour du rôle');
+        this.notificationService.error('Erreur lors de la mise à jour du rôle.');
       }
     });
   }
@@ -78,24 +82,26 @@ export class UserManagementComponent implements OnInit {
         const users = this.users().filter(u => u.id !== user.id);
         this.users.set(users);
         this.cancelDelete();
+        this.notificationService.success('Utilisateur supprimé avec succès.');
       },
       error: (err) => {
         console.error('Error deleting user:', err);
-        this.error.set('Erreur lors de la suppression de l\'utilisateur');
+        this.notificationService.error('Erreur lors de la suppression de l\'utilisateur.');
         this.cancelDelete();
       }
     });
   }
 
-  getRoleBadgeClass(role: Role): string {
-    return role === Role.ADMIN ? 'role-admin' : 'role-user';
+  getRoleBadgeClass(role: Role | string): string {
+    return role === Role.ADMIN || role === 'ADMIN' ? 'role-admin' : 'role-user';
   }
 
-  getRoleLabel(role: Role): string {
-    return role === Role.ADMIN ? 'Administrateur' : 'Utilisateur';
+  getRoleLabel(role: Role | string): string {
+    return role === Role.ADMIN || role === 'ADMIN' ? 'Administrateur' : 'Utilisateur';
   }
 
-  formatDate(date: Date): string {
+  formatDate(date: string | Date): string {
+    if (!date) return '—';
     return new Date(date).toLocaleDateString('fr-FR', {
       year: 'numeric',
       month: 'long',

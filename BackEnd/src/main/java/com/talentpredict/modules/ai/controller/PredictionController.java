@@ -1,19 +1,24 @@
 package com.talentpredict.modules.ai.controller;
 
-import com.talentpredict.modules.ai.dto.PredictionResponse;
-import com.talentpredict.modules.ai.service.PredictionService;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import com.talentpredict.modules.ai.dto.PredictionResponse;
+import com.talentpredict.modules.ai.service.PredictionService;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/predictions")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class PredictionController {
     
     private final PredictionService predictionService;

@@ -29,7 +29,9 @@
             <th>Nom</th>
             <th>Prénom</th>
             <th>Email</th>
+            <th>Département</th>
             <th>Rôle</th>
+            <th>Statut</th>
             <th>Date d'inscription</th>
             <th>Actions</th>
           </tr>
@@ -41,13 +43,16 @@
                 <span class="user-id">#{{ user.id }}</span>
               </td>
               <td>
-                <span class="user-name">{{ user.nom }}</span>
+                <span class="user-name">{{ user.lastName }}</span>
               </td>
               <td>
-                <span class="user-name">{{ user.prenom }}</span>
+                <span class="user-name">{{ user.firstName }}</span>
               </td>
               <td>
                 <span class="user-email">{{ user.email }}</span>
+              </td>
+              <td>
+                <span class="department">{{ user.department || '—' }}</span>
               </td>
               <td>
                 <span 
@@ -57,7 +62,14 @@
                 </span>
               </td>
               <td>
-                <span class="date">{{ formatDate(user.dateInscription) }}</span>
+                @if (user.isActive) {
+                  <span class="status-active">Actif</span>
+                } @else {
+                  <span class="status-inactive">Inactif</span>
+                }
+              </td>
+              <td>
+                <span class="date">{{ formatDate(user.createdAt) }}</span>
               </td>
               <td>
                 <div class="actions">
@@ -66,8 +78,8 @@
                     [value]="user.role"
                     (change)="updateUserRole(user.id, $any($event.target).value)"
                     title="Changer le rôle">
-                    <option [value]="Role.USER">Utilisateur</option>
-                    <option [value]="Role.ADMIN">Administrateur</option>
+                    <option value="USER">Utilisateur</option>
+                    <option value="ADMIN">Administrateur</option>
                   </select>
                   <button 
                     class="btn-delete"
@@ -80,7 +92,7 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="7" class="empty-state">
+              <td colspan="9" class="empty-state">
                 Aucun utilisateur trouvé
               </td>
             </tr>
@@ -97,7 +109,7 @@
       <h3>Confirmer la suppression</h3>
       <p>
         Êtes-vous sûr de vouloir supprimer l'utilisateur 
-        <strong>{{ selectedUser()?.prenom }} {{ selectedUser()?.nom }}</strong> ?
+        <strong>{{ selectedUser()?.firstName }} {{ selectedUser()?.lastName }}</strong> ?
       </p>
       <p class="warning">Cette action est irréversible.</p>
       <div class="modal-actions">

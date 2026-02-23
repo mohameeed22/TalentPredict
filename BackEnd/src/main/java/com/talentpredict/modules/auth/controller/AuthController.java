@@ -4,7 +4,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,7 +22,6 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class AuthController {
     
     private final UserService userService;
@@ -39,7 +37,9 @@ public class AuthController {
             token,
             user.getId(),
             user.getEmail(),
-            user.getRole().name()
+            user.getRole().name(),
+            user.getNom(),
+            user.getPrenom()
         );
         
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -67,7 +67,9 @@ public class AuthController {
             token,
             user.getId(),
             user.getEmail(),
-            user.getRole().name()
+            user.getRole().name(),
+            user.getNom(),
+            user.getPrenom()
         );
         
         return ResponseEntity.ok(response);
