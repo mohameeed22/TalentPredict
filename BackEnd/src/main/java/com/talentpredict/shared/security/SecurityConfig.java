@@ -56,18 +56,19 @@ public class SecurityConfig {
                 // Allow CORS preflight requests
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Public endpoints
+                .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/camunda/**").permitAll()
                 .requestMatchers("/error").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 // Utilisateur routes – ADMIN only
-                .requestMatchers(HttpMethod.POST,   "/api/utilisateurs").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.GET,    "/api/utilisateurs").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/utilisateurs/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST,   "/api/accounts").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET,    "/api/accounts").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/accounts/**").hasRole("ADMIN")
                 // Utilisateur routes – USER or ADMIN (fine-grained ownership check in service)
-                .requestMatchers(HttpMethod.GET,    "/api/utilisateurs/**").hasAnyRole("USER", "ADMIN")
-                .requestMatchers(HttpMethod.PUT,    "/api/utilisateurs/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers(HttpMethod.GET,    "/api/accounts/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers(HttpMethod.PUT,    "/api/accounts/**").hasAnyRole("USER", "ADMIN")
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
             )

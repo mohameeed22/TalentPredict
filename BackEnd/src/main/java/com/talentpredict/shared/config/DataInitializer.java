@@ -5,38 +5,39 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import com.talentpredict.modules.auth.model.User;
-import com.talentpredict.modules.auth.repository.UserRepository;
+import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.account.repositories.AccountRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class DataInitializer implements ApplicationRunner {
 
-    private final UserRepository userRepository;
+    private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(ApplicationArguments args) {
-        if (!userRepository.existsByEmail("admin@talentpredict.com")) {
-            User admin = new User();
-            admin.setNom("Admin");
-            admin.setPrenom("System");
+        if (!accountRepository.existsByEmail("admin@talentpredict.com")) {
+            Account admin = new Account();
+            admin.setLastName("doe");
+            admin.setFirstName("john");
             admin.setEmail("admin@talentpredict.com");
-            admin.setMotDePasse(passwordEncoder.encode("Admin@1234"));
-            admin.setRole(User.Role.ADMIN);
+            admin.setPassword(passwordEncoder.encode("password"));
+            admin.setRole(Account.Role.ADMIN);
             admin.setIsActive(true);
-            userRepository.save(admin);
+            accountRepository.save(admin);
             log.info("=======================================================");
-            log.info("  Default admin user created:");
+            log.info("  Default admin account created:");
             log.info("  Email   : admin@talentpredict.com");
-            log.info("  Password: Admin@1234");
+            log.info("  Password: password");
             log.info("=======================================================");
         } else {
-            log.info("Admin user already exists. Skipping seed.");
+            log.info("Admin account already exists. Skipping seed.");
         }
     }
 }

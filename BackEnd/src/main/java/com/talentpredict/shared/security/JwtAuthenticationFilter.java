@@ -44,8 +44,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
             
             if (jwtService.validateToken(jwt, userDetails.getUsername())) {
+                // Extract Account from AccountUserDetails
+                Object principal = userDetails;
+                if (userDetails instanceof AccountUserDetails) {
+                    principal = ((AccountUserDetails) userDetails).getAccount();
+                }
+
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    userDetails,
+                    principal,
                     null,
                     userDetails.getAuthorities()
                 );

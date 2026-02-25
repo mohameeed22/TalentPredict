@@ -38,17 +38,17 @@ LABEL security.last-scan="2026-02-05"
 
 WORKDIR /app
 
-# Add non-root user for security
+# Add non-root account for security
 RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 
 # Copy the built JAR from build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Change ownership to non-root user
+# Change ownership to non-root account
 RUN chown -R appuser:appgroup /app
 
-# Switch to non-root user
+# Switch to non-root account
 USER appuser
 
 # Expose application port
