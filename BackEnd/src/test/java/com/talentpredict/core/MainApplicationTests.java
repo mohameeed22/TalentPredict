@@ -1,5 +1,6 @@
-package com.talentpredict;
+package com.talentpredict.core;
 
+import com.talentpredict.TalentPredictApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
