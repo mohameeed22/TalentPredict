@@ -12,9 +12,10 @@ services:
       dockerfile: Dockerfile
     container_name: talentpredict-backend-dev
     ports:
-      - "8090:8090"
+      - "8081:8081"
     environment:
       - SPRING_PROFILES_ACTIVE=development
+      - SERVER_PORT=8081
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-dev:5432/talentpredict_dev
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=devpassword123
@@ -30,7 +31,26 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend-dev.rule=Host(`api-dev.talentpredict.local`)"
-      - "traefik.http.services.backend-dev.loadbalancer.server.port=8090"
+      - "traefik.http.services.backend-dev.loadbalancer.server.port=8081"
+
+  # Frontend Service (Nginx)
+  frontend-dev:
+    build:
+      context: ./FrontEnd
+      dockerfile: Dockerfile
+    container_name: talentpredict-frontend-dev
+    ports:
+      - "80:80"
+    networks:
+      - backend-dev
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   # PostgreSQL Database
   postgres-dev:
