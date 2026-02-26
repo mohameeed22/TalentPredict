@@ -15,14 +15,14 @@ export class EvaluationService {
   private http = inject(HttpClient);
   private baseUrl = `${environment.apiUrl}/tests-personnalite`;
 
-  submitTest(userId: number, request: PersonalityTestRequest): Observable<PersonalityTestResponse> {
+  submitTest(userId: number | string, request: PersonalityTestRequest): Observable<PersonalityTestResponse> {
     return this.http.post<PersonalityTestResponse>(
       `${this.baseUrl}/utilisateur/${userId}`,
       request
     );
   }
 
-  getUserTests(userId: number): Observable<PersonalityTestResponse[]> {
+  getUserTests(userId: number | string): Observable<PersonalityTestResponse[]> {
     return this.http.get<PersonalityTestResponse[]>(
       `${this.baseUrl}/utilisateur/${userId}`
     );
@@ -32,7 +32,7 @@ export class EvaluationService {
     return this.http.get<PersonalityTestResponse>(`${this.baseUrl}/${testId}`);
   }
 
-  getLatestTest(userId: number): Observable<PersonalityTestResponse> {
+  getLatestTest(userId: number | string): Observable<PersonalityTestResponse> {
     return this.http.get<PersonalityTestResponse>(
       `${this.baseUrl}/utilisateur/${userId}/dernier`
     );

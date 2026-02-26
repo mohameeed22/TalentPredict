@@ -4,8 +4,7 @@ import { AuthService } from '../../modules/auth/services/auth.service';
 
 /**
  * Protects routes from unauthenticated access.
- * Checks for a valid (non-expired) JWT token.
- * Redirects to /auth/login with returnUrl on failure.
+ * Returns UrlTree redirect instead of imperative navigate (required for zoneless).
  */
 export const authGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
@@ -18,9 +17,8 @@ export const authGuard: CanActivateFn = (route, state) => {
   // Clear any stale session data
   authService.logout();
 
-  // Redirect to login with return url
-  router.navigate(['/auth/login'], {
+  // Return UrlTree so the router handles the redirect properly
+  return router.createUrlTree(['/auth/login'], {
     queryParams: { returnUrl: state.url }
   });
-  return false;
 };

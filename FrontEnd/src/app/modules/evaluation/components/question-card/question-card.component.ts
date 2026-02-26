@@ -12,15 +12,16 @@ import { FormsModule } from '@angular/forms';
 export class QuestionCardComponent {
   @Input() question: string = '';
   @Input() questionNumber: number = 1;
+  @Input() category: string = '';
   @Input() currentAnswer: string = '';
   @Output() answer = new EventEmitter<string>();
 
   ratingOptions = [
-    { value: '1', label: 'Strongly Disagree' },
-    { value: '2', label: 'Disagree' },
-    { value: '3', label: 'Neutral' },
-    { value: '4', label: 'Agree' },
-    { value: '5', label: 'Strongly Agree' }
+    { value: '1', label: 'Pas du tout', emoji: '😐' },
+    { value: '2', label: 'Peu', emoji: '🙁' },
+    { value: '3', label: 'Neutre', emoji: '😶' },
+    { value: '4', label: 'Assez', emoji: '🙂' },
+    { value: '5', label: 'Tout à fait', emoji: '😊' }
   ];
 
   selectRating(value: string): void {

@@ -1,11 +1,13 @@
+<!-- DIAGNOSTIC: Temporary simplified template -->
+<h1 style="color: red; font-size: 48px; padding: 50px;">TalentPredict Works!</h1>
+<p style="padding: 20px; font-size: 24px;">Angular bootstrap successful. Route: </p>
+<router-outlet />
+
+<!-- ORIGINAL TEMPLATE BELOW (commented out for diagnostic)
 <app-notification-toast />
 
-<div class="app-layout"
-     [class.sidebar-collapsed]="sidebarCollapsed()"
-     [class.has-sidebar]="showSidebar()"
-     [class.no-sidebar]="!showSidebar()">
-
-  @if (showSidebar()) {
+@if (showNavigation && isAuthenticated()) {
+  <div class="app-layout" [class.sidebar-collapsed]="sidebarCollapsed()">
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
@@ -103,10 +105,15 @@
         </div>
       </div>
     </aside>
-  }
 
-  <!-- Single router-outlet always in the DOM -->
-  <main [class.main-content]="showSidebar()" [class.auth-layout]="!showSidebar()">
+    <!-- Main Content -->
+    <main class="main-content">
+      <router-outlet />
+    </main>
+  </div>
+} @else {
+  <!-- Auth pages (no sidebar) -->
+  <main class="auth-layout">
     <router-outlet />
   </main>
-</div>
+}

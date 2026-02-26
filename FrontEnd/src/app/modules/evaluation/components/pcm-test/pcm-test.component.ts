@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { EvaluationService } from '../../services/evaluation.service';
 import { AuthService } from '../../../auth/services/auth.service';
 import { PersonalityTestRequest } from '../../models/evaluation.model';
@@ -16,7 +16,7 @@ interface PCMQuestion {
 @Component({
   selector: 'app-pcm-test',
   standalone: true,
-  imports: [CommonModule, FormsModule, QuestionCardComponent],
+  imports: [CommonModule, FormsModule, RouterModule, QuestionCardComponent],
   templateUrl: './pcm-test.component.html',
   styleUrls: ['./pcm-test.component.scss']
 })
@@ -128,6 +128,13 @@ export class PcmTestComponent implements OnInit {
   previousStep(): void {
     if (this.currentStep > 0) {
       this.currentStep--;
+    }
+  }
+
+  goToStep(step: number): void {
+    // Allow going back to completed steps or current step
+    if (step <= this.currentStep) {
+      this.currentStep = step;
     }
   }
 

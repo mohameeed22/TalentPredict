@@ -52,7 +52,7 @@ export class UserDashboardComponent implements OnInit {
     });
   }
 
-  private loadDashboardStats(userId: number): void {
+  private loadDashboardStats(userId: number | string): void {
     this.loading = true;
     this.dashboardService.getDashboardStats(userId).subscribe({
       next: (data) => {

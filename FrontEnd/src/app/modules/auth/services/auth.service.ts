@@ -39,7 +39,14 @@ export class AuthService {
    * Register via POST /api/auth/inscription
    */
   register(data: InscriptionRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.baseUrl}/inscription`, data).pipe(
+    // Map frontend field names (nom/prenom) to backend field names (lastName/firstName)
+    const backendPayload = {
+      lastName: data.nom,
+      firstName: data.prenom,
+      email: data.email,
+      password: data.password
+    };
+    return this.http.post<AuthResponse>(`${this.baseUrl}/register`, backendPayload).pipe(
       tap(response => {
         this.setSession(response);
       })

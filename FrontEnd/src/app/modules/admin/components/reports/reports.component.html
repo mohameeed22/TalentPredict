@@ -1,96 +1,154 @@
 <div class="reports">
-  <div class="reports-header">
-    <h2>Rapports et Statistiques</h2>
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <div>
+        <h2>Rapports et Statistiques</h2>
+        <p class="header-subtitle">Vue d'ensemble de l'activité de la plateforme</p>
+      </div>
+    </div>
     <button class="btn-refresh" (click)="loadStats()" [disabled]="loading()">
-      ↻ Actualiser
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+        <polyline points="23 4 23 10 17 10"/>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      </svg>
+      Actualiser
     </button>
   </div>
 
+  <!-- Loading State -->
   @if (loading()) {
-    <div class="loading">
+    <div class="loading-card">
       <div class="loader"></div>
       <p>Chargement des statistiques...</p>
     </div>
   }
 
+  <!-- Error State -->
   @if (error()) {
-    <div class="error">
-      <p>{{ error() }}</p>
-      <button (click)="loadStats()">Réessayer</button>
+    <div class="error-banner">
+      <div class="error-content">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/>
+          <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        <span>{{ error() }}</span>
+      </div>
+      <button class="btn-retry" (click)="loadStats()">Réessayer</button>
     </div>
   }
 
   @if (!loading() && !error()) {
+    <!-- Stats Grid -->
     <div class="stats-grid">
-      <!-- Total Users -->
-      <div class="stat-card users">
-        <div class="stat-icon">👥</div>
+      <div class="stat-card">
+        <div class="stat-icon-box purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
         <div class="stat-content">
-          <h3>Utilisateurs</h3>
-          <p class="stat-number">{{ stats().totalUsers }}</p>
-          <span class="stat-label">Total d'utilisateurs</span>
+          <span class="stat-label">Utilisateurs</span>
+          <span class="stat-number">{{ stats().totalUsers }}</span>
+          <span class="stat-meta">Total d'utilisateurs</span>
         </div>
       </div>
 
-      <!-- Active Users -->
-      <div class="stat-card active-users">
-        <div class="stat-icon">✓</div>
+      <div class="stat-card">
+        <div class="stat-icon-box green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
         <div class="stat-content">
-          <h3>Utilisateurs Actifs</h3>
-          <p class="stat-number">{{ stats().activeUsers }}</p>
-          <span class="stat-label">
-            {{ getActiveUserRate() }}% d'utilisateurs actifs
-          </span>
+          <span class="stat-label">Utilisateurs Actifs</span>
+          <span class="stat-number">{{ stats().activeUsers }}</span>
+          <span class="stat-meta">{{ getActiveUserRate() }}% d'utilisateurs actifs</span>
         </div>
       </div>
 
-      <!-- Total Formations -->
-      <div class="stat-card formations">
-        <div class="stat-icon">📚</div>
+      <div class="stat-card">
+        <div class="stat-icon-box blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+        </div>
         <div class="stat-content">
-          <h3>Formations</h3>
-          <p class="stat-number">{{ stats().totalFormations }}</p>
-          <span class="stat-label">Formations créées</span>
+          <span class="stat-label">Formations</span>
+          <span class="stat-number">{{ stats().totalFormations }}</span>
+          <span class="stat-meta">Formations créées</span>
         </div>
       </div>
 
-      <!-- Completed Formations -->
-      <div class="stat-card completed">
-        <div class="stat-icon">🎓</div>
+      <div class="stat-card">
+        <div class="stat-icon-box indigo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="7"/>
+            <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+          </svg>
+        </div>
         <div class="stat-content">
-          <h3>Formations Terminées</h3>
-          <p class="stat-number">{{ stats().completedFormations }}</p>
-          <span class="stat-label">
-            {{ getCompletionRate() }}% de taux de complétion
-          </span>
+          <span class="stat-label">Formations Terminées</span>
+          <span class="stat-number">{{ stats().completedFormations }}</span>
+          <span class="stat-meta">{{ getCompletionRate() }}% de complétion</span>
         </div>
       </div>
 
-      <!-- Total Evaluations -->
-      <div class="stat-card evaluations">
-        <div class="stat-icon">📊</div>
+      <div class="stat-card">
+        <div class="stat-icon-box orange">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"/>
+            <line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+        </div>
         <div class="stat-content">
-          <h3>Évaluations</h3>
-          <p class="stat-number">{{ stats().totalEvaluations }}</p>
-          <span class="stat-label">Tests PCM effectués</span>
+          <span class="stat-label">Évaluations</span>
+          <span class="stat-number">{{ stats().totalEvaluations }}</span>
+          <span class="stat-meta">Tests PCM effectués</span>
         </div>
       </div>
 
-      <!-- Total Tickets -->
-      <div class="stat-card tickets">
-        <div class="stat-icon">🎫</div>
+      <div class="stat-card">
+        <div class="stat-icon-box red">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="3" width="15" height="13" rx="2"/>
+            <polyline points="16 8 20 8 23 11 23 16 19 16"/>
+            <circle cx="5.5" cy="18.5" r="2.5"/>
+            <circle cx="18.5" cy="18.5" r="2.5"/>
+          </svg>
+        </div>
         <div class="stat-content">
-          <h3>Tickets Jira</h3>
-          <p class="stat-number">{{ stats().totalTickets }}</p>
-          <span class="stat-label">Tickets créés</span>
+          <span class="stat-label">Tickets Jira</span>
+          <span class="stat-number">{{ stats().totalTickets }}</span>
+          <span class="stat-meta">Tickets créés</span>
         </div>
       </div>
     </div>
 
     <!-- Charts Section -->
     <div class="charts-section">
+      <!-- Activity Rates -->
       <div class="chart-card">
-        <h3>Taux d'Activité</h3>
+        <div class="chart-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+          <h3>Taux d'Activité</h3>
+        </div>
         <div class="progress-chart">
           <div class="progress-item">
             <div class="progress-header">
@@ -98,8 +156,8 @@
               <span class="progress-percentage">{{ getActiveUserRate() }}%</span>
             </div>
             <div class="progress-bar">
-              <div 
-                class="progress-fill active-users-fill"
+              <div
+                class="progress-fill green"
                 [style.width.%]="getActiveUserRate()">
               </div>
             </div>
@@ -111,8 +169,8 @@
               <span class="progress-percentage">{{ getCompletionRate() }}%</span>
             </div>
             <div class="progress-bar">
-              <div 
-                class="progress-fill formations-fill"
+              <div
+                class="progress-fill purple"
                 [style.width.%]="getCompletionRate()">
               </div>
             </div>
@@ -120,32 +178,61 @@
         </div>
       </div>
 
+      <!-- System Summary -->
       <div class="chart-card">
-        <h3>Résumé du Système</h3>
+        <div class="chart-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          <h3>Résumé du Système</h3>
+        </div>
         <div class="summary-list">
           <div class="summary-item">
-            <span class="summary-icon">👤</span>
+            <div class="summary-icon purple">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
             <div class="summary-content">
               <span class="summary-value">{{ stats().totalUsers }}</span>
               <span class="summary-label">Utilisateurs inscrits</span>
             </div>
           </div>
           <div class="summary-item">
-            <span class="summary-icon">📖</span>
+            <div class="summary-icon blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              </svg>
+            </div>
             <div class="summary-content">
               <span class="summary-value">{{ stats().totalFormations }}</span>
               <span class="summary-label">Formations disponibles</span>
             </div>
           </div>
           <div class="summary-item">
-            <span class="summary-icon">✅</span>
+            <div class="summary-icon green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
             <div class="summary-content">
               <span class="summary-value">{{ stats().completedFormations }}</span>
               <span class="summary-label">Formations terminées</span>
             </div>
           </div>
           <div class="summary-item">
-            <span class="summary-icon">📈</span>
+            <div class="summary-icon orange">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+            </div>
             <div class="summary-content">
               <span class="summary-value">{{ stats().totalEvaluations }}</span>
               <span class="summary-label">Évaluations complétées</span>

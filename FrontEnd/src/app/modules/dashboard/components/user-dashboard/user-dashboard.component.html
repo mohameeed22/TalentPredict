@@ -1,19 +1,45 @@
 <div class="dashboard-container">
-  <h1 class="dashboard-title">Mon Dashboard</h1>
-
   @if (loading && profileLoading) {
-    <div class="loading-spinner">
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
       <p>Chargement du dashboard...</p>
     </div>
   }
 
   @if (error) {
-    <div class="error-message">
+    <div class="error-banner">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
       <p>{{ error }}</p>
     </div>
   }
 
-  <!-- User Profile Card -->
+  <!-- Welcome Section -->
+  @if (userProfile || !profileLoading) {
+    <div class="welcome-section">
+      <div class="welcome-text">
+        <h1>Bonjour, <span class="gradient-text">{{ displayName }}</span> 👋</h1>
+        <p>Voici un aperçu de votre progression et de vos activités.</p>
+      </div>
+      <div class="welcome-actions">
+        <a routerLink="/evaluation/intro" class="btn-action btn-primary-action">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          Passer un test
+        </a>
+        <a routerLink="/profile" class="btn-action btn-secondary-action">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+          Mon profil
+        </a>
+      </div>
+    </div>
+  }
+
+  <!-- Profile Card -->
   @if (userProfile) {
     <div class="profile-card">
       <div class="profile-avatar">
@@ -33,68 +59,97 @@
             {{ userProfile.role }}
           </span>
           @if (userProfile.department) {
-            <span class="meta-item">🏢 {{ userProfile.department }}</span>
+            <span class="meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              </svg>
+              {{ userProfile.department }}
+            </span>
           }
           @if (userProfile.position) {
-            <span class="meta-item">💼 {{ userProfile.position }}</span>
+            <span class="meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+              </svg>
+              {{ userProfile.position }}
+            </span>
           }
           @if (userProfile.hireDate) {
-            <span class="meta-item">📅 Depuis {{ userProfile.hireDate | date:'mediumDate' }}</span>
+            <span class="meta-item">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+              </svg>
+              Depuis {{ userProfile.hireDate | date:'mediumDate' }}
+            </span>
           }
         </div>
-      </div>
-      <div class="profile-actions">
-        <a routerLink="/profile" class="btn-profile">Voir mon profil</a>
       </div>
     </div>
   }
 
   @if (dashboardData && !loading) {
+    <!-- Stats Grid -->
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-icon">📝</div>
+        <div class="stat-icon-box icon-purple">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </div>
         <div class="stat-content">
-          <h3>Tests Complétés</h3>
-          <p class="stat-value">{{ testsCount }}</p>
+          <span class="stat-label">Tests complétés</span>
+          <span class="stat-value">{{ testsCount }}</span>
         </div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-icon">💪</div>
+        <div class="stat-icon-box icon-blue">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+        </div>
         <div class="stat-content">
-          <h3>Compétences</h3>
-          <p class="stat-value">{{ skillsCount }}</p>
+          <span class="stat-label">Compétences</span>
+          <span class="stat-value">{{ skillsCount }}</span>
         </div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-icon">🎓</div>
+        <div class="stat-icon-box icon-green">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
+        </div>
         <div class="stat-content">
-          <h3>Formations Totales</h3>
-          <p class="stat-value">{{ formationsCount }}</p>
+          <span class="stat-label">Formations</span>
+          <span class="stat-value">{{ formationsCount }}</span>
         </div>
       </div>
 
       <div class="stat-card">
-        <div class="stat-icon">🚀</div>
-        <div class="stat-content">
-          <h3>En Cours</h3>
-          <p class="stat-value">{{ formationsEnCours }}</p>
+        <div class="stat-icon-box icon-orange">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
+          </svg>
         </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon">📊</div>
         <div class="stat-content">
-          <h3>Progression Moyenne</h3>
-          <p class="stat-value">{{ progressionMoyenne }}%</p>
+          <span class="stat-label">Progression</span>
+          <span class="stat-value">{{ progressionMoyenne }}<small>%</small></span>
         </div>
       </div>
     </div>
 
+    <!-- Details Grid -->
     <div class="details-grid">
+      <!-- Top Skills -->
       <div class="detail-card">
-        <h2>Top Compétences</h2>
+        <div class="detail-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+          </svg>
+          <h2>Top Compétences</h2>
+        </div>
         @if (dashboardData.topSkills.length > 0) {
           <ul class="skills-list">
             @for (skill of dashboardData.topSkills; track skill.nom) {
@@ -103,17 +158,34 @@
                 <span class="skill-badge" [class]="'badge-' + skill.type">
                   {{ skill.type }}
                 </span>
-                <span class="skill-level">Niveau {{ skill.niveau }}</span>
+                <span class="skill-level">
+                  <span class="level-dots">
+                    @for (dot of [1,2,3,4,5]; track dot) {
+                      <span class="level-dot" [class.filled]="dot <= skill.niveau"></span>
+                    }
+                  </span>
+                </span>
               </li>
             }
           </ul>
         } @else {
-          <p class="empty-message">Aucune compétence enregistrée</p>
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+            </svg>
+            <p>Aucune compétence enregistrée</p>
+          </div>
         }
       </div>
 
+      <!-- Recent Formations -->
       <div class="detail-card">
-        <h2>Formations Récentes</h2>
+        <div class="detail-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
+          <h2>Formations Récentes</h2>
+        </div>
         @if (dashboardData.recentFormations.length > 0) {
           <ul class="formations-list">
             @for (formation of dashboardData.recentFormations; track formation.titre) {
@@ -130,12 +202,22 @@
                   </div>
                   <span class="progress-text">{{ formation.progression }}%</span>
                 </div>
-                <p class="formation-date">Début: {{ formation.dateDebut | date: 'shortDate' }}</p>
+                <p class="formation-date">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+                  </svg>
+                  Début: {{ formation.dateDebut | date: 'shortDate' }}
+                </p>
               </li>
             }
           </ul>
         } @else {
-          <p class="empty-message">Aucune formation en cours</p>
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+            <p>Aucune formation en cours</p>
+          </div>
         }
       </div>
     </div>

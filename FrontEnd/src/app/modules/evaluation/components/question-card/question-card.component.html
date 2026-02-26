@@ -1,6 +1,9 @@
-<div class="question-card">
+<div class="question-card" [class.answered]="currentAnswer">
   <div class="question-header">
-    <span class="question-number">Question {{ questionNumber }}</span>
+    <span class="question-number">Q{{ questionNumber }}</span>
+    @if (category) {
+      <span class="question-category">{{ category }}</span>
+    }
   </div>
   
   <div class="question-text">
@@ -9,8 +12,8 @@
 
   <div class="rating-scale">
     <div class="scale-labels">
-      <span class="label-start">Strongly Disagree</span>
-      <span class="label-end">Strongly Agree</span>
+      <span class="label-start">Pas du tout d'accord</span>
+      <span class="label-end">Tout à fait d'accord</span>
     </div>
     
     <div class="rating-options">

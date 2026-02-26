@@ -1,49 +1,90 @@
-<div class="login-container">
-  <div class="login-card">
-    <h1>Connexion</h1>
-    <p class="subtitle">Bienvenue sur TalentPredict</p>
+<div class="auth-page">
+  <div class="auth-left">
+    <div class="brand-section">
+      <div class="brand-logo">
+        <svg viewBox="0 0 48 48" fill="none">
+          <rect width="48" height="48" rx="12" fill="white" fill-opacity="0.15"/>
+          <path d="M15 33V18l9-6 9 6v15l-9 6-9-6z" stroke="white" stroke-width="2.5" fill="none"/>
+          <circle cx="24" cy="24" r="4.5" fill="white"/>
+        </svg>
+      </div>
+      <h1 class="brand-title">TalentPredict</h1>
+      <p class="brand-subtitle">Plateforme d'Intelligence des Talents</p>
+      <div class="brand-features">
+        <div class="feature">
+          <span class="feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </span>
+          <span>Analyse de personnalité PCM</span>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          </span>
+          <span>Gestion des talents</span>
+        </div>
+        <div class="feature">
+          <span class="feature-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          </span>
+          <span>Dashboard analytique</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
-      <div class="form-group">
-        <label for="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          formControlName="email"
-          placeholder="votre@email.com"
-          required
-        />
-        @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
-          <span class="error">Email invalide</span>
-        }
+  <div class="auth-right">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h2>Connexion</h2>
+        <p>Bienvenue ! Connectez-vous à votre compte.</p>
       </div>
 
-      <div class="form-group">
-        <label for="password">Mot de passe</label>
-        <input
-          id="password"
-          type="password"
-          formControlName="password"
-          placeholder="••••••••"
-          required
-        />
-        @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
-          <span class="error">Minimum 6 caractères</span>
-        }
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+        <div class="form-group">
+          <label for="email" class="form-label">Email</label>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            placeholder="votre&#64;email.com"
+            class="form-input"
+            [class.input-error]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
+          />
+          @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
+            <span class="form-error">Veuillez entrer un email valide</span>
+          }
+        </div>
+
+        <div class="form-group">
+          <label for="password" class="form-label">Mot de passe</label>
+          <input
+            id="password"
+            type="password"
+            formControlName="password"
+            placeholder="••••••••"
+            class="form-input"
+            [class.input-error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+          />
+          @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
+            <span class="form-error">Minimum 6 caractères requis</span>
+          }
+        </div>
+
+        <button type="submit" [disabled]="loginForm.invalid || loading" class="btn-submit">
+          @if (loading) {
+            <span class="btn-spinner"></span>
+            <span>Connexion en cours...</span>
+          } @else {
+            <span>Se connecter</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          }
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        <p>Pas encore de compte ? <a routerLink="/auth/register">Créer un compte</a></p>
       </div>
-
-      <button type="submit" [disabled]="loginForm.invalid || loading" class="btn-primary">
-        @if (loading) {
-          <span>Connexion...</span>
-        } @else {
-          <span>Se connecter</span>
-        }
-      </button>
-    </form>
-
-    <p class="register-link">
-      Pas encore de compte ?
-      <a routerLink="/auth/register">S'inscrire</a>
-    </p>
+    </div>
   </div>
 </div>

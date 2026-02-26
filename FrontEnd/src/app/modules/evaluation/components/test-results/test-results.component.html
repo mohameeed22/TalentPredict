@@ -1,98 +1,178 @@
 <div class="results-container">
   @if (loading) {
-    <div class="loading-spinner">
-      <p>Loading your results...</p>
+    <div class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>Analyse de vos résultats en cours...</p>
     </div>
   }
 
   @if (error) {
-    <div class="error-message">
-      <p>{{ error }}</p>
+    <div class="error-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/>
+      </svg>
+      <h3>{{ error }}</h3>
+      <p>Passez le test pour découvrir votre profil PCM.</p>
       <button class="btn btn-primary" (click)="retakeTest()">
-        Take a Test
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+        Passer le test
       </button>
     </div>
   }
 
   @if (testResult && !loading) {
+    <!-- Header -->
     <div class="results-header">
-      <h1>Your PCM Personality Profile</h1>
-      <p class="test-date">Test completed on {{ testResult.datePassage | date: 'long' }}</p>
+      <div class="header-badge">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Test complété
+      </div>
+      <h1>Votre Profil de Personnalité PCM</h1>
+      <p class="test-date">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        Réalisé le {{ testResult.datePassage | date: 'longDate' }}
+      </p>
     </div>
 
-    <div class="profile-card main-profile">
-      <div class="profile-badge">
-        <div class="badge-icon">🎯</div>
-        <h2>{{ testResult.profilPCM }}</h2>
+    <!-- Profile Hero Card -->
+    <div class="profile-hero">
+      <div class="profile-hero-content">
+        <div class="profile-badge-icon">🎯</div>
+        <div class="profile-hero-text">
+          <span class="profile-label">Profil dominant</span>
+          <h2 class="profile-type">{{ testResult.profilPCM }}</h2>
+        </div>
       </div>
-      <div class="profile-score">
-        <span class="score-label">Overall Score</span>
-        <span class="score-value">{{ testResult.score }}/100</span>
+      <div class="profile-score-box">
+        <div class="score-ring">
+          <svg viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="8"/>
+            <circle cx="60" cy="60" r="50" fill="none" stroke="white" stroke-width="8" 
+                    stroke-dasharray="314" [attr.stroke-dashoffset]="314 - (314 * (testResult.score || 0) / 100)"
+                    stroke-linecap="round" transform="rotate(-90 60 60)"/>
+          </svg>
+          <div class="score-text">
+            <span class="score-number">{{ testResult.score }}</span>
+            <span class="score-suffix">/100</span>
+          </div>
+        </div>
       </div>
     </div>
 
     @if (profileInfo) {
-      <div class="profile-description">
-        <h3>About Your Profile</h3>
-        <p>{{ profileInfo.description }}</p>
+      <div class="profile-description-card">
+        <div class="desc-icon">💡</div>
+        <div>
+          <h3>À propos de votre profil</h3>
+          <p>{{ profileInfo.description }}</p>
+        </div>
       </div>
     }
 
+    <!-- Results Grid -->
     <div class="results-grid">
+      <!-- Radar Chart -->
       <div class="result-card">
-        <h3>PCM Radar Analysis</h3>
+        <div class="card-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+          <h3>Analyse Radar PCM</h3>
+        </div>
         <div class="chart-wrapper">
           <app-pcm-radar-chart 
             [data]="radarData"
-            [width]="400"
-            [height]="400"
+            [width]="380"
+            [height]="380"
           />
         </div>
         <p class="chart-caption">
-          This radar chart shows your strengths across the six PCM personality types.
+          Distribution de vos scores sur les six types de personnalité PCM.
         </p>
       </div>
 
       @if (profileInfo) {
+        <!-- Strengths & Challenges -->
         <div class="result-card">
-          <h3>Your Strengths</h3>
-          <ul class="strengths-list">
-            @for (strength of profileInfo.strengths; track strength) {
-              <li class="strength-item">
-                <span class="item-icon">✓</span>
-                <span>{{ strength }}</span>
-              </li>
-            }
-          </ul>
+          <div class="card-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+            </svg>
+            <h3>Forces & Développement</h3>
+          </div>
 
-          <h3>Areas for Development</h3>
-          <ul class="challenges-list">
-            @for (challenge of profileInfo.challenges; track challenge) {
-              <li class="challenge-item">
-                <span class="item-icon">→</span>
-                <span>{{ challenge }}</span>
-              </li>
-            }
-          </ul>
+          <div class="traits-section">
+            <h4 class="traits-title strengths-title">
+              <span class="traits-dot strengths-dot"></span>
+              Vos points forts
+            </h4>
+            <ul class="traits-list">
+              @for (strength of profileInfo.strengths; track strength) {
+                <li class="trait-item strength-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  <span>{{ strength }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+
+          <div class="traits-section">
+            <h4 class="traits-title challenges-title">
+              <span class="traits-dot challenges-dot"></span>
+              Axes d'amélioration
+            </h4>
+            <ul class="traits-list">
+              @for (challenge of profileInfo.challenges; track challenge) {
+                <li class="trait-item challenge-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                  </svg>
+                  <span>{{ challenge }}</span>
+                </li>
+              }
+            </ul>
+          </div>
         </div>
       }
     </div>
 
     @if (testResult.analyse) {
       <div class="analysis-card">
-        <h3>Detailed Analysis</h3>
+        <div class="card-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <h3>Analyse détaillée</h3>
+        </div>
         <div class="analysis-content">
           <p>{{ testResult.analyse }}</p>
         </div>
       </div>
     }
 
+    <!-- Action Buttons -->
     <div class="action-buttons">
       <button class="btn btn-secondary" (click)="retakeTest()">
-        Retake Test
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+        </svg>
+        Repasser le test
       </button>
       <button class="btn btn-primary" (click)="goToDashboard()">
-        Go to Dashboard →
+        Retour au Dashboard
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
       </button>
     </div>
   }

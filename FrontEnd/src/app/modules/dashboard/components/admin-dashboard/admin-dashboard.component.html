@@ -1,85 +1,145 @@
-<div class="admin-dashboard-container">
-  <h1 class="dashboard-title">Admin Dashboard - System Statistics</h1>
+<div class="admin-dashboard">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="header-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"/>
+          <rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Tableau de Bord Administrateur</h1>
+        <p class="header-subtitle">Statistiques globales du système</p>
+      </div>
+    </div>
+  </div>
 
   @if (loading) {
-    <div class="loading-spinner">
-      <p>Loading system statistics...</p>
+    <div class="loading-card">
+      <div class="loader"></div>
+      <p>Chargement des statistiques...</p>
     </div>
   }
 
   @if (error) {
-    <div class="error-message">
+    <div class="error-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="15" y1="9" x2="9" y2="15"/>
+        <line x1="9" y1="9" x2="15" y2="15"/>
+      </svg>
       <p>{{ error }}</p>
     </div>
   }
 
   @if (systemStats && !loading) {
+    <!-- Stats Grid -->
     <div class="stats-grid">
-      <div class="stat-card primary">
-        <div class="stat-icon">👥</div>
+      <div class="stat-card">
+        <div class="stat-icon-box purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="16"/>
+            <line x1="8" y1="12" x2="16" y2="12"/>
+          </svg>
+        </div>
         <div class="stat-content">
-          <h3>Total Tests</h3>
-          <p class="stat-value">{{ totalTests }}</p>
-          <p class="stat-label">System-wide</p>
+          <span class="stat-label">Total Tests</span>
+          <span class="stat-value">{{ totalTests }}</span>
+          <span class="stat-meta">Système entier</span>
         </div>
       </div>
 
-      <div class="stat-card success">
-        <div class="stat-icon">🎯</div>
+      <div class="stat-card">
+        <div class="stat-icon-box green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </div>
         <div class="stat-content">
-          <h3>Total Skills</h3>
-          <p class="stat-value">{{ totalSkills }}</p>
-          <p class="stat-label">Tracked</p>
+          <span class="stat-label">Compétences</span>
+          <span class="stat-value">{{ totalSkills }}</span>
+          <span class="stat-meta">Suivies</span>
         </div>
       </div>
 
-      <div class="stat-card info">
-        <div class="stat-icon">📚</div>
+      <div class="stat-card">
+        <div class="stat-icon-box blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+        </div>
         <div class="stat-content">
-          <h3>Total Formations</h3>
-          <p class="stat-value">{{ totalFormations }}</p>
-          <p class="stat-label">Available</p>
+          <span class="stat-label">Formations</span>
+          <span class="stat-value">{{ totalFormations }}</span>
+          <span class="stat-meta">Disponibles</span>
         </div>
       </div>
 
-      <div class="stat-card warning">
-        <div class="stat-icon">⚡</div>
+      <div class="stat-card">
+        <div class="stat-icon-box orange">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+        </div>
         <div class="stat-content">
-          <h3>Active Formations</h3>
-          <p class="stat-value">{{ activeFormations }}</p>
-          <p class="stat-label">In Progress</p>
+          <span class="stat-label">En Cours</span>
+          <span class="stat-value">{{ activeFormations }}</span>
+          <span class="stat-meta">Formations actives</span>
         </div>
       </div>
 
-      <div class="stat-card success-alt">
-        <div class="stat-icon">✅</div>
+      <div class="stat-card">
+        <div class="stat-icon-box teal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
         <div class="stat-content">
-          <h3>Completed</h3>
-          <p class="stat-value">{{ completedFormations }}</p>
-          <p class="stat-label">Formations</p>
+          <span class="stat-label">Terminées</span>
+          <span class="stat-value">{{ completedFormations }}</span>
+          <span class="stat-meta">Formations complétées</span>
         </div>
       </div>
 
-      <div class="stat-card gradient">
-        <div class="stat-icon">📈</div>
+      <div class="stat-card">
+        <div class="stat-icon-box indigo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="20" x2="12" y2="10"/>
+            <line x1="18" y1="20" x2="18" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="16"/>
+          </svg>
+        </div>
         <div class="stat-content">
-          <h3>Average Progress</h3>
-          <p class="stat-value">{{ averageProgress }}%</p>
-          <p class="stat-label">Overall</p>
+          <span class="stat-label">Progression</span>
+          <span class="stat-value">{{ averageProgress }}%</span>
+          <span class="stat-meta">Moyenne globale</span>
         </div>
       </div>
     </div>
 
+    <!-- Charts Section -->
     <div class="charts-section">
+      <!-- Skills Chart -->
       <div class="chart-card">
-        <h2>Most Popular Skills</h2>
+        <div class="chart-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+          <h2>Compétences les Plus Populaires</h2>
+        </div>
         @if (systemStats.topSkills.length > 0) {
           <div class="skills-chart">
             @for (skill of systemStats.topSkills; track skill.nom) {
               <div class="skill-bar">
                 <div class="skill-label">
                   <span class="skill-name">{{ skill.nom }}</span>
-                  <span class="skill-value">Level {{ skill.niveau }}</span>
+                  <span class="skill-value">Niveau {{ skill.niveau }}</span>
                 </div>
                 <div class="bar-container">
                   <div class="bar-fill" [style.width.%]="(skill.niveau / 5) * 100"></div>
@@ -88,12 +148,24 @@
             }
           </div>
         } @else {
-          <p class="empty-message">No skill data available</p>
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="40" height="40">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            <p>Aucune donnée de compétences disponible</p>
+          </div>
         }
       </div>
 
+      <!-- Formation Timeline -->
       <div class="chart-card">
-        <h2>Recent Formation Activity</h2>
+        <div class="chart-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <h2>Activité Récente des Formations</h2>
+        </div>
         @if (systemStats.recentFormations.length > 0) {
           <div class="formation-timeline">
             @for (formation of systemStats.recentFormations; track formation.titre) {
@@ -102,16 +174,24 @@
                 <div class="timeline-content">
                   <h4>{{ formation.titre }}</h4>
                   <div class="timeline-meta">
-                    <span class="meta-status">{{ formation.statut }}</span>
-                    <span class="meta-progress">{{ formation.progression }}% complete</span>
+                    <span class="meta-status" [class]="'status-' + formation.statut">{{ formation.statut }}</span>
+                    <span class="meta-progress">{{ formation.progression }}% complété</span>
                   </div>
-                  <p class="meta-date">{{ formation.dateDebut | date: 'medium' }}</p>
+                  <p class="meta-date">{{ formation.dateDebut | date: 'longDate' }}</p>
                 </div>
               </div>
             }
           </div>
         } @else {
-          <p class="empty-message">No formation activity</p>
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="40" height="40">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <p>Aucune activité de formation récente</p>
+          </div>
         }
       </div>
     </div>

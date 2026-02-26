@@ -5,7 +5,7 @@ import { NotificationService } from '../services/notification.service';
 
 /**
  * Factory that returns a CanActivateFn restricting access to specific roles.
- * Usage: canActivate: [authGuard, roleGuard(['ADMIN'])]
+ * Returns UrlTree redirect instead of imperative navigate (required for zoneless).
  */
 export const roleGuard = (allowedRoles: string[]): CanActivateFn => {
   return (route, state) => {
@@ -20,7 +20,6 @@ export const roleGuard = (allowedRoles: string[]): CanActivateFn => {
     }
 
     notificationService.warning('Accès réservé aux administrateurs.');
-    router.navigate(['/dashboard']);
-    return false;
+    return router.createUrlTree(['/dashboard']);
   };
 };

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ApplicationRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -17,6 +17,7 @@ export class RegisterComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
   private notificationService = inject(NotificationService);
+  private appRef = inject(ApplicationRef);
 
   registerForm: FormGroup = this.fb.group({
     nom: ['', [Validators.required]],
@@ -31,9 +32,9 @@ export class RegisterComponent {
     if (this.registerForm.valid) {
       this.loading = true;
       this.authService.register(this.registerForm.value).subscribe({
-        next: (response) => {
+        next: () => {
           this.notificationService.success('Compte créé avec succès !');
-          this.router.navigate(['/dashboard']);
+          this.router.navigateByUrl('/dashboard').then(() => this.appRef.tick());
         },
         error: (error) => {
           this.notificationService.error('Erreur lors de l\'inscription');

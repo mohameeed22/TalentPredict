@@ -12,26 +12,36 @@ import { Subscription } from 'rxjs';
       <div class="toast" [class]="'toast-' + notification.type" (click)="dismiss(i)">
         <span class="toast-icon">
           @switch (notification.type) {
-            @case ('success') { ✅ }
-            @case ('error') { ❌ }
-            @case ('warning') { ⚠️ }
-            @case ('info') { ℹ️ }
+            @case ('success') {
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            }
+            @case ('error') {
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            }
+            @case ('warning') {
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            }
+            @case ('info') {
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            }
           }
         </span>
         <span class="toast-message">{{ notification.message }}</span>
-        <button class="toast-close" (click)="dismiss(i); $event.stopPropagation()">×</button>
+        <button class="toast-close" (click)="dismiss(i); $event.stopPropagation()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
     }
   `,
   styles: [`
     :host {
       position: fixed;
-      top: 1rem;
-      right: 1rem;
+      top: 1.5rem;
+      right: 1.5rem;
       z-index: 9999;
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 0.625rem;
       max-width: 420px;
     }
 
@@ -39,42 +49,45 @@ import { Subscription } from 'rxjs';
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      padding: 0.875rem 1.25rem;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      padding: 1rem 1.25rem;
+      border-radius: 12px;
+      backdrop-filter: blur(8px);
       cursor: pointer;
-      animation: slideIn 0.3s ease;
-      font-size: 0.9rem;
-      font-weight: 500;
+      animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      font-size: 0.875rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
     }
 
     .toast-success {
-      background: #f0fff4;
-      border-left: 4px solid #38a169;
-      color: #22543d;
+      background: #ecfdf5;
+      border-color: #a7f3d0;
+      color: #065f46;
     }
 
     .toast-error {
-      background: #fff5f5;
-      border-left: 4px solid #e53e3e;
-      color: #742a2a;
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #991b1b;
     }
 
     .toast-warning {
-      background: #fffff0;
-      border-left: 4px solid #d69e2e;
-      color: #744210;
+      background: #fffbeb;
+      border-color: #fde68a;
+      color: #92400e;
     }
 
     .toast-info {
-      background: #ebf8ff;
-      border-left: 4px solid #3182ce;
-      color: #2a4365;
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1e40af;
     }
 
     .toast-icon {
       flex-shrink: 0;
-      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
     }
 
     .toast-message {
@@ -86,26 +99,29 @@ import { Subscription } from 'rxjs';
       flex-shrink: 0;
       background: none;
       border: none;
-      font-size: 1.25rem;
       cursor: pointer;
-      opacity: 0.5;
-      padding: 0 0.25rem;
-      line-height: 1;
+      opacity: 0.4;
+      padding: 0.25rem;
+      display: flex;
+      align-items: center;
       color: inherit;
+      border-radius: 6px;
+      transition: all 0.2s;
     }
 
     .toast-close:hover {
       opacity: 1;
+      background: rgba(0, 0, 0, 0.06);
     }
 
     @keyframes slideIn {
       from {
         opacity: 0;
-        transform: translateX(100%);
+        transform: translateX(100%) scale(0.95);
       }
       to {
         opacity: 1;
-        transform: translateX(0);
+        transform: translateX(0) scale(1);
       }
     }
   `]

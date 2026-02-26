@@ -5,7 +5,8 @@ import { roleGuard } from './core/guards/role.guard';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: '/dashboard',
+    loadComponent: () =>
+      import('./modules/home/home.component').then(m => m.HomeComponent),
     pathMatch: 'full'
   },
   {
@@ -66,6 +67,17 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       {
+        path: '',
+        redirectTo: 'intro',
+        pathMatch: 'full'
+      },
+      {
+        path: 'intro',
+        loadComponent: () => 
+          import('./modules/evaluation/components/pcm-intro/pcm-intro.component')
+            .then(m => m.PcmIntroComponent)
+      },
+      {
         path: 'test',
         loadComponent: () => 
           import('./modules/evaluation/components/pcm-test/pcm-test.component')
@@ -73,6 +85,12 @@ export const routes: Routes = [
       },
       {
         path: 'results',
+        loadComponent: () => 
+          import('./modules/evaluation/components/test-results/test-results.component')
+            .then(m => m.TestResultsComponent)
+      },
+      {
+        path: 'results/:id',
         loadComponent: () => 
           import('./modules/evaluation/components/test-results/test-results.component')
             .then(m => m.TestResultsComponent)
@@ -113,6 +131,6 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: '/dashboard'
+    redirectTo: '/'
   }
 ];

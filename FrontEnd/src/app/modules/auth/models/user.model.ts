@@ -8,7 +8,7 @@ export enum Role {
  * Contains only the fields returned by POST /api/auth/login.
  */
 export interface AuthUser {
-  id: number;
+  id: number | string;
   nom: string;
   prenom: string;
   email: string;
@@ -61,7 +61,7 @@ export interface AuthRequest {
 export interface AuthResponse {
   token: string;
   type: string;
-  id: number;
+  id: number | string;
   email: string;
   role: string;
   nom: string;
