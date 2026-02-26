@@ -2,12 +2,16 @@
 
 ## 📚 Table des matières
 1. [Authentification](#authentification)
-2. [Tests de Personnalité](#tests-de-personnalité)
-3. [Compétences (Skills)](#compétences-skills)
-4. [Formations](#formations)
-5. [Prédictions](#prédictions)
-6. [Dashboard](#dashboard)
-7. [Tickets Jira](#tickets-jira)
+2. [Comptes (Accounts)](#comptes-accounts)
+3. [Tests de Personnalité](#tests-de-personnalité)
+4. [Compétences (Skills)](#compétences-skills)
+5. [Formations](#formations)
+6. [Prédictions](#prédictions)
+7. [Dashboard](#dashboard)
+8. [Tickets Jira](#tickets-jira)
+
+> **Base URL:** `http://localhost:8081`
+> **IDs:** Tous les identifiants sont des `UUID` (ex: `550e8400-e29b-41d4-a716-446655440000`)
 
 ---
 
@@ -16,15 +20,15 @@
 ### Inscription
 Créer un nouveau compte utilisateur.
 
-**Endpoint:** `POST /api/auth/inscription`
+**Endpoint:** `POST /api/auth/register`
 
 **Request Body:**
 ```json
 {
-  "nom": "Dupont",
-  "prenom": "Jean",
+  "lastName": "Dupont",
+  "firstName": "Jean",
   "email": "jean.dupont@example.com",
-  "motDePasse": "password123"
+  "password": "password123"
 }
 ```
 
@@ -33,22 +37,24 @@ Créer un nouveau compte utilisateur.
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "type": "Bearer",
-  "id": 1,
+  "id": "550e8400-e29b-41d4-a716-446655440000",
   "email": "jean.dupont@example.com",
-  "role": "USER"
+  "role": "USER",
+  "nom": "Dupont",
+  "prenom": "Jean"
 }
 ```
 
 ### Connexion
 Se connecter avec un compte existant.
 
-**Endpoint:** `POST /api/auth/connexion`
+**Endpoint:** `POST /api/auth/login`
 
 **Request Body:**
 ```json
 {
   "email": "jean.dupont@example.com",
-  "motDePasse": "password123"
+  "password": "password123"
 }
 ```
 
@@ -57,11 +63,71 @@ Se connecter avec un compte existant.
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "type": "Bearer",
-  "id": 1,
+  "id": "550e8400-e29b-41d4-a716-446655440000",
   "email": "jean.dupont@example.com",
-  "role": "USER"
+  "role": "USER",
+  "nom": "Dupont",
+  "prenom": "Jean"
 }
 ```
+
+---
+
+## 👤 Comptes (Accounts)
+
+### Lister tous les comptes (Admin)
+**Endpoint:** `GET /api/accounts`
+
+**Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "username": "jdupont",
+    "email": "jean.dupont@example.com",
+    "firstName": "Jean",
+    "lastName": "Dupont",
+    "department": "IT",
+    "position": "Developer",
+    "hireDate": "2024-01-15",
+    "profilePictureUrl": null,
+    "isActive": true,
+    "role": "USER",
+    "createdAt": "2026-02-02T10:30:00Z",
+    "updatedAt": "2026-02-02T10:30:00Z"
+  }
+]
+```
+
+### Obtenir un compte par ID (Admin)
+**Endpoint:** `GET /api/accounts/{accountId}`
+
+### Mettre à jour un compte
+**Endpoint:** `PUT /api/accounts/{accountId}`
+
+**Request Body:**
+```json
+{
+  "firstName": "Jean",
+  "lastName": "Dupont",
+  "department": "Engineering",
+  "position": "Senior Developer",
+  "hireDate": "2024-01-15",
+  "profilePictureUrl": "https://example.com/photo.jpg"
+}
+```
+
+**Response:** `200 OK`
+
+### Supprimer un compte
+**Endpoint:** `DELETE /api/accounts/{accountId}`
+
+**Response:** `204 No Content`
 
 ---
 
@@ -70,7 +136,7 @@ Se connecter avec un compte existant.
 ### Soumettre un test
 Créer un nouveau test de personnalité avec analyse IA.
 
-**Endpoint:** `POST /api/tests/utilisateur/{utilisateurId}`
+**Endpoint:** `POST /api/tests/accounts/{accountId}`
 
 **Headers:**
 ```
@@ -93,7 +159,7 @@ Authorization: Bearer {token}
 **Response:** `201 Created`
 ```json
 {
-  "id": 1,
+  "id": "660e8400-e29b-41d4-a716-446655440001",
   "typeTest": "MBTI",
   "reponses": {
     "question1": "Extraverti",
@@ -109,18 +175,13 @@ Authorization: Bearer {token}
 ```
 
 ### Lister les tests d'un utilisateur
-**Endpoint:** `GET /api/tests/utilisateur/{utilisateurId}`
-
-**Headers:**
-```
-Authorization: Bearer {token}
-```
+**Endpoint:** `GET /api/tests/accounts/{accountId}`
 
 **Response:** `200 OK`
 ```json
 [
   {
-    "id": 1,
+    "id": "660e8400-e29b-41d4-a716-446655440001",
     "typeTest": "MBTI",
     "score": 85,
     "dateTest": "2026-02-02T10:30:00",
@@ -137,7 +198,7 @@ Authorization: Bearer {token}
 ## 💼 Compétences (Skills)
 
 ### Ajouter une compétence
-**Endpoint:** `POST /api/skills/utilisateur/{utilisateurId}`
+**Endpoint:** `POST /api/skills/accounts/{accountId}`
 
 **Headers:**
 ```
@@ -157,7 +218,7 @@ Authorization: Bearer {token}
 **Response:** `201 Created`
 ```json
 {
-  "id": 1,
+  "id": "770e8400-e29b-41d4-a716-446655440002",
   "nom": "Communication",
   "type": "SOFT",
   "niveau": 4,
@@ -168,20 +229,20 @@ Authorization: Bearer {token}
 ```
 
 ### Lister les compétences
-**Endpoint:** `GET /api/skills/utilisateur/{utilisateurId}`
+**Endpoint:** `GET /api/skills/accounts/{accountId}`
 
 **Response:** `200 OK`
 ```json
 [
   {
-    "id": 1,
+    "id": "770e8400-e29b-41d4-a716-446655440002",
     "nom": "Communication",
     "type": "SOFT",
     "niveau": 4,
     "validee": true
   },
   {
-    "id": 2,
+    "id": "770e8400-e29b-41d4-a716-446655440003",
     "nom": "Java",
     "type": "TECH",
     "niveau": 5,
@@ -191,7 +252,7 @@ Authorization: Bearer {token}
 ```
 
 ### Filtrer par type
-**Endpoint:** `GET /api/skills/utilisateur/{utilisateurId}/type/{type}`
+**Endpoint:** `GET /api/skills/accounts/{accountId}/type/{type}`
 
 Types disponibles: `SOFT`, `TECH`
 
@@ -210,7 +271,7 @@ Types disponibles: `SOFT`, `TECH`
 ## 🎓 Formations
 
 ### Créer une formation
-**Endpoint:** `POST /api/formations/utilisateur/{utilisateurId}`
+**Endpoint:** `POST /api/formations/accounts/{accountId}`
 
 **Headers:**
 ```
@@ -233,25 +294,29 @@ Authorization: Bearer {token}
 **Response:** `201 Created`
 ```json
 {
-  "id": 1,
+  "id": "880e8400-e29b-41d4-a716-446655440004",
   "titre": "Leadership Avancé",
+  "description": "Formation intensive sur le leadership",
   "type": "SOFT_SKILL",
-  "statut": "PROPOSEE",
-  "progression": 0,
   "duree": 40,
   "fournisseur": "LinkedIn Learning",
-  "dateProposition": "2026-02-02T10:30:00"
+  "url": "https://linkedin.com/learning/leadership",
+  "statut": "PROPOSEE",
+  "dateProposition": "2026-02-02T10:30:00",
+  "dateDebut": "2026-03-01T09:00:00",
+  "dateFin": null,
+  "progression": 0
 }
 ```
 
 ### Lister les formations
-**Endpoint:** `GET /api/formations/utilisateur/{utilisateurId}`
+**Endpoint:** `GET /api/formations/accounts/{accountId}`
 
 **Response:** `200 OK`
 ```json
 [
   {
-    "id": 1,
+    "id": "880e8400-e29b-41d4-a716-446655440004",
     "titre": "Leadership Avancé",
     "statut": "EN_COURS",
     "progression": 45,
@@ -259,6 +324,9 @@ Authorization: Bearer {token}
   }
 ]
 ```
+
+### Obtenir une formation par ID
+**Endpoint:** `GET /api/formations/{formationId}`
 
 ### Mettre à jour le statut
 **Endpoint:** `PUT /api/formations/{formationId}/statut?statut=EN_COURS`
@@ -278,7 +346,7 @@ Statuts disponibles:
 **Response:** `200 OK`
 ```json
 {
-  "id": 1,
+  "id": "880e8400-e29b-41d4-a716-446655440004",
   "titre": "Leadership Avancé",
   "statut": "EN_COURS",
   "progression": 75
@@ -292,7 +360,7 @@ Statuts disponibles:
 ### Générer une prédiction
 Génère une analyse complète avec recommandations via OpenAI.
 
-**Endpoint:** `POST /api/predictions/utilisateur/{utilisateurId}/generer`
+**Endpoint:** `POST /api/predictions/accounts/{accountId}/generer`
 
 **Headers:**
 ```
@@ -302,7 +370,7 @@ Authorization: Bearer {token}
 **Response:** `201 Created`
 ```json
 {
-  "id": 1,
+  "id": "990e8400-e29b-41d4-a716-446655440005",
   "datePrediction": "2026-02-02T10:30:00",
   "analyse": "Analyse complète générée par OpenAI GPT-4...",
   "recommandationSoft": "Développer les compétences en leadership...",
@@ -311,7 +379,7 @@ Authorization: Bearer {token}
   "statut": "COMPLETEE",
   "formationsProposees": [
     {
-      "id": 5,
+      "id": "880e8400-e29b-41d4-a716-446655440006",
       "titre": "Cloud Architecture AWS",
       "type": "TECH_SKILL"
     }
@@ -320,10 +388,10 @@ Authorization: Bearer {token}
 ```
 
 ### Lister les prédictions
-**Endpoint:** `GET /api/predictions/utilisateur/{utilisateurId}`
+**Endpoint:** `GET /api/predictions/accounts/{accountId}`
 
 ### Obtenir la dernière prédiction
-**Endpoint:** `GET /api/predictions/utilisateur/{utilisateurId}/derniere`
+**Endpoint:** `GET /api/predictions/accounts/{accountId}/derniere`
 
 **Response:** `200 OK` ou `204 No Content`
 
@@ -334,7 +402,7 @@ Authorization: Bearer {token}
 ### Obtenir le dashboard complet
 Vue d'ensemble avec toutes les statistiques de l'utilisateur.
 
-**Endpoint:** `GET /api/dashboard/utilisateur/{utilisateurId}`
+**Endpoint:** `GET /api/dashboard/accounts/{accountId}`
 
 **Headers:**
 ```
@@ -344,7 +412,7 @@ Authorization: Bearer {token}
 **Response:** `200 OK`
 ```json
 {
-  "utilisateurId": 1,
+  "accountId": "550e8400-e29b-41d4-a716-446655440000",
   "nomComplet": "Jean Dupont",
   "nombreTests": 3,
   "nombreSkillsSoft": 5,
@@ -355,13 +423,13 @@ Authorization: Bearer {token}
   "scoreEvaluationMoyen": 82.5,
   "topSkills": [
     {
-      "id": 1,
+      "id": "770e8400-e29b-41d4-a716-446655440003",
       "nom": "Java",
       "type": "TECH",
       "niveau": 5
     },
     {
-      "id": 2,
+      "id": "770e8400-e29b-41d4-a716-446655440002",
       "nom": "Leadership",
       "type": "SOFT",
       "niveau": 4
@@ -369,14 +437,14 @@ Authorization: Bearer {token}
   ],
   "formationsRecentes": [
     {
-      "id": 1,
+      "id": "880e8400-e29b-41d4-a716-446655440004",
       "titre": "Leadership Avancé",
       "statut": "EN_COURS",
       "progression": 75
     }
   ],
   "dernierePrediction": {
-    "id": 1,
+    "id": "990e8400-e29b-41d4-a716-446655440005",
     "datePrediction": "2026-02-02T10:30:00",
     "scoreConfiance": 0.85
   }
@@ -398,15 +466,17 @@ Authorization: Bearer {token}
 **Response:** `201 Created`
 ```json
 {
-  "id": 1,
+  "id": "aa0e8400-e29b-41d4-a716-446655440007",
   "jiraKey": "TRN-123",
   "titre": "Formation: Leadership Avancé",
   "description": "Demande de formation pour Jean Dupont...",
   "statut": "OUVERT",
   "priorite": "MOYENNE",
-  "dateCreation": "2026-02-02T10:30:00",
+  "assignee": null,
   "urlJira": "https://your-domain.atlassian.net/browse/TRN-123",
-  "formationId": 1
+  "formationId": "880e8400-e29b-41d4-a716-446655440004",
+  "createdAt": "2026-02-02T10:30:00Z",
+  "updatedAt": "2026-02-02T10:30:00Z"
 }
 ```
 
@@ -439,6 +509,9 @@ Authorization: Bearer {token}
 Content-Type: application/json
 ```
 
+### Identifiants
+Tous les IDs sont des **UUID** (format: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`).
+
 ### Codes de statut HTTP
 - `200 OK` - Succès
 - `201 Created` - Ressource créée
@@ -454,9 +527,9 @@ Content-Type: application/json
 {
   "timestamp": "2026-02-02T10:30:00",
   "status": 400,
-  "error": "Bad Request",
+  "error": "Validation Failed",
   "message": "Erreur de validation des données",
-  "path": "/api/skills/utilisateur/1",
+  "path": "/api/skills/accounts/550e8400-...",
   "validationErrors": {
     "niveau": "Le niveau minimum est 1"
   }
@@ -470,52 +543,62 @@ Content-Type: application/json
 
 ---
 
-## 🧪 Tests avec cURL
+## 🧪 Tests avec cURL (Windows CMD)
 
 ### Exemple complet de workflow
 
 ```bash
 # 1. Inscription
-curl -X POST http://localhost:8080/api/auth/inscription \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nom": "Dupont",
-    "prenom": "Jean",
-    "email": "jean.dupont@example.com",
-    "motDePasse": "password123"
-  }'
+curl -X POST http://localhost:8081/api/auth/register ^
+  -H "Content-Type: application/json" ^
+  -d "{\"lastName\":\"Dupont\",\"firstName\":\"Jean\",\"email\":\"jean.dupont@example.com\",\"password\":\"password123\"}"
 
-# 2. Sauvegarder le token
-TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+# 2. Sauvegarder le token retourné
+set TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 # 3. Soumettre un test
-curl -X POST http://localhost:8080/api/tests/utilisateur/1 \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "typeTest": "MBTI",
-    "reponses": {
-      "question1": "Extraverti"
-    }
-  }'
+curl -X POST http://localhost:8081/api/tests/accounts/{accountId} ^
+  -H "Authorization: Bearer %TOKEN%" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"typeTest\":\"MBTI\",\"reponses\":{\"question1\":\"Extraverti\"}}"
 
 # 4. Ajouter des skills
-curl -X POST http://localhost:8080/api/skills/utilisateur/1 \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nom": "Java",
-    "type": "TECH",
-    "niveau": 5
-  }'
+curl -X POST http://localhost:8081/api/skills/accounts/{accountId} ^
+  -H "Authorization: Bearer %TOKEN%" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"nom\":\"Java\",\"type\":\"TECH\",\"niveau\":5}"
 
 # 5. Générer une prédiction
-curl -X POST http://localhost:8080/api/predictions/utilisateur/1/generer \
-  -H "Authorization: Bearer $TOKEN"
+curl -X POST http://localhost:8081/api/predictions/accounts/{accountId}/generer ^
+  -H "Authorization: Bearer %TOKEN%"
 
 # 6. Voir le dashboard
-curl -X GET http://localhost:8080/api/dashboard/utilisateur/1 \
-  -H "Authorization: Bearer $TOKEN"
+curl -X GET http://localhost:8081/api/dashboard/accounts/{accountId} ^
+  -H "Authorization: Bearer %TOKEN%"
+```
+
+---
+
+## 🧪 Tests avec cURL (PowerShell)
+
+```powershell
+# 1. Inscription
+$response = Invoke-RestMethod -Method POST -Uri "http://localhost:8081/api/auth/register" `
+  -ContentType "application/json" `
+  -Body '{"lastName":"Dupont","firstName":"Jean","email":"jean.dupont@example.com","password":"password123"}'
+
+# 2. Sauvegarder le token
+$TOKEN = $response.token
+
+# 3. Ajouter des skills
+Invoke-RestMethod -Method POST -Uri "http://localhost:8081/api/skills/accounts/$($response.id)" `
+  -ContentType "application/json" `
+  -Headers @{ Authorization = "Bearer $TOKEN" } `
+  -Body '{"nom":"Java","type":"TECH","niveau":5}'
+
+# 4. Voir le dashboard
+Invoke-RestMethod -Method GET -Uri "http://localhost:8081/api/dashboard/accounts/$($response.id)" `
+  -Headers @{ Authorization = "Bearer $TOKEN" }
 ```
 
 ---

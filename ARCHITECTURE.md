@@ -313,21 +313,6 @@ JiraService
 
 ## 🚀 Déploiement
 
-### Architecture Docker
-```
-docker-compose.yml
-├── postgres (Base de données)
-│   └── Volume: postgres_data
-│
-├── backend (Application Spring Boot)
-│   ├── Dépend de: postgres
-│   └── Expose: 8080
-│
-└── pgadmin (Interface de gestion)
-    ├── Volume: pgadmin_data
-    └── Expose: 5050
-```
-
 ### Variables d'environnement
 ```bash
 # Application
@@ -368,29 +353,7 @@ logging.level.org.springframework.security=DEBUG
 logging.level.org.hibernate.SQL=DEBUG
 ```
 
-## 🔄 CI/CD
 
-### Pipeline suggéré
-```yaml
-stages:
-  - build
-  - test
-  - package
-  - deploy
-
-build:
-  mvn clean compile
-
-test:
-  mvn test
-
-package:
-  mvn package -DskipTests
-  docker build -t talentpredict:${VERSION}
-
-deploy:
-  docker-compose up -d
-```
 
 ## 📈 Scalabilité
 

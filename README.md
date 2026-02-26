@@ -12,7 +12,6 @@ Backend Spring Boot pour la plateforme d'évaluation des compétences et de pré
 - **OpenAI API (GPT-4)**
 - **Camunda BPM**
 - **Jira REST API**
-- **Docker & Docker Compose**
 
 ## 📋 Fonctionnalités
 
@@ -56,8 +55,7 @@ Backend Spring Boot pour la plateforme d'évaluation des compétences et de pré
 ### Prérequis
 - Java 17+
 - Maven 3.8+
-- Docker & Docker Compose
-- PostgreSQL (ou via Docker)
+- PostgreSQL
 
 ### Configuration
 
@@ -73,17 +71,7 @@ cp .env.example .env
 # Éditer .env avec vos clés API
 ```
 
-3. **Lancer avec Docker Compose**
-```bash
-docker-compose up -d
-```
-
-L'application sera accessible sur :
-- Backend : http://localhost:8080
-- pgAdmin : http://localhost:5050
-- Camunda : http://localhost:8080/camunda
-
-### Configuration manuelle (sans Docker)
+### Lancer l'application
 
 1. **Créer la base de données**
 ```sql
@@ -220,20 +208,7 @@ mvn clean package -DskipTests
 java -jar target/core-1.0-SNAPSHOT.jar
 ```
 
-## 🐳 Docker
 
-### Build l'image
-```bash
-docker build -t talentpredict:latest ./serveur
-```
-
-### Run le conteneur
-```bash
-docker run -p 8080:8080 \
-  -e SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/talentpredict \
-  -e OPENAI_API_KEY=your-key \
-  talentpredict:latest
-```
 
 ## 🔧 Configuration avancée
 
