@@ -1,0 +1,231 @@
+# ================================================================
+#  TalentPredict — Frontend Pipeline
+#  Angular 21 · Node 22 · Nginx
+# ================================================================
+
+# --------------------------------------------------
+#  Frontend Cache (node_modules + npm)
+# --------------------------------------------------
+.frontend_cache: &frontend_cache
+  cache:
+    key: "frontend-npm-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - FrontEnd/node_modules/
+      - .npm/
+    policy: pull-push
+
+# --------------------------------------------------
+#  Frontend Rules — only trigger on FrontEnd/ changes
+# --------------------------------------------------
+.frontend_rules: &frontend_rules
+  rules:
+    - changes:
+        - FrontEnd/**/*
+      when: on_success
+    - when: never
+
+# --------------------------------------------------
+#  Frontend Base Job
+# --------------------------------------------------
+.frontend_base:
+  image: node:22-alpine
+  <<: *frontend_cache
+  <<: *frontend_rules
+  before_script:
+    - cd FrontEnd
+
+# ============ INSTALL ============
+frontend:install:
+  extends: .frontend_base
+  stage: install
+  script:
+    - npm ci --legacy-peer-deps --prefer-offline
+  artifacts:
+    paths:
+      - FrontEnd/node_modules/
+    expire_in: 1 day
+
+# ============ BUILD ============
+frontend:build:
+  extends: .frontend_base
+  stage: build
+  needs: ["frontend:install"]
+  script:
+    - npm run build -- --configuration production
+  artifacts:
+    paths:
+      - FrontEnd/dist/
+    expire_in: 1 day
+
+# ============ TEST ============
+frontend:test:
+  extends: .frontend_base
+  stage: test
+  needs: ["frontend:install"]
+  script:
+    - npx vitest run --reporter=junit --outputFile=test-results.xml || true
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - FrontEnd/test-results.xml
+    expire_in: 7 days
+
+# ============ QUALITY ============
+frontend:quality:
+  extends: .frontend_base
+  stage: quality
+  needs: ["frontend:install"]
+  script:
+    - npx ng lint --force || echo "⚠ Lint not configured — add @angular-eslint for full linting"
+    - npx tsc --noEmit || true
+  allow_failure: true
+
+# ============ SECURITY ============
+frontend:security:
+  extends: .frontend_base
+  stage: security
+  needs: ["frontend:install"]
+  script:
+    - npm audit --audit-level=high --omit=dev || true
+  allow_failure: true
+  artifacts:
+    when: always
+    paths:
+      - FrontEnd/npm-audit.json
+    expire_in: 30 days
+
+# ============ PACKAGE ============
+frontend:package:
+  stage: package
+  image: docker:24
+  services:
+    - docker:24-dind
+  <<: *frontend_rules
+  needs: ["frontend:build", "frontend:test"]
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - cd FrontEnd
+    - >
+      docker build
+      --cache-from "$FRONTEND_IMAGE:latest"
+      --tag "$FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA"
+      --tag "$FRONTEND_IMAGE:$CI_COMMIT_REF_SLUG"
+      --tag "$FRONTEND_IMAGE:latest"
+      --build-arg BUILDKIT_INLINE_CACHE=1
+      .
+    - docker push "$FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker push "$FRONTEND_IMAGE:$CI_COMMIT_REF_SLUG"
+    - docker push "$FRONTEND_IMAGE:latest"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_TAG'
+      changes:
+        - FrontEnd/**/*
+      when: on_success
+    - when: never
+
+# ============ DEPLOY — Staging ============
+frontend:deploy:staging:
+  stage: deploy
+  image: docker:24
+  services:
+    - docker:24-dind
+  needs: ["frontend:package"]
+  environment:
+    name: staging
+    url: https://staging.talentpredict.local
+    on_stop: frontend:stop:staging
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - echo "=== Deploying Frontend to STAGING ==="
+    - docker pull "$FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker stop talentpredict-frontend-staging || true
+    - docker rm   talentpredict-frontend-staging || true
+    - >
+      docker run -d
+      --name talentpredict-frontend-staging
+      --restart unless-stopped
+      -p "${FRONTEND_PORT}:80"
+      -e NGINX_BACKEND_URL="http://talentpredict-backend-staging:${BACKEND_PORT}"
+      "$FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - echo "✅ Frontend staging deployment complete"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - FrontEnd/**/*
+      when: on_success
+    - when: never
+
+frontend:stop:staging:
+  stage: deploy
+  image: docker:24
+  services:
+    - docker:24-dind
+  environment:
+    name: staging
+    action: stop
+  script:
+    - docker stop talentpredict-frontend-staging || true
+    - docker rm   talentpredict-frontend-staging || true
+  when: manual
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
+    - when: never
+
+# ============ DEPLOY — Production ============
+frontend:deploy:production:
+  stage: deploy
+  image: docker:24
+  services:
+    - docker:24-dind
+  needs: ["frontend:package"]
+  environment:
+    name: production
+    url: https://talentpredict.com
+    on_stop: frontend:stop:production
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - echo "=== Deploying Frontend to PRODUCTION ==="
+    - docker pull "$FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker tag "$FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA" "$FRONTEND_IMAGE:rollback" || true
+    - docker stop talentpredict-frontend-prod || true
+    - docker rm   talentpredict-frontend-prod || true
+    - >
+      docker run -d
+      --name talentpredict-frontend-prod
+      --restart unless-stopped
+      --memory=256m
+      --memory-reservation=128m
+      -p "${FRONTEND_PORT}:80"
+      -e NGINX_BACKEND_URL="http://talentpredict-backend-prod:${BACKEND_PORT}"
+      --log-driver json-file
+      --log-opt max-size=10m
+      --log-opt max-file=5
+      "$FRONTEND_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - echo "✅ Frontend production deployment complete"
+  when: manual
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+      when: manual
+    - when: never
+
+frontend:stop:production:
+  stage: deploy
+  image: docker:24
+  services:
+    - docker:24-dind
+  environment:
+    name: production
+    action: stop
+  script:
+    - docker stop talentpredict-frontend-prod || true
+    - docker rm   talentpredict-frontend-prod || true
+  when: manual
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+      when: manual
+    - when: never

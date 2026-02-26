@@ -1,0 +1,236 @@
+# ================================================================
+#  TalentPredict — Backend Pipeline
+#  Spring Boot 3.4 · Java 21 · Maven
+# ================================================================
+
+# --------------------------------------------------
+#  Backend Cache (Maven .m2)
+# --------------------------------------------------
+.backend_cache: &backend_cache
+  cache:
+    key: "backend-maven-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .m2/repository/
+    policy: pull-push
+
+# --------------------------------------------------
+#  Backend Rules — only trigger on BackEnd/ changes
+# --------------------------------------------------
+.backend_rules: &backend_rules
+  rules:
+    - changes:
+        - BackEnd/**/*
+      when: on_success
+    - when: never
+
+# --------------------------------------------------
+#  Backend Base Job
+# --------------------------------------------------
+.backend_base:
+  image: maven:3.9.9-eclipse-temurin-21-alpine
+  <<: *backend_cache
+  <<: *backend_rules
+  before_script:
+    - cd BackEnd
+
+# ============ BUILD ============
+backend:build:
+  extends: .backend_base
+  stage: build
+  script:
+    - mvn $MAVEN_CLI_OPTS clean compile
+  artifacts:
+    paths:
+      - BackEnd/target/
+    expire_in: 1 day
+
+# ============ TEST ============
+backend:test:
+  extends: .backend_base
+  stage: test
+  needs: ["backend:build"]
+  script:
+    - mvn $MAVEN_CLI_OPTS test
+  artifacts:
+    when: always
+    paths:
+      - BackEnd/target/surefire-reports/
+    reports:
+      junit:
+        - BackEnd/target/surefire-reports/TEST-*.xml
+    expire_in: 7 days
+
+# ============ QUALITY ============
+backend:quality:
+  extends: .backend_base
+  stage: quality
+  needs: ["backend:build"]
+  script:
+    - mvn $MAVEN_CLI_OPTS verify -DskipTests
+  allow_failure: true
+  artifacts:
+    paths:
+      - BackEnd/target/site/
+    expire_in: 7 days
+
+# ============ SECURITY ============
+backend:security:
+  extends: .backend_base
+  stage: security
+  needs: ["backend:build"]
+  script:
+    - mvn $MAVEN_CLI_OPTS org.owasp:dependency-check-maven:check
+      -DfailBuildOnCVSS=8
+      -DsuppressionFile=owasp-suppressions.xml || true
+  allow_failure: true
+  artifacts:
+    when: always
+    paths:
+      - BackEnd/target/dependency-check-report.html
+    expire_in: 30 days
+
+# ============ PACKAGE ============
+backend:package:
+  stage: package
+  image: docker:24
+  services:
+    - docker:24-dind
+  <<: *backend_rules
+  needs: ["backend:test"]
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - cd BackEnd
+    - >
+      docker build
+      --cache-from "$BACKEND_IMAGE:latest"
+      --tag "$BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA"
+      --tag "$BACKEND_IMAGE:$CI_COMMIT_REF_SLUG"
+      --tag "$BACKEND_IMAGE:latest"
+      --build-arg BUILDKIT_INLINE_CACHE=1
+      .
+    - docker push "$BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker push "$BACKEND_IMAGE:$CI_COMMIT_REF_SLUG"
+    - docker push "$BACKEND_IMAGE:latest"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_TAG'
+      changes:
+        - BackEnd/**/*
+      when: on_success
+    - when: never
+
+# ============ DEPLOY — Staging ============
+backend:deploy:staging:
+  stage: deploy
+  image: docker:24
+  services:
+    - docker:24-dind
+  needs: ["backend:package"]
+  environment:
+    name: staging
+    url: https://staging.talentpredict.local
+    on_stop: backend:stop:staging
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - echo "=== Deploying Backend to STAGING ==="
+    - docker pull "$BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker stop talentpredict-backend-staging || true
+    - docker rm   talentpredict-backend-staging || true
+    - >
+      docker run -d
+      --name talentpredict-backend-staging
+      --restart unless-stopped
+      -p "${BACKEND_PORT}:${BACKEND_PORT}"
+      -e SPRING_PROFILES_ACTIVE=staging
+      -e SPRING_DATASOURCE_URL="${STAGING_DB_URL}"
+      -e SPRING_DATASOURCE_USERNAME="${STAGING_DB_USER}"
+      -e SPRING_DATASOURCE_PASSWORD="${STAGING_DB_PASSWORD}"
+      -e JWT_SECRET="${STAGING_JWT_SECRET}"
+      -e SERVER_PORT="${BACKEND_PORT}"
+      "$BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - echo "✅ Backend staging deployment complete"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - BackEnd/**/*
+      when: on_success
+    - when: never
+
+backend:stop:staging:
+  stage: deploy
+  image: docker:24
+  services:
+    - docker:24-dind
+  environment:
+    name: staging
+    action: stop
+  script:
+    - docker stop talentpredict-backend-staging || true
+    - docker rm   talentpredict-backend-staging || true
+  when: manual
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
+    - when: never
+
+# ============ DEPLOY — Production ============
+backend:deploy:production:
+  stage: deploy
+  image: docker:24
+  services:
+    - docker:24-dind
+  needs: ["backend:package"]
+  environment:
+    name: production
+    url: https://talentpredict.com
+    on_stop: backend:stop:production
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - echo "=== Deploying Backend to PRODUCTION ==="
+    - docker pull "$BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker tag "$BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA" "$BACKEND_IMAGE:rollback" || true
+    - docker stop talentpredict-backend-prod || true
+    - docker rm   talentpredict-backend-prod || true
+    - >
+      docker run -d
+      --name talentpredict-backend-prod
+      --restart unless-stopped
+      --memory=1g
+      --memory-reservation=512m
+      -p "${BACKEND_PORT}:${BACKEND_PORT}"
+      -e SPRING_PROFILES_ACTIVE=production
+      -e SPRING_DATASOURCE_URL="${PROD_DB_URL}"
+      -e SPRING_DATASOURCE_USERNAME="${PROD_DB_USER}"
+      -e SPRING_DATASOURCE_PASSWORD="${PROD_DB_PASSWORD}"
+      -e JWT_SECRET="${PROD_JWT_SECRET}"
+      -e SERVER_PORT="${BACKEND_PORT}"
+      -e JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC"
+      --log-driver json-file
+      --log-opt max-size=10m
+      --log-opt max-file=5
+      "$BACKEND_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - echo "✅ Backend production deployment complete"
+  when: manual
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+      when: manual
+    - when: never
+
+backend:stop:production:
+  stage: deploy
+  image: docker:24
+  services:
+    - docker:24-dind
+  environment:
+    name: production
+    action: stop
+  script:
+    - docker stop talentpredict-backend-prod || true
+    - docker rm   talentpredict-backend-prod || true
+  when: manual
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+      when: manual
+    - when: never
