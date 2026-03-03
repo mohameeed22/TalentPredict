@@ -59,7 +59,6 @@ public class SecurityConfig {
                 .requestMatchers("/api/health").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
-                .requestMatchers("/camunda/**").permitAll()
                 .requestMatchers("/error").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
                 // Utilisateur routes – ADMIN only

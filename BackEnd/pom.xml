@@ -92,19 +92,7 @@
             <version>0.18.2</version>
         </dependency>
 
-        <!-- Camunda BPM (alternative à Operaton) -->
-        <dependency>
-            <groupId>org.camunda.bpm.springboot</groupId>
-            <artifactId>camunda-bpm-spring-boot-starter-rest</artifactId>
-            <version>7.20.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.camunda.bpm.springboot</groupId>
-            <artifactId>camunda-bpm-spring-boot-starter-webapp</artifactId>
-            <version>7.20.0</version>
-        </dependency>
-
-        <!-- H2 pour Camunda (optionnel, peut être remplacé par PostgreSQL) -->
+        <!-- H2 in-memory database (used for tests) -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
