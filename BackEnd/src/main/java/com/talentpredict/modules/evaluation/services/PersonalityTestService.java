@@ -4,20 +4,22 @@
  */
 package com.talentpredict.modules.evaluation.services;
 
-import com.talentpredict.modules.account.entities.Account;
-import com.talentpredict.modules.evaluation.dto.PersonalityTestDto;
-import com.talentpredict.modules.evaluation.entities.PersonalityTest;
-import com.talentpredict.modules.evaluation.repositories.PersonalityTestRepository;
-import com.talentpredict.modules.auth.services.AuthServiceImpl;
-import com.talentpredict.modules.ai.services.OpenAIService;
-import com.talentpredict.shared.exception.ResourceNotFoundException;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.ai.services.OpenAIService;
+import com.talentpredict.modules.auth.services.AuthServiceImpl;
+import com.talentpredict.modules.evaluation.dto.PersonalityTestDto;
+import com.talentpredict.modules.evaluation.entities.PersonalityTest;
+import com.talentpredict.modules.evaluation.repositories.PersonalityTestRepository;
+import com.talentpredict.shared.exception.ResourceNotFoundException;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

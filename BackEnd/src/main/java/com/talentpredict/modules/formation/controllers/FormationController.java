@@ -2,7 +2,6 @@ package com.talentpredict.modules.formation.controllers;
 
 import java.util.UUID;
 
-import com.talentpredict.modules.formation.dto.FormationDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.talentpredict.modules.formation.dto.FormationDto;
 import com.talentpredict.modules.formation.entities.Formation;
 import com.talentpredict.modules.formation.services.FormationService;
 
