@@ -24,12 +24,7 @@ Créer un nouveau compte utilisateur.
 
 **Request Body:**
 ```json
-{
-  "lastName": "Dupont",
-  "firstName": "Jean",
-  "email": "jean.dupont@example.com",
-  "password": "password123"
-}
+
 ```
 
 **Response:** `201 Created`
