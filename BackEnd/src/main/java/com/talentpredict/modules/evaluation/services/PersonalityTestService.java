@@ -62,6 +62,22 @@ public class PersonalityTestService {
         return convertToResponse(test);
     }
     
+    public PersonalityTestDto.PersonalityTestResponse getLatestTestByAccount(UUID accountId) {
+        List<PersonalityTest> tests = testRepository.findByAccountIdOrderByDateTestDesc(accountId);
+        if (tests.isEmpty()) {
+            // Return null instead of throwing exception - let controller handle empty response
+            return null;
+        }
+        return convertToResponse(tests.get(0));
+    }
+    
+    public List<PersonalityTestDto.PersonalityTestResponse> getAllTests() {
+        return testRepository.findAll()
+            .stream()
+            .map(this::convertToResponse)
+            .collect(Collectors.toList());
+    }
+    
     private Integer calculateScore(java.util.Map<String, String> reponses) {
         return Math.min(100, reponses.size() * 10);
     }

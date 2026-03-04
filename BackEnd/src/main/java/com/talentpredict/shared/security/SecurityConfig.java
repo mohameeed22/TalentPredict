@@ -78,6 +78,12 @@ public class SecurityConfig {
                         // Account routes – USER or ADMIN (fine-grained ownership enforced in service)
                         .requestMatchers(HttpMethod.GET, "/api/accounts/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/accounts/**").hasAnyRole("USER", "ADMIN")
+                        // Profile routes – USER or ADMIN (TASK 3 requirements)
+                        .requestMatchers(HttpMethod.GET, "/api/profiles/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/profiles/**").hasAnyRole("USER", "ADMIN")
+                        // Personality test routes – USER or ADMIN
+                        .requestMatchers(HttpMethod.GET, "/api/tests-personnalite/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/tests-personnalite/**").hasAnyRole("USER", "ADMIN")
                         // All other endpoints require authentication
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session

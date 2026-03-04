@@ -15,37 +15,37 @@ export class FormationService {
   private http = inject(HttpClient);
   private baseUrl = `${environment.apiUrl}/formations`;
 
-  createFormation(userId: number, request: FormationRequest): Observable<FormationResponse> {
+  createFormation(userId: number | string, request: FormationRequest): Observable<FormationResponse> {
     return this.http.post<FormationResponse>(
       `${this.baseUrl}/utilisateur/${userId}`,
       request
     );
   }
 
-  getUserFormations(userId: number): Observable<FormationResponse[]> {
+  getUserFormations(userId: number | string): Observable<FormationResponse[]> {
     return this.http.get<FormationResponse[]>(
       `${this.baseUrl}/utilisateur/${userId}`
     );
   }
 
-  getFormationById(formationId: number): Observable<FormationResponse> {
+  getFormationById(formationId: number | string): Observable<FormationResponse> {
     return this.http.get<FormationResponse>(`${this.baseUrl}/${formationId}`);
   }
 
-  getFormationsByStatus(userId: number, statut: string): Observable<FormationResponse[]> {
+  getFormationsByStatus(userId: number | string, statut: string): Observable<FormationResponse[]> {
     return this.http.get<FormationResponse[]>(
       `${this.baseUrl}/utilisateur/${userId}/statut/${statut}`
     );
   }
 
-  updateFormationProgress(formationId: number, progression: number): Observable<FormationResponse> {
+  updateFormationProgress(formationId: number | string, progression: number): Observable<FormationResponse> {
     return this.http.put<FormationResponse>(
       `${this.baseUrl}/${formationId}/progression`,
       { progression }
     );
   }
 
-  updateFormationStatus(formationId: number, statut: string): Observable<FormationResponse> {
+  updateFormationStatus(formationId: number | string, statut: string): Observable<FormationResponse> {
     return this.http.put<FormationResponse>(
       `${this.baseUrl}/${formationId}/statut`,
       { statut }

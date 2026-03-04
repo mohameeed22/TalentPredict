@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NotificationService, Notification } from '../../../core/services/notification.service';
 import { Subscription } from 'rxjs';
@@ -7,8 +7,9 @@ import { Subscription } from 'rxjs';
   selector: 'app-notification-toast',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @for (notification of notifications; track notification; let i = $index) {
+    @for (notification of notifications; track notification.type + notification.message + $index; let i = $index) {
       <div class="toast" [class]="'toast-' + notification.type" (click)="dismiss(i)">
         <span class="toast-icon">
           @switch (notification.type) {
@@ -128,6 +129,7 @@ import { Subscription } from 'rxjs';
 })
 export class NotificationToastComponent implements OnInit, OnDestroy {
   private notificationService = inject(NotificationService);
+  private cdr = inject(ChangeDetectorRef);
   private subscription!: Subscription;
 
   notifications: Notification[] = [];
@@ -135,6 +137,7 @@ export class NotificationToastComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.subscription = this.notificationService.notifications$.subscribe(notification => {
       this.notifications.push(notification);
+      this.cdr.markForCheck(); // Fix NG0100
 
       // Auto-dismiss after duration
       const duration = notification.duration || 3000;
@@ -147,6 +150,7 @@ export class NotificationToastComponent implements OnInit, OnDestroy {
   dismiss(index: number): void {
     if (index >= 0 && index < this.notifications.length) {
       this.notifications.splice(index, 1);
+      this.cdr.markForCheck(); // Fix NG0100
     }
   }
 
