@@ -1,22 +1,16 @@
 package com.talentpredict.modules.formation.entities;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.talentpredict.modules.ai.entities.Prediction;
 import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.jira.entities.Ticket;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
@@ -27,27 +21,28 @@ import lombok.*;
 @Builder
 @Table(name = "formations")
 public class Formation {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
     // infos
-    @Column(nullable = false)
+    @Column(nullable = false, length = 300)
     private String titre;
-    
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column
     private Integer duree; // En heures
-    
-    @Column
+
+    @Column(length = 200)
     private String fournisseur;
-    
-    @Column
+
+    @Column(length = 500)
     private String url;
-    
+
     @Column(name = "date_proposition")
     private LocalDateTime dateProposition = LocalDateTime.now();
 
@@ -61,21 +56,30 @@ public class Formation {
     private Integer progression = 0; // 0-100
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 30)
     private TypeFormation type;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 30)
     private StatutFormation statut = StatutFormation.PROPOSEE;
 
     // relationships
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "prediction_id")
+    @JsonIgnore
+    @ToString.Exclude
     private Prediction prediction;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", nullable = false)
+    @JsonIgnore
+    @ToString.Exclude
     private Account account;
+
+    @OneToMany(mappedBy = "formation", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
+    private List<Ticket> tickets = new ArrayList<>();
 
     // enums
     public enum TypeFormation {
@@ -84,7 +88,7 @@ public class Formation {
         CERTIFICATION,
         WORKSHOP
     }
-    
+
     public enum StatutFormation {
         PROPOSEE,
         ACCEPTEE,

@@ -4,11 +4,13 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.talentpredict.modules.account.entities.Profile;
 
 import jakarta.persistence.*;
 import lombok.*;
-
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
 @Getter
@@ -18,15 +20,15 @@ import lombok.*;
 @Builder
 @Table(name = "pcm_results")
 public class PCMResult {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
-    
 
     // infos
     @Enumerated(EnumType.STRING)
-    @Column(name = "type_pcm")
+    @Column(name = "type_pcm", length = 30)
     private TypePCM typePCM;
 
     @Column(name = "score_travail")
@@ -44,30 +46,19 @@ public class PCMResult {
     @Column(name = "date_evaluation")
     private LocalDateTime dateEvaluation = LocalDateTime.now();
 
-
     // relationships
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profile_id", nullable = false)
+    @JsonIgnore
+    @ToString.Exclude
     private Profile profile;
 
-
     // audits
-    @Column
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
-    @Column
+    @UpdateTimestamp
+    @Column(name = "updated_at")
     private Instant updatedAt;
-
-
-    // lifecycle
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = Instant.now();
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        Instant now = Instant.now();
-        createdAt = now;
-        updatedAt = now;
-    }
 }

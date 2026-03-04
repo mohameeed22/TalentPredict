@@ -21,7 +21,7 @@ export class AdminService {
   }
 
   /** GET /api/utilisateurs/{id} — Get user by ID */
-  getUserById(userId: number): Observable<User> {
+  getUserById(userId: string): Observable<User> {
     return this.http.get<User>(`${this.baseUrl}/${userId}`);
   }
 
@@ -31,12 +31,12 @@ export class AdminService {
   }
 
   /** PUT /api/utilisateurs/{id} — Update user (including role) */
-  updateUser(userId: number, data: Partial<UserRequest>): Observable<User> {
+  updateUser(userId: string, data: Partial<UserRequest>): Observable<User> {
     return this.http.put<User>(`${this.baseUrl}/${userId}`, data);
   }
 
   /** PUT /api/utilisateurs/{id} — Update user role */
-  updateUserRole(userId: number, role: string): Observable<User> {
+  updateUserRole(userId: string, role: string): Observable<User> {
     return this.http.put<User>(
       `${this.baseUrl}/${userId}`,
       { role }
@@ -44,7 +44,7 @@ export class AdminService {
   }
 
   /** DELETE /api/utilisateurs/{id} — Delete user */
-  deleteUser(userId: number): Observable<void> {
+  deleteUser(userId: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${userId}`);
   }
 

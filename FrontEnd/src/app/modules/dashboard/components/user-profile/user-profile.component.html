@@ -1,10 +1,11 @@
 <div class="profile-container">
+
   <!-- Profile Header -->
   <div class="profile-header">
     <button class="btn-back" (click)="goBack()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-        <line x1="19" y1="12" x2="5" y2="12"/>
-        <polyline points="12 19 5 12 12 5"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+        <line x1="19" y1="12" x2="5" y2="12" />
+        <polyline points="12 19 5 12 12 5" />
       </svg>
       Retour
     </button>
@@ -12,201 +13,210 @@
   </div>
 
   @if (loading) {
-    <div class="loading-card">
-      <div class="loader"></div>
-      <p>Chargement du profil...</p>
-    </div>
+  <div class="loading-card">
+    <div class="loader"></div>
+    <p>Chargement du profil...</p>
+  </div>
   }
 
   @if (error) {
-    <div class="error-banner">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="15" y1="9" x2="9" y2="15"/>
-        <line x1="9" y1="9" x2="15" y2="15"/>
-      </svg>
-      <span>{{ error }}</span>
-    </div>
+  <div class="error-banner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="15" y1="9" x2="9" y2="15" />
+      <line x1="9" y1="9" x2="15" y2="15" />
+    </svg>
+    <span>{{ error }}</span>
+  </div>
   }
 
-  @if (user && !loading) {
-    <div class="profile-content">
-      <!-- Profile Hero Card -->
-      <div class="profile-hero">
-        <div class="hero-avatar">
-          @if (user.profilePictureUrl) {
-            <img [src]="user.profilePictureUrl" [alt]="user.firstName" class="avatar-img" />
-          } @else {
-            <div class="avatar-placeholder">
-              {{ user.firstName?.charAt(0) }}{{ user.lastName?.charAt(0) }}
-            </div>
+  @if (profile && !loading) {
+  <div class="profile-content">
+
+    <!-- Hero Card: Avatar + Read-only info from Account -->
+    <div class="profile-hero">
+      <div class="hero-avatar">
+        @if (profile.urlPhoto) {
+        <img [src]="profile.urlPhoto" [alt]="profile.firstName" class="avatar-img" />
+        } @else {
+        <div class="avatar-placeholder">{{ initials }}</div>
+        }
+      </div>
+      <div class="hero-info">
+        <h2>{{ profile.firstName }} {{ profile.lastName }}</h2>
+        <p class="hero-title">{{ profile.titreProfessionnel || 'Titre non renseigné' }}</p>
+        <p class="hero-email">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
+          </svg>
+          {{ profile.email }}
+        </p>
+        <div class="hero-tags">
+          @if (profile.position) {
+          <span class="tag tag-blue">📌 {{ profile.position }}</span>
+          }
+          @if (profile.department) {
+          <span class="tag tag-purple">🏢 {{ profile.department }}</span>
+          }
+          @if (profile.experienceAns != null) {
+          <span class="tag tag-green">⭐ {{ profile.experienceAns }} ans d'expérience</span>
           }
         </div>
-        <div class="hero-info">
-          <h2>{{ user.firstName }} {{ user.lastName }}</h2>
-          <p class="hero-email">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-              <polyline points="22,6 12,13 2,6"/>
+
+        <!-- Social Links -->
+        <div class="social-links">
+          @if (profile.lienLinkedin) {
+          <a [href]="profile.lienLinkedin" target="_blank" class="social-link linkedin">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+              <path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z" />
+              <circle cx="4" cy="4" r="2" />
             </svg>
-            {{ user.email }}
-          </p>
-          <div class="hero-badges">
-            <span class="role-badge" [class.role-admin]="user.role === 'ADMIN'" [class.role-user]="user.role === 'USER'">
-              @if (user.role === 'ADMIN') {
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
-                  <path d="M12 15l-2 5l9-11h-5l2-5l-9 11h5z"/>
-                </svg>
-              }
-              {{ user.role === 'ADMIN' ? 'Administrateur' : 'Utilisateur' }}
-            </span>
-            @if (user.isActive) {
-              <span class="status-badge active">
-                <span class="status-dot"></span> Actif
-              </span>
-            } @else {
-              <span class="status-badge inactive">
-                <span class="status-dot"></span> Inactif
-              </span>
-            }
-          </div>
-        </div>
-        <div class="hero-actions">
-          @if (!editing) {
-            <button class="btn-edit" (click)="toggleEdit()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-              </svg>
-              Modifier
-            </button>
+            LinkedIn
+          </a>
+          }
+          @if (profile.githubUrl) {
+          <a [href]="profile.githubUrl" target="_blank" class="social-link github">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+              <path
+                d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22" />
+            </svg>
+            GitHub
+          </a>
+          }
+          @if (profile.cvUrl) {
+          <a [href]="profile.cvUrl" target="_blank" class="social-link cv">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            Mon CV
+          </a>
           }
         </div>
       </div>
-
-      <!-- Profile Details or Edit Form -->
-      @if (!editing) {
-        <div class="details-grid">
-          <div class="detail-card">
-            <div class="card-header">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-              </svg>
-              <h3>Informations Personnelles</h3>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Nom d'utilisateur</span>
-              <span class="detail-value">{{ user.username }}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Prénom</span>
-              <span class="detail-value">{{ user.firstName }}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Nom</span>
-              <span class="detail-value">{{ user.lastName }}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Email</span>
-              <span class="detail-value">{{ user.email }}</span>
-            </div>
-          </div>
-
-          <div class="detail-card">
-            <div class="card-header">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-              </svg>
-              <h3>Informations Professionnelles</h3>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Département</span>
-              <span class="detail-value">{{ user.department || '—' }}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Poste</span>
-              <span class="detail-value">{{ user.position || '—' }}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Date d'embauche</span>
-              <span class="detail-value">{{ user.hireDate ? (user.hireDate | date:'longDate') : '—' }}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Membre depuis</span>
-              <span class="detail-value">{{ user.createdAt | date:'longDate' }}</span>
-            </div>
-          </div>
-        </div>
-      } @else {
-        <!-- Edit Form -->
-        <div class="edit-card">
-          <div class="card-header">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-            <h3>Modifier le profil</h3>
-          </div>
-          <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
-            <div class="form-row">
-              <div class="form-group">
-                <label for="firstName">Prénom</label>
-                <input id="firstName" type="text" formControlName="firstName" placeholder="Votre prénom" />
-                @if (profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched) {
-                  <span class="field-error">Prénom requis</span>
-                }
-              </div>
-              <div class="form-group">
-                <label for="lastName">Nom</label>
-                <input id="lastName" type="text" formControlName="lastName" placeholder="Votre nom" />
-                @if (profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched) {
-                  <span class="field-error">Nom requis</span>
-                }
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="email">Email</label>
-              <input id="email" type="email" formControlName="email" />
-            </div>
-
-            <div class="form-row">
-              <div class="form-group">
-                <label for="department">Département</label>
-                <input id="department" type="text" formControlName="department" placeholder="Ex: Ressources Humaines" />
-              </div>
-              <div class="form-group">
-                <label for="position">Poste</label>
-                <input id="position" type="text" formControlName="position" placeholder="Ex: Chef de projet" />
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="profilePictureUrl">URL Photo de profil</label>
-              <input id="profilePictureUrl" type="url" formControlName="profilePictureUrl" placeholder="https://..." />
-            </div>
-
-            <div class="form-actions">
-              <button type="button" class="btn-cancel" (click)="toggleEdit()">Annuler</button>
-              <button type="submit" class="btn-save" [disabled]="profileForm.invalid || saving">
-                @if (saving) {
-                  <div class="btn-spinner"></div>
-                  Enregistrement...
-                } @else {
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                    <polyline points="17 21 17 13 7 13 7 21"/>
-                    <polyline points="7 3 7 8 15 8"/>
-                  </svg>
-                  Enregistrer
-                }
-              </button>
-            </div>
-          </form>
-        </div>
-      }
     </div>
+
+    <!-- TASK 3: Editable Profile Form (always visible, no toggle needed) -->
+    <div class="edit-card">
+      <div class="card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+        </svg>
+        <h3>Modifier mon profil</h3>
+      </div>
+
+      <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+
+        <!-- Read-only info -->
+        <div class="read-only-section">
+          <p class="section-label">ℹ️ Informations de compte (non modifiables)</p>
+          <div class="readonly-grid">
+            <div class="readonly-item">
+              <span class="readonly-label">Prénom</span>
+              <span class="readonly-value">{{ profile.firstName }}</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Nom</span>
+              <span class="readonly-value">{{ profile.lastName }}</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Email</span>
+              <span class="readonly-value">{{ profile.email }}</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Poste</span>
+              <span class="readonly-value">{{ profile.position || '—' }}</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Département</span>
+              <span class="readonly-value">{{ profile.department || '—' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Editable fields -->
+        <div class="form-group">
+          <label for="titreProfessionnel">Titre professionnel</label>
+          <input id="titreProfessionnel" type="text" formControlName="titreProfessionnel"
+            placeholder="Ex: Développeur Full Stack Senior" />
+        </div>
+
+        <div class="form-group">
+          <label for="description">Bio / Description</label>
+          <textarea id="description" formControlName="description" rows="4"
+            placeholder="Décrivez votre parcours, vos ambitions..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="experienceAns">Années d'expérience</label>
+            <input id="experienceAns" type="number" formControlName="experienceAns" placeholder="0" min="0" max="50" />
+          </div>
+          <div class="form-group">
+            <label for="niveauEtudes">Niveau d'études</label>
+            <input id="niveauEtudes" type="text" formControlName="niveauEtudes"
+              placeholder="Ex: Master, Licence, Baccalauréat" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="urlPhoto">
+            📷 URL Photo de profil
+          </label>
+          <input id="urlPhoto" type="url" formControlName="urlPhoto" placeholder="https://example.com/photo.jpg" />
+        </div>
+
+        <div class="form-group">
+          <label for="lienLinkedin">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+              <path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z" />
+              <circle cx="4" cy="4" r="2" />
+            </svg>
+            LinkedIn URL
+          </label>
+          <input id="lienLinkedin" type="url" formControlName="lienLinkedin"
+            placeholder="https://linkedin.com/in/votre-profil" />
+        </div>
+
+        <div class="form-group">
+          <label for="githubUrl">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+              <path
+                d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22" />
+            </svg>
+            GitHub URL
+          </label>
+          <input id="githubUrl" type="url" formControlName="githubUrl" placeholder="https://github.com/votre-profil" />
+        </div>
+
+        <div class="form-group">
+          <label for="cvUrl">
+            📄 URL de votre CV (lien de téléchargement)
+          </label>
+          <input id="cvUrl" type="url" formControlName="cvUrl" placeholder="https://example.com/cv.pdf" />
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-save" id="save-profile-btn" [disabled]="saving">
+            @if (saving) {
+            <div class="btn-spinner"></div>
+            Enregistrement...
+            } @else {
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg>
+            Sauvegarder le profil
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
   }
+
 </div>

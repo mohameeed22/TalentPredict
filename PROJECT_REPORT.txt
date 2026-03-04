@@ -1,0 +1,377 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                    RAPPORT DE PROJET - TALENTPREDICT                           ║
+║                       Date: 27 Février 2026                                    ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+================================================================================
+                    PARTIE 1 : RAPPORT DES MODIFICATIONS
+================================================================================
+
+CONTRIBUTEURS IDENTIFIÉS
+-------------------------
+• mohameeed22 - 5 commits dans les dernières 24 heures
+• ghost-cloud-405 - 1 commit il y a 33 heures
+
+
+MODIFICATIONS RÉCENTES DE MOHAMEEED22
+======================================
+
+1. PIPELINE CI/CD COMPLET (il y a 24-83 minutes)
+-------------------------------------------------
+Commit le plus récent : Réécriture complète du pipeline CI/CD avec 3 environnements
+
+✓ Création de pipelines séparés :
+  - .gitlab-ci.yml - Pipeline principal
+  - .gitlab/backend-ci.yml - Pipeline backend
+  - .gitlab/frontend-ci.yml - Pipeline frontend
+
+✓ Fonctionnalités ajoutées :
+  • 3 environnements : Dev, Staging, Production
+  • Système de rollback automatique
+  • Scan de sécurité intégré
+  • Tests automatisés Backend et Frontend
+
+✓ Dockerfiles optimisés :
+  - BackEnd/Dockerfile
+  - FrontEnd/Dockerfile
+  - FrontEnd/nginx.conf
+  - docker-compose.staging.yml (nouveau fichier)
+
+
+2. CORRECTION DES TESTS BACKEND (il y a 51 minutes)
+----------------------------------------------------
+• Résolution des échecs de tests
+• Fichiers modifiés :
+  - BackEnd/src/test/java/com/talentpredict/core/MainApplicationTests.java
+  - BackEnd/src/test/resources/application-test.properties
+• Exclusion de l'auto-configuration Camunda
+
+
+3. REFONTE COMPLÈTE DU FRONTEND (il y a 23 heures)
+---------------------------------------------------
+Modifications massives : ~80 fichiers modifiés
+
+Nouveaux modules ajoutés :
+• Module Home complet
+  - FrontEnd/src/app/modules/home/home.component.ts
+  - FrontEnd/src/app/modules/home/home.component.html
+  - FrontEnd/src/app/modules/home/home.component.css
+
+Nouveaux services et modèles :
+• FrontEnd/src/app/core/services/pcm.service.ts - Service d'évaluation PCM
+• FrontEnd/src/app/core/services/result.service.ts - Gestion des résultats
+• FrontEnd/src/app/core/models/pcm.model.ts - Modèle PCM
+• FrontEnd/src/app/core/models/api-response.model.ts - Modèle de réponse API
+
+Modules d'évaluation améliorés :
+• Nouveau composant PCM Intro
+• Refonte complète de l'UI pour tous les composants :
+  - Login/Register (styles modernisés)
+  - Dashboard Admin & User
+  - Test PCM et résultats
+  - Formation et Skills
+  - Jira tickets
+
+Configuration mise à jour :
+• BackEnd/src/main/resources/application.properties
+• Guards et intercepteurs améliorés
+• Styles globaux refondus
+
+
+MODIFICATIONS DE GHOST-CLOUD-405 (il y a 33 heures)
+====================================================
+
+REFACTORING MAJEUR : "USER" → "ACCOUNT"
+----------------------------------------
+Changement architectural important : Renommage systématique de User en Account
+
+Nouveau module Account :
+BackEnd/src/main/java/com/talentpredict/modules/account/
+├── controllers/AccountController.java
+├── dto/AccountDto.java
+├── entities/
+│   ├── Account.java
+│   └── Profile.java
+├── mappers/
+│   ├── AccountMapperImpl.java
+│   └── IAccountMapper.java
+├── repositories/
+│   ├── AccountRepository.java
+│   └── ProfileRepository.java
+└── services/
+    ├── AccountServiceImpl.java
+    ├── IAccountService.java
+    └── ProfileService.java
+
+Réorganisation complète du code Backend :
+• Standardisation de la structure : controller/ → controllers/, 
+                                     service/ → services/
+• Déplacement model/ → entities/ pour tous les modules
+• Modules refactorisés :
+  ✓ AI (Prediction & Recommendations)
+  ✓ Auth
+  ✓ Dashboard
+  ✓ Evaluation (PCM Tests, Compétences)
+  ✓ Formation (Inscriptions)
+  ✓ Jira (Tickets)
+  ✓ Skills
+
+Améliorations de sécurité :
+• Nouveau AccountUserDetails
+• PoliciesServiceImpl ajouté
+• Configuration CORS mise à jour
+• DataInitializer pour l'initialisation des données
+
+Nettoyage du code :
+✗ Suppression des anciennes classes User
+✗ Suppression des DTOs Request/Response obsolètes
+✓ Nouveau système DTO unifié
+
+
+STATISTIQUES GLOBALES (10 derniers commits)
+============================================
+
+Fichiers modifiés : ~150+ fichiers
+• 897 lignes ajoutées
+• 465 lignes supprimées
+• Nombreuses modifications
+
+Répartition :
+• Backend : ~100 fichiers (refactoring complet)
+• Frontend : ~80 fichiers (UI/UX refonte)
+• CI/CD : 3 fichiers pipeline
+• Docker : 5 fichiers de configuration
+
+
+RÉSUMÉ DES AMÉLIORATIONS
+=========================
+
+1. Architecture : Refactoring complet User → Account avec structure standardisée
+2. CI/CD : Pipeline professionnel multi-environnements avec sécurité
+3. Frontend : UI modernisée, nouveaux modules (Home, PCM), services améliorés
+4. Backend : Structure cohérente, nouveaux contrôleurs et services
+5. Sécurité : Améliorations JWT, policies, configuration
+6. Tests : Correction des tests backend, configuration test améliorée
+
+
+================================================================================
+            PARTIE 2 : EXPLICATION DU FICHIER DOCKER-COMPOSE.STAGING.YML
+================================================================================
+
+DESCRIPTION GÉNÉRALE
+====================
+Ce fichier Docker Compose configure l'environnement de STAGING pour TalentPredict.
+Il orchestre 3 services conteneurisés :
+• PostgreSQL (Base de données)
+• Backend Spring Boot (API REST)
+• Frontend Angular + Nginx (Interface utilisateur)
+
+Version Docker Compose : 3.8
+
+
+ARCHITECTURE DES SERVICES
+==========================
+
+┌─────────────────────────────────────────────────────────────┐
+│                    ENVIRONNEMENT STAGING                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐  │
+│  │   Frontend   │───▶│   Backend    │───▶│  PostgreSQL  │  │
+│  │   (Nginx)    │    │ (Spring Boot)│    │  (Database)  │  │
+│  │   Port: 80   │    │  Port: 8081  │    │  Port: 5433  │  │
+│  └──────────────┘    └──────────────┘    └──────────────┘  │
+│                                                              │
+│          Réseau: talentpredict-staging (bridge)             │
+└─────────────────────────────────────────────────────────────┘
+
+
+SERVICE 1 : POSTGRESQL DATABASE (postgres-staging)
+===================================================
+
+Configuration de base :
+• Image : postgres:16-alpine (version légère)
+• Container : talentpredict-postgres-staging
+• Restart : unless-stopped (redémarre automatiquement)
+
+Variables d'environnement :
+• POSTGRES_DB : talentpredict_staging
+• POSTGRES_USER : ${STAGING_DB_USER:-postgres}
+• POSTGRES_PASSWORD : ${STAGING_DB_PASSWORD}
+
+Volumes (Persistance) :
+• postgres_staging_data:/var/lib/postgresql/data
+  → Les données survivent même si le conteneur est supprimé
+
+Ports :
+• 5433:5432 (Port hôte:Port conteneur)
+  → Port différent de dev (5432) pour éviter les conflits
+
+Health Check :
+• Commande : pg_isready -U postgres -d talentpredict_staging
+• Interval : 10 secondes
+• Timeout : 5 secondes
+• Retries : 5 tentatives
+• Start period : 30 secondes (délai initial)
+  → Vérifie que la base de données est prête avant de démarrer le backend
+
+Limites de ressources :
+• Memory limit : 512 Mo
+• Memory reservation : 256 Mo
+
+
+SERVICE 2 : BACKEND SPRING BOOT (backend)
+==========================================
+
+Configuration de base :
+• Image : ${CI_REGISTRY_IMAGE}/backend:${BACKEND_TAG:-latest}
+• Container : talentpredict-backend-staging
+• Restart : unless-stopped
+
+Variables d'environnement :
+• SPRING_PROFILES_ACTIVE : staging
+  → Active le profil application-staging.properties
+• SPRING_DATASOURCE_URL : jdbc:postgresql://postgres-staging:5432/...
+  → Connexion à la base via le nom DNS du service
+• SPRING_DATASOURCE_USERNAME : ${STAGING_DB_USER:-postgres}
+• SPRING_DATASOURCE_PASSWORD : ${STAGING_DB_PASSWORD}
+• JWT_SECRET : ${STAGING_JWT_SECRET}
+  → Secret pour la génération des tokens JWT
+• SERVER_PORT : 8081
+• JAVA_OPTS : 
+  - -XX:+UseContainerSupport (optimisation conteneur)
+  - -XX:MaxRAMPercentage=75.0 (utilise max 75% de la RAM allouée)
+  - -XX:+UseG1GC (Garbage Collector G1, performant)
+
+Ports :
+• 8081:8081
+  → Port différent de dev (8080) et prod (8082)
+
+Dépendances :
+• depends_on postgres-staging avec condition service_healthy
+  → Attend que PostgreSQL soit "healthy" avant de démarrer
+  → Évite les erreurs de connexion DB au démarrage
+
+Health Check :
+• Endpoint : http://localhost:8081/actuator/health
+  → Utilise Spring Boot Actuator pour vérifier l'état
+• Interval : 30 secondes
+• Timeout : 10 secondes
+• Retries : 5 tentatives
+• Start period : 60 secondes (Spring Boot prend du temps à démarrer)
+
+Limites de ressources :
+• Memory limit : 1 Go
+• Memory reservation : 512 Mo
+
+Logs :
+• Driver : json-file
+• Max size : 10 Mo par fichier
+• Max files : 3 fichiers
+  → Rotation automatique, max 30 Mo de logs
+
+
+SERVICE 3 : FRONTEND ANGULAR + NGINX (frontend)
+================================================
+
+Configuration de base :
+• Image : ${CI_REGISTRY_IMAGE}/frontend:${FRONTEND_TAG:-latest}
+• Container : talentpredict-frontend-staging
+• Restart : unless-stopped
+
+Ports :
+• 80:80
+  → Port HTTP standard, point d'entrée de l'application
+
+Dépendances :
+• depends_on backend
+  → Démarre après le backend (pas de health check strict)
+
+Health Check :
+• Endpoint : http://localhost/
+  → Vérifie que Nginx répond
+• Interval : 30 secondes
+• Timeout : 5 secondes
+• Retries : 3 tentatives
+
+Limites de ressources :
+• Memory limit : 256 Mo (Nginx est léger)
+• Memory reservation : 128 Mo
+
+Logs :
+• Driver : json-file
+• Max size : 10 Mo par fichier
+• Max files : 3 fichiers
+
+
+NETWORKS (RÉSEAU)
+=================
+
+talentpredict-staging :
+• Driver : bridge
+  → Réseau isolé pour ces 3 conteneurs
+• Isolation : Les services communiquent entre eux mais sont isolés 
+              des autres environnements
+• DNS interne : Chaque service est accessible par son nom
+  - postgres-staging → Base de données
+  - backend → API
+  - frontend → Interface web
+
+
+VOLUMES (STOCKAGE PERSISTANT)
+==============================
+
+postgres_staging_data :
+• Nom : talentpredict-postgres-staging-data
+• Fonction : Stockage persistant pour PostgreSQL
+• Persistance : Les données restent même si on supprime les conteneurs
+• Isolation : Volume nommé séparé de dev et prod
+
+
+FLUX DE DÉMARRAGE
+=================
+
+1. Création du réseau talentpredict-staging
+2. Création du volume postgres_staging_data
+3. Démarrage PostgreSQL → Health check (30s)
+4. Attente que PostgreSQL soit healthy
+5. Démarrage Backend Spring Boot → Health check (60s)
+6. Démarrage Frontend Nginx
+7. Application accessible sur http://localhost
+
+
+VARIABLES D'ENVIRONNEMENT REQUISES
+===================================
+
+À définir dans un fichier .env ou dans le CI/CD :
+
+STAGING_DB_USER=postgres
+STAGING_DB_PASSWORD=your_secure_password
+STAGING_JWT_SECRET=your_jwt_secret_key
+CI_REGISTRY_IMAGE=registry.gitlab.com/your-project
+BACKEND_TAG=staging-v1.2.3
+FRONTEND_TAG=staging-v1.2.3
+
+
+DIFFÉRENCES ENTRE LES ENVIRONNEMENTS
+=====================================
+
+┌─────────────────┬──────────┬──────────┬────────────┐
+│ Caractéristique │   Dev    │ Staging  │ Production │
+├─────────────────┼──────────┼──────────┼────────────┤
+│ Port DB         │   5432   │   5433   │    5434    │
+│ Port Backend    │   8080   │   8081   │    8082    │
+│ RAM Backend     │   512M   │    1G    │     2G     │
+│ Health checks   │ Basiques │ Complets │   Stricts  │
+│ Logs rotation   │   Non    │ Oui(30M) │  Oui(100M) │
+│ Profil Spring   │   dev    │  staging │    prod    │
+└─────────────────┴──────────┴──────────┴────────────┘
+
+Le fichier staging est un environnement de pré-production qui simule 
+la production avec des ressources moyennes pour tester avant le 
+déploiement final.
+
+
+================================================================================
+                           FIN DU RAPPORT
+================================================================================

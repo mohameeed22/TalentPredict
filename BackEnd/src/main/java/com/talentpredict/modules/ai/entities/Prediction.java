@@ -5,24 +5,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.talentpredict.modules.account.entities.Account;
 import com.talentpredict.modules.formation.entities.Formation;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
-
 
 @Entity
 @Getter
@@ -32,14 +20,14 @@ import lombok.*;
 @Builder
 @Table(name = "predictions")
 public class Prediction {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-
     // infos
-    @Column(columnDefinition = "TEXT", nullable = false, name="analyse_text")
+    @Column(columnDefinition = "TEXT", nullable = false, name = "analyse_text")
     private String analyse; // Analyse générée par OpenAI
 
     @Column(name = "recommandation_soft", columnDefinition = "TEXT")
@@ -52,21 +40,23 @@ public class Prediction {
     private Double scoreConfiance; // 0-1
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 30)
     private StatutPrediction statut = StatutPrediction.EN_ANALYSE;
 
     @Column(name = "date_prediction", nullable = false)
     private LocalDateTime datePrediction = LocalDateTime.now();
 
-
     // relationships
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", nullable = false)
+    @JsonIgnore
+    @ToString.Exclude
     private Account account;
 
-    @OneToMany(mappedBy = "prediction", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "prediction", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
     private List<Formation> formationsProposees = new ArrayList<>();
-
 
     // enums
     public enum StatutPrediction {

@@ -5,22 +5,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.talentpredict.modules.account.entities.Account;
 
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.MapKeyColumn;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
-
 
 @Entity
 @Getter
@@ -30,22 +19,23 @@ import lombok.*;
 @Builder
 @Table(name = "tests_personnalite")
 public class PersonalityTest {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
     // infos
     @Column(name = "date_test", nullable = false)
     private LocalDateTime dateTest = LocalDateTime.now();
 
-    @Column(name = "type_test")
-    private String typeTest; // MBTI, Big Five, DISC, etc.
+    @Column(name = "type_test", length = 50)
+    private String typeTest; // PCM, MBTI, Big Five, DISC, etc.
 
     @ElementCollection
     @CollectionTable(name = "test_reponses", joinColumns = @JoinColumn(name = "test_id"))
-    @MapKeyColumn(name = "question")
-    @Column(name = "reponse")
+    @MapKeyColumn(name = "question_key")
+    @Column(name = "reponse_value", columnDefinition = "TEXT")
     private Map<String, String> reponses = new HashMap<>();
 
     @Column(columnDefinition = "TEXT")
@@ -60,5 +50,7 @@ public class PersonalityTest {
     // relationships
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account_id", nullable = false)
+    @JsonIgnore
+    @ToString.Exclude
     private Account account;
 }

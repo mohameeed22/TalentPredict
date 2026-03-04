@@ -5,10 +5,9 @@ export enum Role {
 
 /**
  * Lightweight user from auth response (login/register).
- * Contains only the fields returned by POST /api/auth/login.
  */
 export interface AuthUser {
-  id: number | string;
+  id: string;
   nom: string;
   prenom: string;
   email: string;
@@ -17,11 +16,10 @@ export interface AuthUser {
 }
 
 /**
- * Full user profile matching the backend UtilisateurResponse DTO.
- * Returned by GET /api/utilisateurs/{id} and GET /api/utilisateurs.
+ * Full user / account profile returned by GET /api/accounts/{id}
  */
 export interface User {
-  id: number;
+  id: string;
   username: string;
   email: string;
   firstName: string;
@@ -37,10 +35,41 @@ export interface User {
 }
 
 /**
- * Request DTO for creating/updating a user via POST/PUT /api/utilisateurs.
+ * Profile DTO from GET/PUT /api/profiles/accounts/{accountId}
  */
+export interface ProfileResponse {
+  id: string;
+  accountId: string;
+  // Read-only from account
+  firstName: string;
+  lastName: string;
+  email: string;
+  position: string;
+  department: string;
+  // Editable
+  titreProfessionnel: string;
+  description: string;
+  urlPhoto: string;
+  experienceAns: number;
+  niveauEtudes: string;
+  lienLinkedin: string;
+  githubUrl: string;
+  cvUrl: string;
+}
+
+export interface ProfileUpdateRequest {
+  titreProfessionnel?: string;
+  description?: string;
+  urlPhoto?: string;
+  experienceAns?: number;
+  niveauEtudes?: string;
+  lienLinkedin?: string;
+  githubUrl?: string;
+  cvUrl?: string;
+}
+
 export interface UserRequest {
-  username: string;
+  username?: string;
   email: string;
   password?: string;
   firstName: string;
@@ -61,11 +90,12 @@ export interface AuthRequest {
 export interface AuthResponse {
   token: string;
   type: string;
-  id: number | string;
+  id: string;
   email: string;
   role: string;
   nom: string;
   prenom: string;
+  redirectUrl: string;
 }
 
 export interface InscriptionRequest {
@@ -73,4 +103,5 @@ export interface InscriptionRequest {
   prenom: string;
   email: string;
   password: string;
+  role: string;
 }

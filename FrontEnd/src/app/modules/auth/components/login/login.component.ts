@@ -27,17 +27,14 @@ export class LoginComponent implements OnInit {
   });
 
   loading = false;
-  private returnUrl = '/dashboard';
 
   ngOnInit(): void {
-    // If already authenticated, redirect
+    // If already authenticated, redirect to appropriate dashboard
     if (this.authService.isAuthenticated()) {
-      this.router.navigateByUrl('/dashboard').then(() => this.appRef.tick());
+      const url = this.authService.getRedirectUrl();
+      this.router.navigateByUrl(url).then(() => this.appRef.tick());
       return;
     }
-
-    // Capture returnUrl from query params
-    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
 
     // Show session expired message if redirected from interceptor
     const reason = this.route.snapshot.queryParams['reason'];
@@ -50,9 +47,11 @@ export class LoginComponent implements OnInit {
     if (this.loginForm.valid) {
       this.loading = true;
       this.authService.login(this.loginForm.value).subscribe({
-        next: () => {
+        next: (response) => {
           this.notificationService.success('Connexion réussie !');
-          this.router.navigateByUrl(this.returnUrl).then(() => this.appRef.tick());
+          // TASK 1: Role-based redirect using backend's redirectUrl
+          const redirectUrl = response.redirectUrl || this.authService.getRedirectUrl();
+          this.router.navigateByUrl(redirectUrl).then(() => this.appRef.tick());
         },
         error: (error: HttpErrorResponse) => {
           this.loading = false;

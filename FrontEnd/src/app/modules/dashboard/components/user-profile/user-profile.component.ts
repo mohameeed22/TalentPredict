@@ -1,11 +1,10 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../auth/services/auth.service';
-import { UserService } from '../../../../core/services/user.service';
 import { NotificationService } from '../../../../core/services/notification.service';
-import { User } from '../../../auth/models/user.model';
+import { ProfileResponse } from '../../../auth/models/user.model';
 
 @Component({
   selector: 'app-user-profile',
@@ -16,27 +15,28 @@ import { User } from '../../../auth/models/user.model';
 })
 export class UserProfileComponent implements OnInit {
   private authService = inject(AuthService);
-  private userService = inject(UserService);
   private notificationService = inject(NotificationService);
   private fb = inject(FormBuilder);
   private router = inject(Router);
 
-  user: User | null = null;
+  profile: ProfileResponse | null = null;
   loading = true;
   saving = false;
-  editing = false;
   error: string | null = null;
 
   profileForm!: FormGroup;
 
   ngOnInit(): void {
+    // TASK 3: Full editable profile form with all fields
     this.profileForm = this.fb.group({
-      firstName: ['', [Validators.required]],
-      lastName: ['', [Validators.required]],
-      email: [{ value: '', disabled: true }],
-      department: [''],
-      position: [''],
-      profilePictureUrl: ['']
+      titreProfessionnel: [''],
+      description: [''],
+      urlPhoto: [''],
+      experienceAns: [null],
+      niveauEtudes: [''],
+      lienLinkedin: [''],
+      githubUrl: [''],
+      cvUrl: ['']
     });
 
     this.loadProfile();
@@ -44,10 +44,18 @@ export class UserProfileComponent implements OnInit {
 
   private loadProfile(): void {
     this.loading = true;
-    this.authService.fetchMyProfile().subscribe({
-      next: (user) => {
-        this.user = user;
-        this.patchForm(user);
+    const user = this.authService.getCurrentUser();
+    if (!user) {
+      this.error = 'Utilisateur non connecté.';
+      this.loading = false;
+      return;
+    }
+
+    // TASK 3: Use GET /api/profiles/accounts/{accountId}
+    this.authService.getProfile(user.id as string).subscribe({
+      next: (profile) => {
+        this.profile = profile;
+        this.patchForm(profile);
         this.loading = false;
       },
       error: (err) => {
@@ -58,44 +66,32 @@ export class UserProfileComponent implements OnInit {
     });
   }
 
-  private patchForm(user: User): void {
+  private patchForm(profile: ProfileResponse): void {
     this.profileForm.patchValue({
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      department: user.department || '',
-      position: user.position || '',
-      profilePictureUrl: user.profilePictureUrl || ''
+      titreProfessionnel: profile.titreProfessionnel || '',
+      description: profile.description || '',
+      urlPhoto: profile.urlPhoto || '',
+      experienceAns: profile.experienceAns || null,
+      niveauEtudes: profile.niveauEtudes || '',
+      lienLinkedin: profile.lienLinkedin || '',
+      githubUrl: profile.githubUrl || '',
+      cvUrl: profile.cvUrl || ''
     });
   }
 
-  toggleEdit(): void {
-    this.editing = !this.editing;
-    if (!this.editing && this.user) {
-      this.patchForm(this.user);
-    }
-  }
-
   saveProfile(): void {
-    if (!this.user || this.profileForm.invalid) return;
+    const user = this.authService.getCurrentUser();
+    if (!user) return;
 
     this.saving = true;
-    const formValue = this.profileForm.getRawValue();
+    const formValue = this.profileForm.value;
 
-    this.userService.update(this.user.id, {
-      firstName: formValue.firstName,
-      lastName: formValue.lastName,
-      department: formValue.department,
-      position: formValue.position,
-      profilePictureUrl: formValue.profilePictureUrl,
-      username: this.user.username,
-      email: this.user.email
-    }).subscribe({
-      next: (updatedUser) => {
-        this.user = updatedUser;
-        this.editing = false;
+    // TASK 3: Use PUT /api/profiles/accounts/{accountId}
+    this.authService.updateProfile(user.id as string, formValue).subscribe({
+      next: (updatedProfile) => {
+        this.profile = updatedProfile;
         this.saving = false;
-        this.notificationService.success('Profil mis à jour avec succès.');
+        this.notificationService.success('Profil mis à jour avec succès ! ✅');
       },
       error: (err) => {
         this.saving = false;
@@ -106,7 +102,13 @@ export class UserProfileComponent implements OnInit {
     });
   }
 
+  get initials(): string {
+    const user = this.authService.getCurrentUser();
+    if (!user) return '?';
+    return `${user.prenom?.charAt(0) || ''}${user.nom?.charAt(0) || ''}`.toUpperCase();
+  }
+
   goBack(): void {
-    this.router.navigate(['/dashboard']);
+    this.router.navigate([this.authService.isAdmin() ? '/admin/dashboard' : '/dashboard']);
   }
 }

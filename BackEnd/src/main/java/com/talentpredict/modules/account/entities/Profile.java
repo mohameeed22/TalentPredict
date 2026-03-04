@@ -5,11 +5,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.talentpredict.modules.evaluation.entities.PCMResult;
 
 import jakarta.persistence.*;
 import lombok.*;
-
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
 @Getter
@@ -19,59 +21,57 @@ import lombok.*;
 @Builder
 @Table(name = "profiles")
 public class Profile {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-
-    // infos
-    @Column
+    // Professional info
+    @Column(name = "titre_professionnel", length = 200)
     private String titreProfessionnel;
-    
-    @Column
+
+    @Column(columnDefinition = "TEXT")
     private String description;
-    
-    @Column
+
+    @Column(name = "url_photo", length = 500)
     private String urlPhoto;
-    
-    @Column
+
+    @Column(name = "experience_ans")
     private Integer experienceAns;
-    
-    @Column
+
+    @Column(name = "niveau_etudes", length = 100)
     private String niveauEtudes;
-    
-    @Column
+
+    @Column(name = "lien_linkedin", length = 500)
     private String lienLinkedin;
 
+    /** TASK 3: Added GitHub profile URL */
+    @Column(name = "github_url", length = 500)
+    private String githubUrl;
 
-    // relationships
-    @OneToOne
-    @JoinColumn(name = "account_id")
+    /** TASK 3: Added CV file/URL for download link */
+    @Column(name = "cv_url", length = 500)
+    private String cvUrl;
+
+    // Relationships
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id", unique = true, nullable = false)
+    @JsonIgnore
+    @ToString.Exclude
     private Account account;
 
     @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
     private List<PCMResult> pcmResults = new ArrayList<>();
 
-
-    // audits
-    @Column
+    // Audits
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
-    @Column
+    @UpdateTimestamp
+    @Column(name = "updated_at")
     private Instant updatedAt;
-
-
-    // Lifecycle
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = Instant.now();
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        Instant now = Instant.now();
-        createdAt = now;
-        updatedAt = now;
-    }
 }

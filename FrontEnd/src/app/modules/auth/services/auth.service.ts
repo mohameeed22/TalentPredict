@@ -2,7 +2,10 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, tap, catchError, throwError } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { AuthRequest, AuthResponse, AuthUser, InscriptionRequest, Role, User } from '../models/user.model';
+import {
+  AuthRequest, AuthResponse, AuthUser, InscriptionRequest,
+  Role, User, ProfileResponse, ProfileUpdateRequest
+} from '../models/user.model';
 
 @Injectable({
   providedIn: 'root'
@@ -10,41 +13,39 @@ import { AuthRequest, AuthResponse, AuthUser, InscriptionRequest, Role, User } f
 export class AuthService {
   private http = inject(HttpClient);
   private baseUrl = `${environment.apiUrl}/auth`;
-  private usersUrl = `${environment.apiUrl}/utilisateurs`;
+  private accountsUrl = `${environment.apiUrl}/accounts`;
+  private profilesUrl = `${environment.apiUrl}/profiles`;
+
   private currentUserSubject = new BehaviorSubject<AuthUser | null>(this.getUserFromStorage());
   public currentUser$ = this.currentUserSubject.asObservable();
 
-  /** Full user profile fetched from /api/utilisateurs/{id} */
   private userProfileSubject = new BehaviorSubject<User | null>(null);
   public userProfile$ = this.userProfileSubject.asObservable();
 
-  constructor() {}
+  constructor() { }
 
   /**
-   * Authenticate via POST /api/auth/login
-   * Stores JWT token & basic user info in localStorage.
+   * TASK 1: Login — redirects based on role returned from backend.
    */
   login(credentials: AuthRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.baseUrl}/login`, credentials).pipe(
       tap(response => {
         this.setSession(response);
       }),
-      catchError(err => {
-        return throwError(() => err);
-      })
+      catchError(err => throwError(() => err))
     );
   }
 
   /**
-   * Register via POST /api/auth/inscription
+   * TASK 1: Register — sends role in payload, redirectUrl returned by backend.
    */
   register(data: InscriptionRequest): Observable<AuthResponse> {
-    // Map frontend field names (nom/prenom) to backend field names (lastName/firstName)
     const backendPayload = {
       lastName: data.nom,
       firstName: data.prenom,
       email: data.email,
-      password: data.password
+      password: data.password,
+      role: data.role  // ← sends USER or ADMIN
     };
     return this.http.post<AuthResponse>(`${this.baseUrl}/register`, backendPayload).pipe(
       tap(response => {
@@ -54,19 +55,32 @@ export class AuthService {
   }
 
   /**
-   * Fetch the authenticated user's full profile.
-   * Uses GET /api/utilisateurs/{id} with the current user's ID.
+   * TASK 3: Fetch the authenticated user's full account info.
    */
   fetchMyProfile(): Observable<User> {
     const user = this.getCurrentUser();
     if (!user) {
       return throwError(() => new Error('Not authenticated'));
     }
-    return this.http.get<User>(`${this.usersUrl}/${user.id}`).pipe(
+    return this.http.get<User>(`${this.accountsUrl}/${user.id}`).pipe(
       tap(profile => {
         this.userProfileSubject.next(profile);
       })
     );
+  }
+
+  /**
+   * TASK 3: Get profile (editable) by accountId.
+   */
+  getProfile(accountId: string): Observable<ProfileResponse> {
+    return this.http.get<ProfileResponse>(`${this.profilesUrl}/accounts/${accountId}`);
+  }
+
+  /**
+   * TASK 3: Update profile (editable fields only).
+   */
+  updateProfile(accountId: string, data: ProfileUpdateRequest): Observable<ProfileResponse> {
+    return this.http.put<ProfileResponse>(`${this.profilesUrl}/accounts/${accountId}`, data);
   }
 
   logout(): void {
@@ -92,7 +106,6 @@ export class AuthService {
   isAuthenticated(): boolean {
     const token = this.getToken();
     if (!token) return false;
-    // Check if token is expired
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const expiry = payload.exp * 1000;
@@ -111,10 +124,17 @@ export class AuthService {
     return user?.role === Role.ADMIN || user?.role === ('ADMIN' as any);
   }
 
+  /**
+   * TASK 1: Get the redirect URL based on role.
+   */
+  getRedirectUrl(): string {
+    return this.isAdmin() ? '/admin/dashboard' : '/dashboard';
+  }
+
   private setSession(authResponse: AuthResponse): void {
     localStorage.setItem('token', authResponse.token);
     const user: AuthUser = {
-      id: authResponse.id,
+      id: authResponse.id as string,
       nom: authResponse.nom,
       prenom: authResponse.prenom,
       email: authResponse.email,

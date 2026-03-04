@@ -19,6 +19,9 @@ export class RegisterComponent {
   private notificationService = inject(NotificationService);
   private appRef = inject(ApplicationRef);
 
+  /** TASK 1: Default role is USER (Employee) */
+  selectedRole: string = 'USER';
+
   registerForm: FormGroup = this.fb.group({
     nom: ['', [Validators.required]],
     prenom: ['', [Validators.required]],
@@ -28,16 +31,28 @@ export class RegisterComponent {
 
   loading = false;
 
+  /** TASK 1: Select role card */
+  selectRole(role: string): void {
+    this.selectedRole = role;
+  }
+
   onSubmit(): void {
     if (this.registerForm.valid) {
       this.loading = true;
-      this.authService.register(this.registerForm.value).subscribe({
-        next: () => {
+      const formValue = {
+        ...this.registerForm.value,
+        role: this.selectedRole  // TASK 1: include selected role
+      };
+      this.authService.register(formValue).subscribe({
+        next: (response) => {
           this.notificationService.success('Compte créé avec succès !');
-          this.router.navigateByUrl('/dashboard').then(() => this.appRef.tick());
+          // TASK 1: Role-based redirect using backend's redirectUrl
+          const redirectUrl = response.redirectUrl || this.authService.getRedirectUrl();
+          this.router.navigateByUrl(redirectUrl).then(() => this.appRef.tick());
         },
         error: (error) => {
-          this.notificationService.error('Erreur lors de l\'inscription');
+          const msg = error?.error?.message || 'Erreur lors de l\'inscription';
+          this.notificationService.error(msg);
           this.loading = false;
         },
         complete: () => {

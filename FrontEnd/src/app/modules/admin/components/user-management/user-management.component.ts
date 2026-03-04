@@ -15,13 +15,13 @@ import { User, Role } from '../../../auth/models/user.model';
 export class UserManagementComponent implements OnInit {
   private adminService = inject(AdminService);
   private notificationService = inject(NotificationService);
-  
+
   users = signal<User[]>([]);
   loading = signal(false);
   error = signal<string | null>(null);
   selectedUser = signal<User | null>(null);
   showDeleteConfirm = signal(false);
-  
+
   readonly Role = Role;
 
   ngOnInit(): void {
@@ -45,7 +45,7 @@ export class UserManagementComponent implements OnInit {
     });
   }
 
-  updateUserRole(userId: number, newRole: string): void {
+  updateUserRole(userId: string, newRole: string): void {
     this.adminService.updateUserRole(userId, newRole).subscribe({
       next: (updatedUser) => {
         const users = this.users();

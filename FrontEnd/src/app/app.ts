@@ -16,20 +16,36 @@ export class App implements OnInit, OnDestroy {
   private router = inject(Router);
   private appRef = inject(ApplicationRef);
   private subscriptions: Subscription[] = [];
-  
+
   title = 'TalentPredict';
-  
+
   /** Signal: true when the current route IS an auth page or landing page */
   private isPublicPage = signal(true);
   /** Signal: true when the user is logged in */
   private authenticated = signal(false);
-  
-  sidebarCollapsed = signal(false);
+
+  /**
+   * TASK 4: Plain boolean for sidebar open state.
+   * Using a plain boolean lets Angular's [style.left] binding update in sync with the DOM.
+   */
+  isSidebarOpen = true;
 
   /** Computed signal — sidebar shows when logged in AND not on public pages */
   showSidebar = computed(() => !this.isPublicPage() && this.authenticated());
 
   ngOnInit(): void {
+    // TASK 4: Restore sidebar state from localStorage
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('sidebarOpen');
+      if (window.innerWidth < 768) {
+        // Mobile: always start closed
+        this.isSidebarOpen = false;
+      } else {
+        // Desktop: restore from localStorage (default: open)
+        this.isSidebarOpen = saved !== 'false';
+      }
+    }
+
     // Set initial values from current URL
     this.isPublicPage.set(this.isPublicRoute(this.router.url));
     this.authenticated.set(this.authService.isAuthenticated());
@@ -78,8 +94,12 @@ export class App implements OnInit, OnDestroy {
     return this.authService.getCurrentUser();
   }
 
+  /** TASK 4: Toggle sidebar — persists state in localStorage */
   toggleSidebar(): void {
-    this.sidebarCollapsed.update(v => !v);
+    this.isSidebarOpen = !this.isSidebarOpen;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('sidebarOpen', String(this.isSidebarOpen));
+    }
   }
 
   getUserInitials(): string {

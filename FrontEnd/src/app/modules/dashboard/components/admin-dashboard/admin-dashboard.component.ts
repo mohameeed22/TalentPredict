@@ -1,64 +1,47 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DashboardService } from '../../services/dashboard.service';
-import { DashboardResponse } from '../../models/stats.model';
+import { RouterModule } from '@angular/router';
+import { DashboardService, AdminOverviewResponse, EmployeeSummary } from '../../services/dashboard.service';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.scss']
 })
 export class AdminDashboardComponent implements OnInit {
   private dashboardService = inject(DashboardService);
 
-  systemStats: DashboardResponse | null = null;
+  overview: AdminOverviewResponse | null = null;
   loading = true;
   error: string | null = null;
 
   ngOnInit(): void {
-    this.loadSystemStats();
+    this.loadOverview();
   }
 
-  private loadSystemStats(): void {
+  private loadOverview(): void {
     this.loading = true;
-    // For admin dashboard, we might need a different endpoint
-    // Using user id 1 as placeholder for system-wide stats
-    this.dashboardService.getDashboardStats(1).subscribe({
+    // TASK 2: Uses GET /api/dashboard/admin/overview
+    this.dashboardService.getAdminOverview().subscribe({
       next: (data) => {
-        this.systemStats = data;
+        this.overview = data;
         this.loading = false;
       },
       error: (err) => {
-        this.error = 'Failed to load system statistics';
+        this.error = 'Impossible de charger le tableau de bord RH.';
         this.loading = false;
         console.error('Error loading admin dashboard:', err);
       }
     });
   }
 
-  get totalTests(): number {
-    return this.systemStats?.testsCount ?? 0;
+  get employees(): EmployeeSummary[] {
+    return this.overview?.employees ?? [];
   }
 
-  get totalSkills(): number {
-    return this.systemStats?.skillsCount ?? 0;
-  }
-
-  get totalFormations(): number {
-    return this.systemStats?.formationsCount ?? 0;
-  }
-
-  get activeFormations(): number {
-    return this.systemStats?.formationsEnCours ?? 0;
-  }
-
-  get completedFormations(): number {
-    return this.systemStats?.formationsTerminees ?? 0;
-  }
-
-  get averageProgress(): number {
-    return this.systemStats?.progressionMoyenne ?? 0;
+  trackByEmployeeId(_: number, emp: EmployeeSummary): string {
+    return emp.id;
   }
 }

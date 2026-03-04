@@ -15,13 +15,13 @@ import { User, UserRequest } from '../../modules/auth/models/user.model';
 export class UserService {
   private http = inject(HttpClient);
   private baseUrl = `${environment.apiUrl}/utilisateurs`;
-  
+
   private usersSubject = new BehaviorSubject<User[]>([]);
   public users$ = this.usersSubject.asObservable();
-  
+
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
-  
+
   private loadingSubject = new BehaviorSubject<boolean>(false);
   public loading$ = this.loadingSubject.asObservable();
 
@@ -47,7 +47,7 @@ export class UserService {
   /**
    * GET /api/utilisateurs/{id} — Get a single user by ID
    */
-  getById(id: number): Observable<User> {
+  getById(id: string): Observable<User> {
     this.loadingSubject.next(true);
     return this.http.get<User>(`${this.baseUrl}/${id}`).pipe(
       tap(user => {
@@ -84,7 +84,7 @@ export class UserService {
   /**
    * PUT /api/utilisateurs/{id} — Update an existing user
    */
-  update(id: number, data: Partial<UserRequest>): Observable<User> {
+  update(id: string, data: Partial<UserRequest>): Observable<User> {
     this.loadingSubject.next(true);
     return this.http.put<User>(`${this.baseUrl}/${id}`, data).pipe(
       tap(updatedUser => {
@@ -110,7 +110,7 @@ export class UserService {
   /**
    * DELETE /api/utilisateurs/{id} — Delete a user (ADMIN only)
    */
-  delete(id: number): Observable<void> {
+  delete(id: string): Observable<void> {
     this.loadingSubject.next(true);
     return this.http.delete<void>(`${this.baseUrl}/${id}`).pipe(
       tap(() => {
