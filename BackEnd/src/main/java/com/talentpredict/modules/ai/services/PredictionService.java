@@ -1,7 +1,7 @@
 package com.talentpredict.modules.ai.services;
 
 import com.talentpredict.modules.ai.dto.PredictionDto;
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.modules.formation.dto.FormationDto;
 import com.talentpredict.modules.evaluation.entities.PersonalityTest;
 import com.talentpredict.modules.skills.entities.Skill;
@@ -37,16 +37,16 @@ public class PredictionService {
     private final OpenAIService openAIService;
 
     @Transactional
-    public PredictionDto.Response genererPrediction(UUID accountId) {
-        Account account = authServiceImpl.getAccountById(accountId);
+    public PredictionDto.Response genererPrediction(UUID userId) {
+        User user = authServiceImpl.getUserById(userId);
 
         // Récupérer les données de l'utilisateur
-        List<PersonalityTest> tests = personalityTestRepository.findByAccountIdOrderByDateTestDesc(accountId);
-        List<Skill> skills = skillRepository.findByAccountId(accountId);
+        List<PersonalityTest> tests = personalityTestRepository.findByUserIdOrderByDateTestDesc(userId);
+        List<Skill> skills = skillRepository.findByUserId(userId);
 
         // Construire le profil complet
         StringBuilder profileBuilder = new StringBuilder();
-        profileBuilder.append("Account: ").append(account.getFirstName()).append(" ").append(account.getLastName())
+        profileBuilder.append("User: ").append(user.getFirstName()).append(" ").append(user.getLastName())
                 .append("\n\n");
 
         if (!tests.isEmpty()) {
@@ -72,7 +72,7 @@ public class PredictionService {
 
         // Créer la prédiction
         Prediction prediction = new Prediction();
-        prediction.setAccount(account);
+        prediction.setUser(user);
         prediction.setAnalyse(analyseLlm);
         // Bug fix: calculate score based on data richness instead of hardcoding 0.85
         int testCount = tests.size();
@@ -80,7 +80,7 @@ public class PredictionService {
         double scoreConfiance = Math.min(1.0, (skillCount * 0.1) + (testCount * 0.15) + 0.4);
         prediction.setScoreConfiance(scoreConfiance);
         prediction.setStatut(Prediction.StatutPrediction.COMPLETEE);
-        log.info("Generated prediction for account {} with scoreConfiance={}", accountId, scoreConfiance);
+        log.info("Generated prediction for user {} with scoreConfiance={}", userId, scoreConfiance);
 
         // Extraire les recommandations (simplifié)
         String[] parts = analyseLlm.split("Recommandations");
@@ -102,15 +102,15 @@ public class PredictionService {
         return convertToResponse(saved);
     }
 
-    public List<PredictionDto.Response> getPredictionsByAccount(UUID accountId) {
-        return predictionRepository.findByAccountIdOrderByDatePredictionDesc(accountId)
+    public List<PredictionDto.Response> getPredictionsByUser(UUID userId) {
+        return predictionRepository.findByUserIdOrderByDatePredictionDesc(userId)
                 .stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
     }
 
-    public PredictionDto.Response getDernierePrediction(UUID accountId) {
-        return predictionRepository.findFirstByAccountIdOrderByDatePredictionDesc(accountId)
+    public PredictionDto.Response getDernierePrediction(UUID userId) {
+        return predictionRepository.findFirstByUserIdOrderByDatePredictionDesc(userId)
                 .map(this::convertToResponse)
                 .orElse(null);
     }

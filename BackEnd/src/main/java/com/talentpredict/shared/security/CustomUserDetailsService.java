@@ -1,7 +1,7 @@
 package com.talentpredict.shared.security;
 
-import com.talentpredict.modules.account.entities.Account;
-import com.talentpredict.modules.account.repositories.AccountRepository;
+import com.talentpredict.modules.user.entities.User;
+import com.talentpredict.modules.user.repositories.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -17,16 +17,16 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
     
-    private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
     
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        Account account = accountRepository.findByEmail(email)
+        User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé: " + email));
         
         List<GrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + account.getRole().name()));
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
         
-        return new AccountUserDetails(account, authorities);
+        return new UserDetailsImpl(user, authorities);
     }
 }

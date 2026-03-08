@@ -71,13 +71,13 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         // NOTE: /camunda/** removed — Camunda is disabled. Re-add when re-enabled.
-                        // Account routes – ADMIN only
-                        .requestMatchers(HttpMethod.POST, "/api/accounts").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/accounts").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/accounts/**").hasRole("ADMIN")
-                        // Account routes – USER or ADMIN (fine-grained ownership enforced in service)
-                        .requestMatchers(HttpMethod.GET, "/api/accounts/**").hasAnyRole("USER", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/accounts/**").hasAnyRole("USER", "ADMIN")
+                        // User routes – ADMIN only
+                        .requestMatchers(HttpMethod.POST, "/api/users").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/users").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasRole("ADMIN")
+                        // User routes – USER or ADMIN (fine-grained ownership enforced in service)
+                        .requestMatchers(HttpMethod.GET, "/api/users/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/users/**").hasAnyRole("USER", "ADMIN")
                         // Profile routes – USER or ADMIN (TASK 3 requirements)
                         .requestMatchers(HttpMethod.GET, "/api/profiles/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/profiles/**").hasAnyRole("USER", "ADMIN")

@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.modules.formation.entities.Formation;
 
 import jakarta.persistence.*;
@@ -48,10 +48,10 @@ public class Prediction {
 
     // relationships
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore
     @ToString.Exclude
-    private Account account;
+    private User user;
 
     @OneToMany(mappedBy = "prediction", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore

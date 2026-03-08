@@ -1,10 +1,10 @@
-package com.talentpredict.modules.account.services;
+package com.talentpredict.modules.user.services;
 
-import com.talentpredict.modules.account.dto.ProfileDto;
-import com.talentpredict.modules.account.entities.Account;
-import com.talentpredict.modules.account.entities.Profile;
-import com.talentpredict.modules.account.repositories.AccountRepository;
-import com.talentpredict.modules.account.repositories.ProfileRepository;
+import com.talentpredict.modules.user.dto.ProfileDto;
+import com.talentpredict.modules.user.entities.User;
+import com.talentpredict.modules.user.entities.Profile;
+import com.talentpredict.modules.user.repositories.UserRepository;
+import com.talentpredict.modules.user.repositories.ProfileRepository;
 import com.talentpredict.shared.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +21,7 @@ import java.util.UUID;
 public class ProfileService {
 
     private final ProfileRepository profileRepository;
-    private final AccountRepository accountRepository;
+    private final UserRepository UserRepository;
 
     public Profile createProfile(Profile profile) {
         return profileRepository.save(profile);
@@ -57,19 +57,19 @@ public class ProfileService {
     }
 
     /**
-     * TASK 3: Update profile by accountId using ProfileDto.UpdateRequest.
+     * TASK 3: Update profile by userId using ProfileDto.UpdateRequest.
      * Creates the profile if it doesn't exist yet (upsert behavior).
      */
     @Transactional
-    public ProfileDto.Response updateProfileByAccountId(UUID accountId, ProfileDto.UpdateRequest request) {
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId));
+    public ProfileDto.Response updateProfileByAccountId(UUID userId, ProfileDto.UpdateRequest request) {
+        User account = UserRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-        Profile profile = profileRepository.findByAccountId(accountId)
+        Profile profile = profileRepository.findByUserId(userId)
                 .orElseGet(() -> {
-                    log.info("No profile found for accountId={} — creating new one", accountId);
+                    log.info("No profile found for userId={} — creating new one", userId);
                     Profile newProfile = new Profile();
-                    newProfile.setAccount(account);
+                    newProfile.setUser(account);
                     return newProfile;
                 });
 
@@ -92,34 +92,34 @@ public class ProfileService {
             profile.setCvUrl(request.getCvUrl());
 
         Profile saved = profileRepository.save(profile);
-        log.info("Profile updated for accountId={}", accountId);
+        log.info("Profile updated for userId={}", userId);
         return toResponse(saved, account);
     }
 
     /**
-     * TASK 3: Get profile by accountId and return enriched DTO with account info.
+     * TASK 3: Get profile by userId and return enriched DTO with user info.
      */
     @Transactional(readOnly = true)
-    public ProfileDto.Response getProfileByAccountId(UUID accountId) {
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId));
+    public ProfileDto.Response getProfileByAccountId(UUID userId) {
+        User account = UserRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-        Profile profile = profileRepository.findByAccountId(accountId)
+        Profile profile = profileRepository.findByUserId(userId)
                 .orElseGet(() -> {
-                    // Return empty profile with account info
+                    // Return empty profile with user info
                     Profile empty = new Profile();
-                    empty.setAccount(account);
+                    empty.setUser(account);
                     return empty;
                 });
 
         return toResponse(profile, account);
     }
 
-    private ProfileDto.Response toResponse(Profile profile, Account account) {
+    private ProfileDto.Response toResponse(Profile profile, User account) {
         ProfileDto.Response response = new ProfileDto.Response();
         response.setId(profile.getId());
-        response.setAccountId(account.getId());
-        // Read-only account fields
+        response.setUserId(account.getId());
+        // Read-only user fields
         response.setFirstName(account.getFirstName());
         response.setLastName(account.getLastName());
         response.setEmail(account.getEmail());
@@ -142,8 +142,8 @@ public class ProfileService {
                 .orElseThrow(() -> new ResourceNotFoundException("Profile not found with id: " + id));
     }
 
-    public Optional<Profile> getProfileByUser(Account account) {
-        return profileRepository.findByAccount(account);
+    public Optional<Profile> getProfileByUser(User account) {
+        return profileRepository.findByUser(account);
     }
 
     public List<Profile> getAllProfiles() {

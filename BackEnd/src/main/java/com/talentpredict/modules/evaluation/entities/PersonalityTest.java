@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -49,8 +49,8 @@ public class PersonalityTest {
 
     // relationships
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore
     @ToString.Exclude
-    private Account account;
+    private User user;
 }

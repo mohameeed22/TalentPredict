@@ -1,7 +1,7 @@
 package com.talentpredict.shared.security;
 
-import com.talentpredict.modules.account.entities.Account;
-import com.talentpredict.modules.account.repositories.AccountRepository;
+import com.talentpredict.modules.user.entities.User;
+import com.talentpredict.modules.user.repositories.UserRepository;
 import com.talentpredict.shared.security.interfaces.IPoliciesService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -13,40 +13,40 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PoliciesServiceImpl implements IPoliciesService {
 
-    private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
 
 
     @Override
-    public boolean canViewAccount(UUID authAccountId, UUID targetAccountId) {
-        return isAdminOrOwnsAccount(authAccountId, targetAccountId);
+    public boolean canViewUser(UUID authUserId, UUID targetUserId) {
+        return isAdminOrOwnsAccount(authUserId, targetUserId);
     }
 
     @Override
-    public boolean canUpdateAccount(UUID authAccountId, UUID targetAccountId) {
-        return isAdminOrOwnsAccount(authAccountId, targetAccountId);
+    public boolean canUpdateUser(UUID authUserId, UUID targetUserId) {
+        return isAdminOrOwnsAccount(authUserId, targetUserId);
     }
 
     @Override
-    public boolean canDeleteAccount(UUID authAccountId, UUID targetAccountId) {
-        return isAdminOrOwnsAccount(authAccountId, targetAccountId);
+    public boolean canDeleteUser(UUID authUserId, UUID targetUserId) {
+        return isAdminOrOwnsAccount(authUserId, targetUserId);
     }
 
 
     // private helpers
-    private boolean isAdminOrOwnsAccount(UUID authAccountId, UUID targetAccountId) {
-        var authAccount = accountRepository.findById(authAccountId).orElse(null);
-        if (authAccount == null) {
+    private boolean isAdminOrOwnsAccount(UUID authUserId, UUID targetUserId) {
+        var authUser = userRepository.findById(authUserId).orElse(null);
+        if (authUser == null) {
             return false;
         }
-        var targetAccount = accountRepository.findById(targetAccountId).orElse(null);
-        if (targetAccount == null) {
+        var targetUser = userRepository.findById(targetUserId).orElse(null);
+        if (targetUser == null) {
             return false;
         }
 
-        if (authAccount.getRole().equals(Account.Role.ADMIN)) {
+        if (authUser.getRole().equals(User.Role.ADMIN)) {
             return true;
         }
 
-        return authAccountId.equals(targetAccountId);
+        return authUserId.equals(targetUserId);
     }
 }

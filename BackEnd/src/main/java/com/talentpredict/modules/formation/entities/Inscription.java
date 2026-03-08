@@ -5,7 +5,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -57,7 +57,7 @@ public class Inscription {
     @JoinColumn(name = "account_id", nullable = false, foreignKey = @ForeignKey(name = "fk_inscription_account"))
     @JsonIgnore
     @ToString.Exclude
-    private Account account;
+    private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "formation_id", nullable = false, foreignKey = @ForeignKey(name = "fk_inscription_formation"))

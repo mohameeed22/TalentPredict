@@ -38,14 +38,14 @@ public class PersonalityTestController {
     @GetMapping("/utilisateur/{userId}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<List<PersonalityTestDto.PersonalityTestResponse>> getUserTests(@PathVariable UUID userId) {
-        List<PersonalityTestDto.PersonalityTestResponse> tests = testService.getTestsByAccount(userId);
+        List<PersonalityTestDto.PersonalityTestResponse> tests = testService.getTestsByUser(userId);
         return ResponseEntity.ok(tests);
     }
 
     @GetMapping("/utilisateur/{userId}/dernier")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<PersonalityTestDto.PersonalityTestResponse> getLatestTest(@PathVariable UUID userId) {
-        PersonalityTestDto.PersonalityTestResponse test = testService.getLatestTestByAccount(userId);
+        PersonalityTestDto.PersonalityTestResponse test = testService.getLatestTestByUser(userId);
         if (test == null) {
             return ResponseEntity.ok(null); // Return 200 with null body instead of 404
         }

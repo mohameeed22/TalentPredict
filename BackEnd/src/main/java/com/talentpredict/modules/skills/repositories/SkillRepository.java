@@ -9,6 +9,6 @@ import java.util.UUID;
 
 @Repository
 public interface SkillRepository extends JpaRepository<Skill, UUID> {
-    List<Skill> findByAccountId(UUID accountId);
-    List<Skill> findByAccountIdAndType(UUID accountId, Skill.TypeSkill type);
+    List<Skill> findByUserId(UUID userId);
+    List<Skill> findByUserIdAndType(UUID userId, Skill.TypeSkill type);
 }

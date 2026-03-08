@@ -11,6 +11,6 @@ import java.util.UUID;
 
 @Repository
 public interface PredictionRepository extends JpaRepository<Prediction, UUID> {
-    List<Prediction> findByAccountIdOrderByDatePredictionDesc(UUID  accountId);
-    Optional<Prediction> findFirstByAccountIdOrderByDatePredictionDesc(UUID accountId);
+    List<Prediction> findByUserIdOrderByDatePredictionDesc(UUID  userId);
+    Optional<Prediction> findFirstByUserIdOrderByDatePredictionDesc(UUID userId);
 }

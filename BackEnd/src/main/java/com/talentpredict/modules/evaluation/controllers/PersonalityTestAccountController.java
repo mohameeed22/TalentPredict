@@ -32,7 +32,7 @@ public class PersonalityTestAccountController {
     @GetMapping("/{accountId}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<List<PersonalityTestDto.PersonalityTestResponse>> getTestsByAccount(@PathVariable UUID accountId) {
-        List<PersonalityTestDto.PersonalityTestResponse> tests = testService.getTestsByAccount(accountId);
+        List<PersonalityTestDto.PersonalityTestResponse> tests = testService.getTestsByUser(accountId);
         return ResponseEntity.ok(tests);
     }
 }

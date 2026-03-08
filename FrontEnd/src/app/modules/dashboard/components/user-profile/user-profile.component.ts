@@ -74,7 +74,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
       this.profileSubscription.unsubscribe();
     }
 
-    // TASK 3: Use GET /api/profiles/accounts/{accountId}
+    // TASK 3: Use GET /api/profiles/users/{userId}
     this.profileSubscription = this.authService.getProfile(user.id as string).subscribe({
       next: (profile) => {
         try {
@@ -135,7 +135,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
     this.saving = true;
     const formValue = this.profileForm.value;
 
-    // TASK 3: Use PUT /api/profiles/accounts/{accountId}
+    // TASK 3: Use PUT /api/profiles/users/{userId}
     this.authService.updateProfile(user.id as string, formValue).subscribe({
       next: (updatedProfile) => {
         this.profile = updatedProfile;

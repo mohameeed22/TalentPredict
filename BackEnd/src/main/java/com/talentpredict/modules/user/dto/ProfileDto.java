@@ -1,10 +1,10 @@
-package com.talentpredict.modules.account.dto;
+package com.talentpredict.modules.user.dto;
+
+import java.util.UUID;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
-
-import java.util.UUID;
 
 public class ProfileDto {
 
@@ -38,13 +38,13 @@ public class ProfileDto {
     }
 
     /**
-     * Full profile response — includes read-only account fields.
+     * Full profile response — includes read-only user fields.
      */
     @Data
     public static class Response {
         private UUID id;
-        private UUID accountId;
-        // Read-only from Account
+        private UUID userId;
+        // Read-only from User
         private String firstName;
         private String lastName;
         private String email;

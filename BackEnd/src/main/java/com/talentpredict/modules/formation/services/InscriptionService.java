@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 import org.springframework.stereotype.Service;
 
 import com.talentpredict.modules.formation.entities.Formation;
@@ -23,14 +23,14 @@ public class InscriptionService {
         this.inscriptionRepository = inscriptionRepository;
     }
     
-    public Inscription inscrire(Account account, Formation formation) {
-        Optional<Inscription> existing = inscriptionRepository.findByAccountAndFormation(account, formation);
+    public Inscription inscrire(User account, Formation formation) {
+        Optional<Inscription> existing = inscriptionRepository.findByUserAndFormation(account, formation);
         if (existing.isPresent()) {
             throw new BadRequestException("L'utilisateur est déjà inscrit à cette formation");
         }
         
         Inscription inscription = new Inscription();
-        inscription.setAccount(account);
+        inscription.setUser(account);
         inscription.setFormation(formation);
         return inscriptionRepository.save(inscription);
     }
@@ -63,8 +63,8 @@ public class InscriptionService {
             .orElseThrow(() -> new ResourceNotFoundException("Inscription not found with id: " + id));
     }
     
-    public List<Inscription> getInscriptionsByUser(Account account) {
-        return inscriptionRepository.findByAccount(account);
+    public List<Inscription> getInscriptionsByUser(User account) {
+        return inscriptionRepository.findByUser(account);
     }
     
     public List<Inscription> getInscriptionsByFormation(Formation formation) {

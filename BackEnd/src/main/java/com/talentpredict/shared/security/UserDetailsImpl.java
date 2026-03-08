@@ -1,24 +1,26 @@
 package com.talentpredict.shared.security;
 
-import com.talentpredict.modules.account.entities.Account;
-import lombok.Getter;
+import java.util.Collection;
+
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Collection;
+import com.talentpredict.modules.user.entities.User;
+
+import lombok.Getter;
 
 /**
- * Custom UserDetails implementation that wraps the Account entity
- * Allows @AuthenticationPrincipal to inject Account directly into controllers
+ * Custom UserDetails implementation that wraps the User entity
+ * Allows @AuthenticationPrincipal to inject User directly into controllers
  */
-public class AccountUserDetails implements UserDetails {
+public class UserDetailsImpl implements UserDetails {
 
     @Getter
-    private final Account account;
+    private final User user;
     private final Collection<? extends GrantedAuthority> authorities;
 
-    public AccountUserDetails(Account account, Collection<? extends GrantedAuthority> authorities) {
-        this.account = account;
+    public UserDetailsImpl(User user, Collection<? extends GrantedAuthority> authorities) {
+        this.user = user;
         this.authorities = authorities;
     }
 
@@ -29,12 +31,12 @@ public class AccountUserDetails implements UserDetails {
 
     @Override
     public String getPassword() {
-        return account.getPassword();
+        return user.getPassword();
     }
 
     @Override
     public String getUsername() {
-        return account.getEmail();
+        return user.getEmail();
     }
 
     @Override
@@ -54,7 +56,7 @@ public class AccountUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return account.getIsActive();
+        return user.getIsActive();
     }
 }
 

@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 import org.springframework.stereotype.Service;
 
 import com.talentpredict.modules.evaluation.entities.Competence;
@@ -44,16 +44,16 @@ public class CompetenceUtilisateurService {
             .orElseThrow(() -> new ResourceNotFoundException("CompetenceUtilisateur not found with id: " + id));
     }
     
-    public List<CompetenceAccount> getCompetenceUtilisateurByUser(Account account) {
-        return competenceUtilisateurRepository.findByAccount(account);
+    public List<CompetenceAccount> getCompetenceUtilisateurByUser(User account) {
+        return competenceUtilisateurRepository.findByUser(account);
     }
     
     public List<CompetenceAccount> getCompetenceUtilisateurByCompetence(Competence competence) {
         return competenceUtilisateurRepository.findByCompetence(competence);
     }
     
-    public Optional<CompetenceAccount> getCompetenceUtilisateurByUserAndCompetence(Account account, Competence competence) {
-        return competenceUtilisateurRepository.findByAccountAndCompetence(account, competence);
+    public Optional<CompetenceAccount> getCompetenceUtilisateurByUserAndCompetence(User account, Competence competence) {
+        return competenceUtilisateurRepository.findByUserAndCompetence(account, competence);
     }
     
     public List<CompetenceAccount> getAllCompetenceUtilisateurs() {

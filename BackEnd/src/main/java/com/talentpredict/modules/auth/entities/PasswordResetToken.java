@@ -1,6 +1,6 @@
 package com.talentpredict.modules.auth.entities;
 
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,8 +22,8 @@ public class PasswordResetToken {
     private String token;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "account_id", nullable = false)
-    private Account account;
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(nullable = false)
     private LocalDateTime expiryDate;
@@ -31,9 +31,9 @@ public class PasswordResetToken {
     @Column(nullable = false)
     private boolean used = false;
 
-    public PasswordResetToken(String token, Account account, LocalDateTime expiryDate) {
+    public PasswordResetToken(String token, User user, LocalDateTime expiryDate) {
         this.token = token;
-        this.account = account;
+        this.user = user;
         this.expiryDate = expiryDate;
     }
 

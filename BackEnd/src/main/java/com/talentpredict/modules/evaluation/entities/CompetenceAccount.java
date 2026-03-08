@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -15,8 +15,8 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "competence_account", uniqueConstraints = @UniqueConstraint(name = "uk_competence_account", columnNames = {
-        "account_id", "competence_id" }))
+@Table(name = "competence_user", uniqueConstraints = @UniqueConstraint(name = "uk_competence_user", columnNames = {
+        "user_id", "competence_id" }))
 public class CompetenceAccount {
 
     @Id
@@ -39,10 +39,10 @@ public class CompetenceAccount {
 
     // relationships
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", nullable = false, foreignKey = @ForeignKey(name = "fk_competence_account_account"))
+    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_competence_user_user"))
     @JsonIgnore
     @ToString.Exclude
-    private Account account;
+    private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "competence_id", nullable = false, foreignKey = @ForeignKey(name = "fk_competence_account_competence"))

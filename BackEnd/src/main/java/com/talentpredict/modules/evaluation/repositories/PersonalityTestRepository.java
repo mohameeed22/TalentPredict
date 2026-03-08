@@ -11,5 +11,5 @@ import com.talentpredict.modules.evaluation.entities.PersonalityTest;
 
 @Repository
 public interface PersonalityTestRepository extends JpaRepository<PersonalityTest, UUID> {
-    List<PersonalityTest> findByAccountIdOrderByDateTestDesc(UUID accountId);
+    List<PersonalityTest> findByUserIdOrderByDateTestDesc(UUID userId);
 }

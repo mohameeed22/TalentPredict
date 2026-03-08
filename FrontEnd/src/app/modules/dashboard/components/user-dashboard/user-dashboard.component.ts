@@ -22,7 +22,7 @@ export class UserDashboardComponent implements OnInit {
   ngOnInit(): void {
     const currentUser = this.authService.getCurrentUser();
     if (currentUser?.id) {
-      // TASK 2: Uses correct endpoint GET /api/dashboard/accounts/{accountId}
+      // TASK 2: Uses correct endpoint GET /api/dashboard/users/{userId}
       this.dashboardService.getEmployeeDashboard(currentUser.id as string).subscribe({
         next: (data) => {
           this.dashboardData = data;

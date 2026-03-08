@@ -7,9 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import com.talentpredict.modules.ai.entities.Recommendation;
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 
 @Repository
 public interface RecommendationRepository extends JpaRepository<Recommendation, UUID> {
-    List<Recommendation> findByAccount(Account account);
+    List<Recommendation> findByUser(User account);
 }

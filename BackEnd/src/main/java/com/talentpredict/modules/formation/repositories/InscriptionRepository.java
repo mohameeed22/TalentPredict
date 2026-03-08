@@ -7,13 +7,13 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.modules.formation.entities.Formation;
 import com.talentpredict.modules.formation.entities.Inscription;
 
 @Repository
 public interface InscriptionRepository extends JpaRepository<Inscription, UUID> {
-    List<Inscription> findByAccount(Account account);
+    List<Inscription> findByUser(User user);
     List<Inscription> findByFormation(Formation formation);
-    Optional<Inscription> findByAccountAndFormation(Account account, Formation formation);
+    Optional<Inscription> findByUserAndFormation(User user, Formation formation);
 }

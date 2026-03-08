@@ -54,8 +54,8 @@ public class JiraService {
         
         StringBuilder description = new StringBuilder();
         description.append("Demande de formation pour: ")
-            .append(formation.getAccount().getFirstName()).append(" ")
-            .append(formation.getAccount().getLastName()).append("\n\n");
+            .append(formation.getUser().getFirstName()).append(" ")
+            .append(formation.getUser().getLastName()).append("\n\n");
         description.append("Type: ").append(formation.getType()).append("\n");
         description.append("Durée: ").append(formation.getDuree()).append(" heures\n");
         description.append("Fournisseur: ").append(formation.getFournisseur()).append("\n");

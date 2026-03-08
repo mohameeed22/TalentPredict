@@ -1,6 +1,6 @@
-package com.talentpredict.modules.account.dto;
+package com.talentpredict.modules.user.dto;
 
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -14,7 +14,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-public class AccountDto {
+public class UserDto {
 
 
     @Data
@@ -32,7 +32,7 @@ public class AccountDto {
         private LocalDate hireDate;
         private String profilePictureUrl;
         private Boolean isActive;
-        private Account.Role role;
+        private User.Role role;
         private Instant createdAt;
         private Instant updatedAt;
     }

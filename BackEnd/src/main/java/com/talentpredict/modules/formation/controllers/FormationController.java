@@ -27,7 +27,7 @@ public class FormationController {
     @GetMapping("/utilisateur/{userId}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<java.util.List<FormationDto.FormationResponse>> getFormationsByUser(@PathVariable UUID userId) {
-        java.util.List<FormationDto.FormationResponse> formations = formationService.getFormationsByAccount(userId);
+        java.util.List<FormationDto.FormationResponse> formations = formationService.getFormationsByUser(userId);
         return ResponseEntity.ok(formations);
     }
     

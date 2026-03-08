@@ -1,7 +1,7 @@
 package com.talentpredict.modules.auth.services;
 
-import com.talentpredict.modules.account.entities.Account;
-import com.talentpredict.modules.account.repositories.AccountRepository;
+import com.talentpredict.modules.user.entities.User;
+import com.talentpredict.modules.user.repositories.UserRepository;
 import com.talentpredict.modules.auth.dto.AuthDto;
 import com.talentpredict.modules.auth.entities.PasswordResetToken;
 import com.talentpredict.modules.auth.repositories.PasswordResetTokenRepository;
@@ -25,7 +25,7 @@ import java.util.UUID;
 @Slf4j
 public class AuthServiceImpl implements IAuthService {
 
-    private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
 
@@ -35,35 +35,35 @@ public class AuthServiceImpl implements IAuthService {
 
     @Override
     @Transactional
-    public Account createAccount(AuthDto.RegisterRequest request) {
-        if (accountRepository.existsByEmail(request.getEmail())) {
+    public User createUser(AuthDto.RegisterRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
             throw new ConflictException("Email '" + request.getEmail() + "' is already in use");
         }
 
-        Account account = new Account();
-        account.setLastName(request.getLastName());
-        account.setFirstName(request.getFirstName());
-        account.setEmail(request.getEmail());
-        account.setPassword(passwordEncoder.encode(request.getPassword()));
+        User user = new User();
+        user.setLastName(request.getLastName());
+        user.setFirstName(request.getFirstName());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         // Set role from request — default to USER for safety
-        Account.Role role = (request.getRole() != null) ? request.getRole() : Account.Role.USER;
-        account.setRole(role);
+        User.Role role = (request.getRole() != null) ? request.getRole() : User.Role.USER;
+        user.setRole(role);
 
-        log.info("Creating account for {} with role={}", request.getEmail(), role);
-        return accountRepository.save(account);
+        log.info("Creating user for {} with role={}", request.getEmail(), role);
+        return userRepository.save(user);
     }
 
     @Override
-    public Account getAccountById(UUID targetAccountId) {
-        return accountRepository.findById(targetAccountId)
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + targetAccountId));
+    public User getUserById(UUID targetUserId) {
+        return userRepository.findById(targetUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("user not found with id: " + targetUserId));
     }
 
     @Override
-    public Account getAccountByEmail(String email) {
-        return accountRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found with email: " + email));
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("user not found with email: " + email));
     }
 
     // ---------------------------------------------------------------
@@ -78,38 +78,38 @@ public class AuthServiceImpl implements IAuthService {
      */
     @Transactional
     public String forgotPassword(AuthDto.ForgotPasswordRequest request) {
-        Optional<Account> accountOpt = accountRepository.findByEmail(request.getEmail());
-        if (accountOpt.isEmpty()) {
+        Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
+        if (userOpt.isEmpty()) {
             log.info("Forgot-password: no account found for {} — silent return (security)", request.getEmail());
             return "Si votre email est enregistré, vous recevrez un lien de réinitialisation.";
         }
 
-        Account account = accountOpt.get();
+        User user = userOpt.get();
         String token = UUID.randomUUID().toString();
         LocalDateTime expiry = LocalDateTime.now().plusMinutes(15);
 
-        PasswordResetToken resetToken = new PasswordResetToken(token, account, expiry);
+        PasswordResetToken resetToken = new PasswordResetToken(token, user, expiry);
         passwordResetTokenRepository.save(resetToken);
 
         // Try to send email — if not configured, fall back to console log
         try {
             if (mailSender != null) {
                 SimpleMailMessage mail = new SimpleMailMessage();
-                mail.setTo(account.getEmail());
+                mail.setTo(user.getEmail());
                 mail.setSubject("TalentPredict — Réinitialisation de votre mot de passe");
                 mail.setText(
-                        "Bonjour " + account.getFirstName() + ",\n\n" +
+                        "Bonjour " + user.getFirstName() + ",\n\n" +
                                 "Cliquez sur ce lien pour réinitialiser votre mot de passe (valide 15 min) :\n" +
                                 "http://localhost:4200/auth/reset-password?token=" + token + "\n\n" +
                                 "Si vous n'avez pas fait cette demande, ignorez cet email.\n\n" +
                                 "— Équipe TalentPredict");
                 mailSender.send(mail);
-                log.info("Password reset email sent to {}", account.getEmail());
+                log.info("Password reset email sent to {}", user.getEmail());
             } else {
-                log.info("Mail not configured — RESET TOKEN for {}: {}", account.getEmail(), token);
+                log.info("Mail not configured — RESET TOKEN for {}: {}", user.getEmail(), token);
             }
         } catch (Exception e) {
-            log.warn("Failed to send reset email to {}, logging token instead: {}", account.getEmail(), token);
+            log.warn("Failed to send reset email to {}, logging token instead: {}", user.getEmail(), token);
         }
 
         return "Si votre email est enregistré, vous recevrez un lien de réinitialisation.";
@@ -131,14 +131,14 @@ public class AuthServiceImpl implements IAuthService {
             throw new IllegalArgumentException("Ce lien est expiré. Veuillez refaire une demande.");
         }
 
-        Account account = resetToken.getAccount();
-        account.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        accountRepository.save(account);
+        User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
 
         resetToken.setUsed(true);
         passwordResetTokenRepository.save(resetToken);
 
-        log.info("Password successfully reset for account: {}", account.getEmail());
+        log.info("Password successfully reset for account: {}", user.getEmail());
         return "Mot de passe mis à jour avec succès !";
     }
 }

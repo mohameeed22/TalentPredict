@@ -1,7 +1,7 @@
-package com.talentpredict.modules.account.mappers;
+package com.talentpredict.modules.user.mappers;
 
-import com.talentpredict.modules.account.dto.AccountDto;
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.dto.UserDto;
+import com.talentpredict.modules.user.entities.User;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -9,15 +9,15 @@ import java.util.stream.Collectors;
 
 
 @Component
-public class AccountMapperImpl implements IAccountMapper {
+public class UserMapperImpl implements IUserMapper {
 
     @Override
-    public AccountDto.Response toResponse(Account account) {
+    public UserDto.Response toResponse(User account) {
         if (account == null) {
             return null;
         }
 
-        return AccountDto.Response.builder()
+        return UserDto.Response.builder()
                 .id(account.getId())
                 .username(account.getUsername())
                 .email(account.getEmail())
@@ -35,11 +35,11 @@ public class AccountMapperImpl implements IAccountMapper {
     }
 
     @Override
-    public List<AccountDto.Response> toResponseList(List<Account> accounts) {
-        if (accounts == null) {
+    public List<UserDto.Response> toResponseList(List<User> users) {
+        if (users == null) {
             return null;
         }
-        return accounts.stream()
+        return users.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }

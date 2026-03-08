@@ -4,10 +4,10 @@ import java.util.UUID;
 
 public interface IPoliciesService {
     // get
-    boolean canViewAccount(UUID authAccountId, UUID targetAccountId);
+    boolean canViewUser(UUID authUserId, UUID targetUserId);
 
     // update
-    boolean canUpdateAccount(UUID authAccountId, UUID targetAccountId);
+    boolean canUpdateUser(UUID authUserId, UUID targetUserId);
 
-    boolean canDeleteAccount(UUID authAccountId, UUID targetAccountId);
+    boolean canDeleteUser(UUID authUserId, UUID targetUserId);
 }

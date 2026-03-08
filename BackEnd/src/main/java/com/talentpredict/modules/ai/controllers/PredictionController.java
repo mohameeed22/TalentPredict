@@ -24,24 +24,24 @@ public class PredictionController {
     
     private final PredictionService predictionService;
     
-    @PostMapping("/accounts/{accountId}/generer")
+    @PostMapping("/users/{userId}/generer")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<PredictionDto.Response> genererPrediction(@PathVariable UUID accountId) {
-        PredictionDto.Response response = predictionService.genererPrediction(accountId);
+    public ResponseEntity<PredictionDto.Response> genererPrediction(@PathVariable UUID userId) {
+        PredictionDto.Response response = predictionService.genererPrediction(userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     
-    @GetMapping("/accounts/{accountId}")
+    @GetMapping("/users/{userId}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<List<PredictionDto.Response>> getPredictionsByAccount(@PathVariable UUID accountId) {
-        List<PredictionDto.Response> predictions = predictionService.getPredictionsByAccount(accountId);
+    public ResponseEntity<List<PredictionDto.Response>> getPredictionsByAccount(@PathVariable UUID userId) {
+        List<PredictionDto.Response> predictions = predictionService.getPredictionsByUser(userId);
         return ResponseEntity.ok(predictions);
     }
     
-    @GetMapping("/accounts/{accountId}/derniere")
+    @GetMapping("/users/{userId}/derniere")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<PredictionDto.Response> getDernierePrediction(@PathVariable UUID accountId) {
-        PredictionDto.Response prediction = predictionService.getDernierePrediction(accountId);
+    public ResponseEntity<PredictionDto.Response> getDernierePrediction(@PathVariable UUID userId) {
+        PredictionDto.Response prediction = predictionService.getDernierePrediction(userId);
         if (prediction != null) {
             return ResponseEntity.ok(prediction);
         }

@@ -1,7 +1,7 @@
 package com.talentpredict.modules.dashboard.services;
 
-import com.talentpredict.modules.account.entities.Account;
-import com.talentpredict.modules.account.repositories.AccountRepository;
+import com.talentpredict.modules.user.entities.User;
+import com.talentpredict.modules.user.repositories.UserRepository;
 import com.talentpredict.modules.ai.dto.PredictionDto;
 import com.talentpredict.modules.ai.repositories.PredictionRepository;
 import com.talentpredict.modules.dashboard.dto.DashboardDto;
@@ -40,7 +40,7 @@ public class DashboardService {
     private final FormationService formationService;
     private final PredictionService predictionService;
     // Direct repos for admin overview aggregation
-    private final AccountRepository accountRepository;
+    private final UserRepository userRepository;
     private final PersonalityTestRepository personalityTestRepository;
     private final FormationRepository formationRepository;
     private final PredictionRepository predictionRepository;
@@ -49,21 +49,21 @@ public class DashboardService {
      * TASK 2 — Employee Dashboard: data for the logged-in user only.
      */
     @Transactional(readOnly = true)
-    public DashboardDto.Response getDashboard(UUID accountId) {
-        Account account = authServiceImpl.getAccountById(accountId);
+    public DashboardDto.Response getDashboard(UUID userId) {
+        User user = authServiceImpl.getUserById(userId);
 
         DashboardDto.Response dashboard = new DashboardDto.Response();
-        dashboard.setAccountId(accountId);
-        dashboard.setNomComplet(account.getFirstName() + " " + account.getLastName());
-        dashboard.setFirstName(account.getFirstName());
-        dashboard.setLastName(account.getLastName());
+        dashboard.setUserId(userId);
+        dashboard.setNomComplet(user.getFirstName() + " " + user.getLastName());
+        dashboard.setFirstName(user.getFirstName());
+        dashboard.setLastName(user.getLastName());
 
         // Tests
-        var tests = personalityTestService.getTestsByAccount(accountId);
+        var tests = personalityTestService.getTestsByUser(userId);
         dashboard.setNombreTests(tests.size());
 
         // Skills
-        var skills = skillService.getSkillsByAccount(accountId);
+        var skills = skillService.getSkillsByUser(userId);
         dashboard.setNombreSkillsSoft((int) skills.stream()
                 .filter(s -> s.getType() == Skill.TypeSkill.SOFT)
                 .count());
@@ -79,17 +79,17 @@ public class DashboardService {
         dashboard.setTopSkills(topSkills);
 
         // Formations
-        dashboard.setNombreFormationsTotal(formationService.countFormationsByAccount(accountId).intValue());
+        dashboard.setNombreFormationsTotal(formationService.countFormationsByUser(userId).intValue());
         dashboard.setNombreFormationsEnCours(
-                formationService.countFormationsByAccountAndStatut(accountId, Formation.StatutFormation.EN_COURS)
+                formationService.countFormationsByUserAndStatut(userId, Formation.StatutFormation.EN_COURS)
                         .intValue());
         dashboard.setNombreFormationsTerminees(
-                formationService.countFormationsByAccountAndStatut(accountId, Formation.StatutFormation.TERMINEE)
+                formationService.countFormationsByUserAndStatut(userId, Formation.StatutFormation.TERMINEE)
                         .intValue());
 
         // Formations récentes (5 most recent)
         List<FormationDto.FormationResponse> formationsRecentes = formationService
-                .getFormationsByAccount(accountId)
+                .getFormationsByUser(userId)
                 .stream()
                 .limit(5)
                 .collect(Collectors.toList());
@@ -105,7 +105,7 @@ public class DashboardService {
         }
 
         // Dernière prédiction
-        PredictionDto.Response dernierePrediction = predictionService.getDernierePrediction(accountId);
+        PredictionDto.Response dernierePrediction = predictionService.getDernierePrediction(userId);
         dashboard.setDernierePrediction(dernierePrediction);
 
         return dashboard;
@@ -120,9 +120,9 @@ public class DashboardService {
         DashboardDto.AdminOverviewDto overview = new DashboardDto.AdminOverviewDto();
 
         // All non-admin accounts = employees
-        List<Account> allAccounts = accountRepository.findAll();
-        List<Account> employees = allAccounts.stream()
-                .filter(a -> a.getRole() == Account.Role.USER)
+        List<User> allUsers = userRepository.findAll();
+        List<User> employees = allUsers.stream()
+                .filter(a -> a.getRole() == User.Role.USER)
                 .collect(Collectors.toList());
 
         overview.setTotalEmployees(employees.size());
@@ -130,7 +130,7 @@ public class DashboardService {
         // Total formations EN_COURS across all employees
         long formationsEnCours = employees.stream()
                 .mapToLong(a -> formationRepository
-                        .countByAccountIdAndStatut(a.getId(), Formation.StatutFormation.EN_COURS))
+                        .countByUserIdAndStatut(a.getId(), Formation.StatutFormation.EN_COURS))
                 .sum();
         overview.setTotalFormationsEnCours((int) formationsEnCours);
 
@@ -154,9 +154,9 @@ public class DashboardService {
                     dto.setEmail(emp.getEmail());
                     dto.setActive(Boolean.TRUE.equals(emp.getIsActive()));
                     dto.setFormationCount((int) formationRepository
-                            .countByAccountId(emp.getId()));
+                            .countByUserId(emp.getId()));
                     dto.setTestCount(personalityTestRepository
-                            .findByAccountIdOrderByDateTestDesc(emp.getId()).size());
+                            .findByUserIdOrderByDateTestDesc(emp.getId()).size());
                     return dto;
                 })
                 .collect(Collectors.toList());

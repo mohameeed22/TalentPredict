@@ -3,7 +3,7 @@ package com.talentpredict.modules.formation.services;
 import com.talentpredict.modules.formation.dto.FormationDto;
 import com.talentpredict.shared.exception.ResourceNotFoundException;
 import com.talentpredict.modules.formation.entities.Formation;
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.modules.formation.repositories.FormationRepository;
 import com.talentpredict.modules.auth.services.AuthServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -27,10 +27,10 @@ public class FormationService {
     
     @Transactional
     public FormationDto.FormationResponse creerFormation(UUID accountId, FormationDto.FormationRequest request) {
-        Account account = authServiceImpl.getAccountById(accountId);
+        User user = authServiceImpl.getUserById(accountId);
         
         Formation formation = new Formation();
-        formation.setAccount(account);
+        formation.setUser(user);
         formation.setTitre(request.getTitre());
         formation.setDescription(request.getDescription());
         formation.setType(request.getType());
@@ -44,8 +44,8 @@ public class FormationService {
         return convertToResponse(saved);
     }
     
-    public List<FormationDto.FormationResponse> getFormationsByAccount(UUID accountId) {
-        return formationRepository.findByAccountId(accountId)
+    public List<FormationDto.FormationResponse> getFormationsByUser(UUID userId) {
+        return formationRepository.findByUserId(userId)
             .stream()
             .map(this::convertToResponse)
             .collect(Collectors.toList());
@@ -78,12 +78,12 @@ public class FormationService {
         return convertToResponse(formationRepository.save(formation));
     }
     
-    public Long countFormationsByAccount(UUID accountId) {
-        return formationRepository.countByAccountId(accountId);
+    public Long countFormationsByUser(UUID userId) {
+        return formationRepository.countByUserId(userId);
     }
     
-    public Long countFormationsByAccountAndStatut(UUID accountId, Formation.StatutFormation statut) {
-        return formationRepository.countByAccountIdAndStatut(accountId, statut);
+    public Long countFormationsByUserAndStatut(UUID userId, Formation.StatutFormation statut) {
+        return formationRepository.countByUserIdAndStatut(userId, statut);
     }
     
     private FormationDto.FormationResponse convertToResponse(Formation formation) {

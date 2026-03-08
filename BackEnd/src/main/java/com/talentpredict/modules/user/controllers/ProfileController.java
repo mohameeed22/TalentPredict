@@ -1,7 +1,7 @@
-package com.talentpredict.modules.account.controllers;
+package com.talentpredict.modules.user.controllers;
 
-import com.talentpredict.modules.account.dto.ProfileDto;
-import com.talentpredict.modules.account.services.ProfileService;
+import com.talentpredict.modules.user.dto.ProfileDto;
+import com.talentpredict.modules.user.services.ProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,30 +24,30 @@ public class ProfileController {
     private final ProfileService profileService;
 
     /**
-     * GET /api/profiles/accounts/{accountId}
-     * Returns profile merged with account read-only fields (name, email, position,
+     * GET /api/profiles/users/{userId}
+     * Returns profile merged with user read-only fields (name, email, position,
      * department).
      */
-    @GetMapping("/accounts/{accountId}")
+    @GetMapping("/users/{userId}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<ProfileDto.Response> getProfileByAccount(@PathVariable UUID accountId) {
-        log.info("Fetching profile for accountId={}", accountId);
-        ProfileDto.Response response = profileService.getProfileByAccountId(accountId);
+    public ResponseEntity<ProfileDto.Response> getProfileByAccount(@PathVariable UUID userId) {
+        log.info("Fetching profile for userId={}", userId);
+        ProfileDto.Response response = profileService.getProfileByAccountId(userId);
         return ResponseEntity.ok(response);
     }
 
     /**
-     * PUT /api/profiles/accounts/{accountId}
-     * Update or create the profile for the given account.
+     * PUT /api/profiles/users/{userId}
+     * Update or create the profile for the given user.
      * Partial update — only non-null fields are changed.
      */
-    @PutMapping("/accounts/{accountId}")
+    @PutMapping("/users/{userId}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<ProfileDto.Response> updateProfileByAccount(
-            @PathVariable UUID accountId,
+            @PathVariable UUID userId,
             @Valid @RequestBody ProfileDto.UpdateRequest request) {
-        log.info("Updating profile for accountId={}", accountId);
-        ProfileDto.Response response = profileService.updateProfileByAccountId(accountId, request);
+        log.info("Updating profile for userId={}", userId);
+        ProfileDto.Response response = profileService.updateProfileByAccountId(userId, request);
         return ResponseEntity.ok(response);
     }
 }

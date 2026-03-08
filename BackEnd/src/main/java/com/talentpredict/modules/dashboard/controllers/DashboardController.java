@@ -23,14 +23,14 @@ public class DashboardController {
 
     /**
      * TASK 2 — Employee Dashboard
-     * GET /api/dashboard/accounts/{accountId}
+     * GET /api/dashboard/users/{userId}
      * Returns the dashboard data for a specific employee.
      */
-    @GetMapping("/accounts/{accountId}")
+    @GetMapping("/users/{userId}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<DashboardDto.Response> getDashboard(@PathVariable UUID accountId) {
-        log.info("Fetching employee dashboard for accountId={}", accountId);
-        DashboardDto.Response dashboard = dashboardService.getDashboard(accountId);
+    public ResponseEntity<DashboardDto.Response> getDashboard(@PathVariable UUID userId) {
+        log.info("Fetching employee dashboard for userId={}", userId);
+        DashboardDto.Response dashboard = dashboardService.getDashboard(userId);
         return ResponseEntity.ok(dashboard);
     }
 

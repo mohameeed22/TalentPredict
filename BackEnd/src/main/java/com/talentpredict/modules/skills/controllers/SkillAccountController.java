@@ -35,7 +35,7 @@ public class SkillAccountController {
     @GetMapping("/{accountId}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<List<SkillDto.Response>> getSkillsByAccount(@PathVariable UUID accountId) {
-        List<SkillDto.Response> skills = skillService.getSkillsByAccount(accountId);
+        List<SkillDto.Response> skills = skillService.getSkillsByUser(accountId);
         return ResponseEntity.ok(skills);
     }
 
@@ -44,7 +44,7 @@ public class SkillAccountController {
     public ResponseEntity<List<SkillDto.Response>> getSkillsByType(
             @PathVariable UUID accountId,
             @PathVariable Skill.TypeSkill type) {
-        List<SkillDto.Response> skills = skillService.getSkillsByAccountAndType(accountId, type);
+        List<SkillDto.Response> skills = skillService.getSkillsByUserAndType(accountId, type);
         return ResponseEntity.ok(skills);
     }
 

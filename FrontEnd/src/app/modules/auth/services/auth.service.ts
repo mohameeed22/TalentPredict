@@ -13,7 +13,7 @@ import {
 export class AuthService {
   private http = inject(HttpClient);
   private baseUrl = `${environment.apiUrl}/auth`;
-  private accountsUrl = `${environment.apiUrl}/accounts`;
+  private usersUrl = `${environment.apiUrl}/users`;
   private profilesUrl = `${environment.apiUrl}/profiles`;
 
   private currentUserSubject = new BehaviorSubject<AuthUser | null>(this.getUserFromStorage());
@@ -55,14 +55,14 @@ export class AuthService {
   }
 
   /**
-   * TASK 3: Fetch the authenticated user's full account info.
+   * TASK 3: Fetch the authenticated user's full user info.
    */
   fetchMyProfile(): Observable<User> {
     const user = this.getCurrentUser();
     if (!user) {
       return throwError(() => new Error('Not authenticated'));
     }
-    return this.http.get<User>(`${this.accountsUrl}/${user.id}`).pipe(
+    return this.http.get<User>(`${this.usersUrl}/${user.id}`).pipe(
       tap(profile => {
         this.userProfileSubject.next(profile);
       })
@@ -70,17 +70,17 @@ export class AuthService {
   }
 
   /**
-   * TASK 3: Get profile (editable) by accountId.
+   * TASK 3: Get profile (editable) by userId.
    */
-  getProfile(accountId: string): Observable<ProfileResponse> {
-    return this.http.get<ProfileResponse>(`${this.profilesUrl}/accounts/${accountId}`);
+  getProfile(userId: string): Observable<ProfileResponse> {
+    return this.http.get<ProfileResponse>(`${this.profilesUrl}/users/${userId}`);
   }
 
   /**
    * TASK 3: Update profile (editable fields only).
    */
-  updateProfile(accountId: string, data: ProfileUpdateRequest): Observable<ProfileResponse> {
-    return this.http.put<ProfileResponse>(`${this.profilesUrl}/accounts/${accountId}`, data);
+  updateProfile(userId: string, data: ProfileUpdateRequest): Observable<ProfileResponse> {
+    return this.http.put<ProfileResponse>(`${this.profilesUrl}/users/${userId}`, data);
   }
 
   logout(): void {

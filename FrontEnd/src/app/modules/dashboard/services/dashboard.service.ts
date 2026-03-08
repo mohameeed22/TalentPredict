@@ -5,7 +5,7 @@ import { environment } from '../../../../environments/environment';
 
 // Employee dashboard response (matches DashboardDto.Response)
 export interface EmployeeDashboardResponse {
-  accountId: string;
+  userId: string;
   nomComplet: string;
   firstName: string;
   lastName: string;
@@ -50,10 +50,10 @@ export class DashboardService {
   private dashboardUrl = `${environment.apiUrl}/dashboard`;
 
   /**
-   * TASK 2: Employee dashboard — GET /api/dashboard/accounts/{accountId}
+   * TASK 2: Employee dashboard — GET /api/dashboard/users/{userId}
    */
-  getEmployeeDashboard(accountId: string): Observable<EmployeeDashboardResponse> {
-    return this.http.get<EmployeeDashboardResponse>(`${this.dashboardUrl}/accounts/${accountId}`);
+  getEmployeeDashboard(userId: string): Observable<EmployeeDashboardResponse> {
+    return this.http.get<EmployeeDashboardResponse>(`${this.dashboardUrl}/users/${userId}`);
   }
 
   /**

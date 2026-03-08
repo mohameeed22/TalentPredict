@@ -16,7 +16,7 @@ export interface AuthUser {
 }
 
 /**
- * Full user / account profile returned by GET /api/accounts/{id}
+ * Full user profile returned by GET /api/users/{id}
  */
 export interface User {
   id: string;
@@ -35,12 +35,12 @@ export interface User {
 }
 
 /**
- * Profile DTO from GET/PUT /api/profiles/accounts/{accountId}
+ * Profile DTO from GET/PUT /api/profiles/users/{userId}
  */
 export interface ProfileResponse {
   id: string;
-  accountId: string;
-  // Read-only from account
+  userId: string;
+  // Read-only from user
   firstName: string;
   lastName: string;
   email: string;

@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Repository
 public interface FormationRepository extends JpaRepository<Formation, UUID> {
-    List<Formation> findByAccountId(UUID accountId);
-    long countByAccountId(UUID accountId);
-    long countByAccountIdAndStatut(UUID accountId, Formation.StatutFormation statut);
+    List<Formation> findByUserId(UUID userId);
+    long countByUserId(UUID userId);
+    long countByUserIdAndStatut(UUID userId, Formation.StatutFormation statut);
 }

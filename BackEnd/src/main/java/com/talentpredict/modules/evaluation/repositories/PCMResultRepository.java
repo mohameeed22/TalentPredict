@@ -6,7 +6,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.talentpredict.modules.account.entities.Profile;
+import com.talentpredict.modules.user.entities.Profile;
 import com.talentpredict.modules.evaluation.entities.PCMResult;
 
 @Repository

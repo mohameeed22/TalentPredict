@@ -1,6 +1,6 @@
 package com.talentpredict.modules.auth.controllers;
 
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.modules.auth.dto.AuthDto;
 import com.talentpredict.modules.auth.services.AuthServiceImpl;
 import com.talentpredict.shared.security.JwtService;
@@ -25,23 +25,23 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<AuthDto.Response> register(@Valid @RequestBody AuthDto.RegisterRequest request) {
-        Account account = authServiceImpl.createAccount(request);
-        String token = jwtService.generateToken(account.getEmail());
+        User user = authServiceImpl.createUser(request);
+        String token = jwtService.generateToken(user.getEmail());
 
-        String redirectUrl = (account.getRole() == Account.Role.ADMIN)
+        String redirectUrl = (user.getRole() == User.Role.ADMIN)
                 ? "/admin/dashboard"
                 : "/dashboard";
 
         AuthDto.Response response = new AuthDto.Response(
                 token,
-                account.getId(),
-                account.getEmail(),
-                account.getRole().name(),
-                account.getLastName(),
-                account.getFirstName(),
+                user.getId(),
+                user.getEmail(),
+                user.getRole().name(),
+                user.getLastName(),
+                user.getFirstName(),
                 redirectUrl);
 
-        log.info("Registered: {} role={} → {}", account.getEmail(), account.getRole(), redirectUrl);
+        log.info("Registered: {} role={} → {}", user.getEmail(), user.getRole(), redirectUrl);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -50,23 +50,23 @@ public class AuthController {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
-        Account account = authServiceImpl.getAccountByEmail(request.getEmail());
-        String token = jwtService.generateToken(account.getEmail());
+        User user = authServiceImpl.getUserByEmail(request.getEmail());
+        String token = jwtService.generateToken(user.getEmail());
 
-        String redirectUrl = (account.getRole() == Account.Role.ADMIN)
+        String redirectUrl = (user.getRole() == User.Role.ADMIN)
                 ? "/admin/dashboard"
                 : "/dashboard";
 
         AuthDto.Response response = new AuthDto.Response(
                 token,
-                account.getId(),
-                account.getEmail(),
-                account.getRole().name(),
-                account.getLastName(),
-                account.getFirstName(),
+                user.getId(),
+                user.getEmail(),
+                user.getRole().name(),
+                user.getLastName(),
+                user.getFirstName(),
                 redirectUrl);
 
-        log.info("Login: {} role={} → {}", account.getEmail(), account.getRole(), redirectUrl);
+        log.info("Login: {} role={} → {}", user.getEmail(), user.getRole(), redirectUrl);
         return ResponseEntity.ok(response);
     }
 

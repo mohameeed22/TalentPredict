@@ -1,4 +1,4 @@
-package com.talentpredict.modules.account.entities;
+package com.talentpredict.modules.user.entities;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -56,10 +56,10 @@ public class Profile {
 
     // Relationships
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", unique = true, nullable = false)
+    @JoinColumn(name = "user_id", unique = true, nullable = false)
     @JsonIgnore
     @ToString.Exclude
-    private Account account;
+    private User user;
 
     @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore

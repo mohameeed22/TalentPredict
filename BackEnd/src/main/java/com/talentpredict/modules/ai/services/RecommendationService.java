@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 
 import com.talentpredict.modules.ai.entities.Recommendation;
 import com.talentpredict.modules.ai.repositories.RecommendationRepository;
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.shared.exception.ResourceNotFoundException;
 
 @Service
@@ -45,8 +45,8 @@ public class RecommendationService {
             .orElseThrow(() -> new ResourceNotFoundException("Recommendation not found with id: " + id));
     }
     
-    public List<Recommendation> getRecommendationsByUser(Account account) {
-        return recommendationRepository.findByAccount(account);
+    public List<Recommendation> getRecommendationsByUser(User account) {
+        return recommendationRepository.findByUser(account);
     }
     
     public List<Recommendation> getAllRecommendations() {

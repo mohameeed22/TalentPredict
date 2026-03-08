@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.modules.ai.services.OpenAIService;
 import com.talentpredict.modules.auth.services.AuthServiceImpl;
 import com.talentpredict.modules.evaluation.dto.PersonalityTestDto;
@@ -32,10 +32,10 @@ public class PersonalityTestService {
 
     @Transactional
     public PersonalityTestDto.PersonalityTestResponse createTest(UUID accountId, PersonalityTestDto.PersonalityTestRequest request) {
-        Account account = authServiceImpl.getAccountById(accountId);
+        User user = authServiceImpl.getUserById(accountId);
         
         PersonalityTest test = new PersonalityTest();
-        test.setAccount(account);
+        test.setUser(user);
         test.setTypeTest(request.getTypeTest());
         test.setReponses(request.getReponses());
         
@@ -51,8 +51,8 @@ public class PersonalityTestService {
         return convertToResponse(saved);
     }
     
-    public List<PersonalityTestDto.PersonalityTestResponse> getTestsByAccount(UUID accountId) {
-        return testRepository.findByAccountIdOrderByDateTestDesc(accountId)
+    public List<PersonalityTestDto.PersonalityTestResponse> getTestsByUser(UUID userId) {
+        return testRepository.findByUserIdOrderByDateTestDesc(userId)
             .stream()
             .map(this::convertToResponse)
             .collect(Collectors.toList());
@@ -64,8 +64,8 @@ public class PersonalityTestService {
         return convertToResponse(test);
     }
     
-    public PersonalityTestDto.PersonalityTestResponse getLatestTestByAccount(UUID accountId) {
-        List<PersonalityTest> tests = testRepository.findByAccountIdOrderByDateTestDesc(accountId);
+    public PersonalityTestDto.PersonalityTestResponse getLatestTestByUser(UUID userId) {
+        List<PersonalityTest> tests = testRepository.findByUserIdOrderByDateTestDesc(userId);
         if (tests.isEmpty()) {
             // Return null instead of throwing exception - let controller handle empty response
             return null;

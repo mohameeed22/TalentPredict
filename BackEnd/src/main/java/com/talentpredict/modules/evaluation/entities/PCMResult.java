@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.talentpredict.modules.account.entities.Profile;
+import com.talentpredict.modules.user.entities.Profile;
 
 import jakarta.persistence.*;
 import lombok.*;

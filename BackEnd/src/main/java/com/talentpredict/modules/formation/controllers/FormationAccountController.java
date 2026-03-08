@@ -32,7 +32,7 @@ public class FormationAccountController {
     @GetMapping("/{accountId}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<List<FormationDto.FormationResponse>> getFormationsByAccount(@PathVariable UUID accountId) {
-        List<FormationDto.FormationResponse> formations = formationService.getFormationsByAccount(accountId);
+        List<FormationDto.FormationResponse> formations = formationService.getFormationsByUser(accountId);
         return ResponseEntity.ok(formations);
     }
 }

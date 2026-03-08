@@ -6,7 +6,7 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
-import com.talentpredict.modules.account.entities.Profile;
+import com.talentpredict.modules.user.entities.Profile;
 import com.talentpredict.modules.evaluation.entities.PCMResult;
 import com.talentpredict.modules.evaluation.repositories.PCMResultRepository;
 import com.talentpredict.shared.exception.ResourceNotFoundException;

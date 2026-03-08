@@ -13,7 +13,7 @@ public class DashboardDto {
     /** Employee dashboard response */
     @Data
     public static class Response {
-        private UUID accountId;
+        private UUID userId;
         private String nomComplet;
         private String firstName;
         private String lastName;

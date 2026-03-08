@@ -1,6 +1,6 @@
 package com.talentpredict.modules.auth.dto;
 
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -57,7 +57,7 @@ public class AuthDto {
          * Role chosen at signup: USER (Employee) or ADMIN (HR Manager).
          * Defaults to USER if null.
          */
-        private Account.Role role;
+        private User.Role role;
     }
 
     @Data

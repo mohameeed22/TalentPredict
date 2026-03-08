@@ -1,6 +1,6 @@
 package com.talentpredict.modules.skills.services;
 
-import com.talentpredict.modules.account.entities.Account;
+import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.modules.skills.dto.SkillDto;
 import com.talentpredict.shared.exception.ResourceNotFoundException;
 import com.talentpredict.modules.skills.entities.Skill;
@@ -27,10 +27,10 @@ public class SkillService {
     
     @Transactional
     public SkillDto.Response creerSkill(UUID accountId, SkillDto.CreateRequest createRequest) {
-        Account account = authServiceImpl.getAccountById(accountId);
+        User user = authServiceImpl.getUserById(accountId);
         
         Skill skill = new Skill();
-        skill.setAccount(account);
+        skill.setUser(user);
         skill.setNom(createRequest.getNom());
         skill.setType(createRequest.getType());
         skill.setNiveau(createRequest.getNiveau());
@@ -41,15 +41,15 @@ public class SkillService {
         return convertToResponse(saved);
     }
     
-    public List<SkillDto.Response> getSkillsByAccount(UUID accountId) {
-        return skillRepository.findByAccountId(accountId)
+    public List<SkillDto.Response> getSkillsByUser(UUID userId) {
+        return skillRepository.findByUserId(userId)
             .stream()
             .map(this::convertToResponse)
             .collect(Collectors.toList());
     }
     
-    public List<SkillDto.Response> getSkillsByAccountAndType(UUID accountId, Skill.TypeSkill type) {
-        return skillRepository.findByAccountIdAndType(accountId, type)
+    public List<SkillDto.Response> getSkillsByUserAndType(UUID userId, Skill.TypeSkill type) {
+        return skillRepository.findByUserIdAndType(userId, type)
             .stream()
             .map(this::convertToResponse)
             .collect(Collectors.toList());
