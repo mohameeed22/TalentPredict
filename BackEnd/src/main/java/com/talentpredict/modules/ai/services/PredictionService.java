@@ -1,24 +1,27 @@
+//9dim
 package com.talentpredict.modules.ai.services;
-
-import com.talentpredict.modules.ai.dto.PredictionDto;
-import com.talentpredict.modules.user.entities.User;
-import com.talentpredict.modules.formation.dto.FormationDto;
-import com.talentpredict.modules.evaluation.entities.PersonalityTest;
-import com.talentpredict.modules.skills.entities.Skill;
-import com.talentpredict.modules.ai.entities.Prediction;
-import com.talentpredict.modules.ai.repositories.PredictionRepository;
-import com.talentpredict.modules.evaluation.repositories.PersonalityTestRepository;
-import com.talentpredict.modules.skills.repositories.SkillRepository;
-import com.talentpredict.modules.auth.services.AuthServiceImpl;
-import com.talentpredict.modules.formation.entities.Formation;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.talentpredict.modules.ai.dto.PredictionDto;
+import com.talentpredict.modules.ai.entities.Prediction;
+import com.talentpredict.modules.ai.repositories.PredictionRepository;
+import com.talentpredict.modules.auth.services.AuthServiceImpl;
+import com.talentpredict.modules.evaluation.entities.PersonalityTest;
+import com.talentpredict.modules.evaluation.repositories.PersonalityTestRepository;
+import com.talentpredict.modules.formation.dto.FormationDto;
+import com.talentpredict.modules.formation.entities.Formation;
+import com.talentpredict.modules.skills.entities.Skill;
+import com.talentpredict.modules.skills.repositories.SkillRepository;
+import com.talentpredict.modules.user.entities.User;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * AI Module - Prediction Service

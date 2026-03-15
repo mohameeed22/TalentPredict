@@ -30,10 +30,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
       switch (error.status) {
         case 401:
-          // Token expired or invalid — force logout
-          authService.logout();
-          notificationService.error('Session expirée. Veuillez vous reconnecter.');
-          router.navigateByUrl('/auth/login').then(() => appRef.tick());
+          // Only force logout if the token is genuinely valid (not expired client-side)
+          // This prevents false logouts caused by race conditions or backend hiccups
+          if (authService.isAuthenticated()) {
+            authService.logout();
+            notificationService.error('Session expirée. Veuillez vous reconnecter.');
+            router.navigateByUrl('/auth/login').then(() => appRef.tick());
+          }
           break;
 
         case 403:

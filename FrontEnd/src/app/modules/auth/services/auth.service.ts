@@ -83,6 +83,42 @@ export class AuthService {
     return this.http.put<ProfileResponse>(`${this.profilesUrl}/users/${userId}`, data);
   }
 
+  /**
+   * Trigger full AI analysis (GitHub, CV, LinkedIn, PCM) for the given user.
+   * Backend runs analysis in background.
+   */
+  triggerProfileAnalysis(userId: string): Observable<{ message: string; status: string }> {
+    return this.http.post<{ message: string; status: string }>(
+      `${this.profilesUrl}/accounts/${userId}/analyse-ia`,
+      {}
+    );
+  }
+
+  /** Poll analysis status (IDLE | RUNNING | COMPLETED | FAILED). */
+  getAnalysisStatus(userId: string): Observable<{ status: string; skillsFound?: number; error?: string; timestamp?: string }> {
+    return this.http.get<any>(`${this.profilesUrl}/accounts/${userId}/analyse-status`);
+  }
+
+  /** Upload profile photo — stores the file and updates urlPhoto. Returns updated profile. */
+  uploadProfilePhoto(userId: string, file: File): Observable<ProfileResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<ProfileResponse>(`${this.profilesUrl}/accounts/${userId}/upload-photo`, formData);
+  }
+
+  /** Upload CV PDF — stores the file, updates cvUrl, analyzes with AI. */
+  uploadCv(userId: string, file: File): Observable<{ message: string; status: string; skillsAjoutes: string[]; totalDetectes: number }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<any>(`${this.profilesUrl}/accounts/${userId}/upload-cv`, formData);
+  }
+
+  /** Convert a relative upload path (e.g. /uploads/photos/uuid.jpg) to an absolute backend URL. */
+  getAssetUrl(path: string): string {
+    if (!path || path.startsWith('http')) return path;
+    return environment.apiUrl.replace('/api', '') + path;
+  }
+
   logout(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -109,11 +145,7 @@ export class AuthService {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const expiry = payload.exp * 1000;
-      if (Date.now() >= expiry) {
-        this.logout();
-        return false;
-      }
-      return true;
+      return Date.now() < expiry;
     } catch {
       return false;
     }

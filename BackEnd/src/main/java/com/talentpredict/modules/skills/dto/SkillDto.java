@@ -1,14 +1,15 @@
 package com.talentpredict.modules.skills.dto;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 import com.talentpredict.modules.skills.entities.Skill;
+
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 public class SkillDto {
     @Data
@@ -26,6 +27,8 @@ public class SkillDto {
         private Integer niveau;
 
         private String description;
+
+        private String source; // CV, GITHUB, PYTHON_AI, PCM
     }
 
     @Data
@@ -35,6 +38,7 @@ public class SkillDto {
         private Skill.TypeSkill type;
         private Integer niveau;
         private String description;
+        private String source;
         private LocalDateTime dateEvaluation;
         private Boolean validee;
     }

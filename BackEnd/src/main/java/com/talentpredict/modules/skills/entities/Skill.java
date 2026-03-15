@@ -37,6 +37,9 @@ public class Skill {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(length = 30)
+    private String source; // CV, GITHUB, PYTHON_AI, PCM
+
     @Column(name = "date_evaluation")
     private LocalDateTime dateEvaluation = LocalDateTime.now();
 

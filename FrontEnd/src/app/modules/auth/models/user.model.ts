@@ -55,6 +55,17 @@ export interface ProfileResponse {
   lienLinkedin: string;
   githubUrl: string;
   cvUrl: string;
+  portfolioUrl: string;
+  // GitHub stats (populated by IA analysis)
+  githubRepos: number;
+  githubFollowers: number;
+  githubFollowing: number;
+  githubBio: string;
+  githubCompany: string;
+  githubLocation: string;
+  githubAvatarUrl: string;
+  githubName: string;
+  aiSummary: string;
 }
 
 export interface ProfileUpdateRequest {
@@ -66,6 +77,7 @@ export interface ProfileUpdateRequest {
   lienLinkedin?: string;
   githubUrl?: string;
   cvUrl?: string;
+  portfolioUrl?: string;
 }
 
 export interface UserRequest {

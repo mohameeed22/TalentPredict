@@ -35,6 +35,9 @@ public class ProfileDto {
 
         @Size(max = 500)
         private String cvUrl;
+
+        @Size(max = 500)
+        private String portfolioUrl;
     }
 
     /**
@@ -59,5 +62,16 @@ public class ProfileDto {
         private String lienLinkedin;
         private String githubUrl;
         private String cvUrl;
+        private String portfolioUrl;
+        // GitHub stats (populated by IA analysis)
+        private Integer githubRepos;
+        private Integer githubFollowers;
+        private Integer githubFollowing;
+        private String githubBio;
+        private String githubCompany;
+        private String githubLocation;
+        private String githubAvatarUrl;
+        private String githubName;
+        private String aiSummary;
     }
 }

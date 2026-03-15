@@ -52,6 +52,8 @@ public class ProfileService {
             profile.setGithubUrl(profileDetails.getGithubUrl());
         if (profileDetails.getCvUrl() != null)
             profile.setCvUrl(profileDetails.getCvUrl());
+        if (profileDetails.getPortfolioUrl() != null)
+            profile.setPortfolioUrl(profileDetails.getPortfolioUrl());
 
         return profileRepository.save(profile);
     }
@@ -65,7 +67,7 @@ public class ProfileService {
         User account = UserRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-        Profile profile = profileRepository.findByUserId(userId)
+        Profile profile = profileRepository.findByUser_Id(userId)
                 .orElseGet(() -> {
                     log.info("No profile found for userId={} — creating new one", userId);
                     Profile newProfile = new Profile();
@@ -90,6 +92,8 @@ public class ProfileService {
             profile.setGithubUrl(request.getGithubUrl());
         if (request.getCvUrl() != null)
             profile.setCvUrl(request.getCvUrl());
+        if (request.getPortfolioUrl() != null)
+            profile.setPortfolioUrl(request.getPortfolioUrl());
 
         Profile saved = profileRepository.save(profile);
         log.info("Profile updated for userId={}", userId);
@@ -104,12 +108,12 @@ public class ProfileService {
         User account = UserRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-        Profile profile = profileRepository.findByUserId(userId)
+        Profile profile = profileRepository.findByUser_Id(userId)
                 .orElseGet(() -> {
-                    // Return empty profile with user info
+                    // Create and persist profile so response always has a valid id
                     Profile empty = new Profile();
                     empty.setUser(account);
-                    return empty;
+                    return profileRepository.save(empty);
                 });
 
         return toResponse(profile, account);
@@ -134,6 +138,17 @@ public class ProfileService {
         response.setLienLinkedin(profile.getLienLinkedin());
         response.setGithubUrl(profile.getGithubUrl());
         response.setCvUrl(profile.getCvUrl());
+        response.setPortfolioUrl(profile.getPortfolioUrl());
+        // GitHub stats
+        response.setGithubRepos(profile.getGithubRepos());
+        response.setGithubFollowers(profile.getGithubFollowers());
+        response.setGithubFollowing(profile.getGithubFollowing());
+        response.setGithubBio(profile.getGithubBio());
+        response.setGithubCompany(profile.getGithubCompany());
+        response.setGithubLocation(profile.getGithubLocation());
+        response.setGithubAvatarUrl(profile.getGithubAvatarUrl());
+        response.setGithubName(profile.getGithubName());
+        response.setAiSummary(profile.getAiSummary());
         return response;
     }
 
@@ -152,5 +167,29 @@ public class ProfileService {
 
     public void deleteProfile(UUID targetProfileId) {
         profileRepository.deleteById(targetProfileId);
+    }
+
+    /**
+     * Update GitHub stats and AI summary on the profile (called by analysis orchestrator).
+     */
+    @Transactional
+    public void updateGithubStats(UUID userId, Integer repos, Integer followers, Integer following,
+                                   String bio, String company, String location, String avatarUrl,
+                                   String name, String aiSummary) {
+        Profile profile = profileRepository.findByUser_Id(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found for userId: " + userId));
+
+        if (repos != null) profile.setGithubRepos(repos);
+        if (followers != null) profile.setGithubFollowers(followers);
+        if (following != null) profile.setGithubFollowing(following);
+        if (bio != null) profile.setGithubBio(bio);
+        if (company != null) profile.setGithubCompany(company);
+        if (location != null) profile.setGithubLocation(location);
+        if (avatarUrl != null) profile.setGithubAvatarUrl(avatarUrl);
+        if (name != null) profile.setGithubName(name);
+        if (aiSummary != null) profile.setAiSummary(aiSummary);
+
+        profileRepository.save(profile);
+        log.info("GitHub stats updated for userId={}", userId);
     }
 }

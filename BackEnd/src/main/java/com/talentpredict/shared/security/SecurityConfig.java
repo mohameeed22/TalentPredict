@@ -70,6 +70,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
                         // NOTE: /camunda/** removed — Camunda is disabled. Re-add when re-enabled.
                         // User routes – ADMIN only
                         .requestMatchers(HttpMethod.POST, "/api/users").hasRole("ADMIN")
@@ -81,6 +82,11 @@ public class SecurityConfig {
                         // Profile routes – USER or ADMIN (TASK 3 requirements)
                         .requestMatchers(HttpMethod.GET, "/api/profiles/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/profiles/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/profiles/**").hasAnyRole("USER", "ADMIN")
+                        // Skills routes – USER or ADMIN
+                        .requestMatchers(HttpMethod.GET, "/api/skills/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/skills/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/skills/**").hasAnyRole("USER", "ADMIN")
                         // Personality test routes – USER or ADMIN
                         .requestMatchers(HttpMethod.GET, "/api/tests-personnalite/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/tests-personnalite/**").hasAnyRole("USER", "ADMIN")

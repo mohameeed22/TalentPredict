@@ -35,6 +35,7 @@ public class SkillService {
         skill.setType(createRequest.getType());
         skill.setNiveau(createRequest.getNiveau());
         skill.setDescription(createRequest.getDescription());
+        skill.setSource(createRequest.getSource());
         skill.setValidee(false);
         
         Skill saved = skillRepository.save(skill);
@@ -70,6 +71,11 @@ public class SkillService {
         }
         skillRepository.deleteById(skillId);
     }
+
+    @Transactional
+    public void supprimerSkillsParUser(UUID userId) {
+        skillRepository.deleteByUserId(userId);
+    }
     
     private SkillDto.Response convertToResponse(Skill skill) {
         SkillDto.Response response = new SkillDto.Response();
@@ -78,6 +84,7 @@ public class SkillService {
         response.setType(skill.getType());
         response.setNiveau(skill.getNiveau());
         response.setDescription(skill.getDescription());
+        response.setSource(skill.getSource());
         response.setDateEvaluation(skill.getDateEvaluation());
         response.setValidee(skill.getValidee());
         return response;

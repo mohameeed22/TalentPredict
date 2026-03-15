@@ -54,6 +54,37 @@ public class Profile {
     @Column(name = "cv_url", length = 500)
     private String cvUrl;
 
+    @Column(name = "portfolio_url", length = 500)
+    private String portfolioUrl;
+
+    // GitHub profile stats (populated by IA analysis)
+    @Column(name = "github_repos")
+    private Integer githubRepos;
+
+    @Column(name = "github_followers")
+    private Integer githubFollowers;
+
+    @Column(name = "github_following")
+    private Integer githubFollowing;
+
+    @Column(name = "github_bio", columnDefinition = "TEXT")
+    private String githubBio;
+
+    @Column(name = "github_company", length = 200)
+    private String githubCompany;
+
+    @Column(name = "github_location", length = 200)
+    private String githubLocation;
+
+    @Column(name = "github_avatar_url", length = 500)
+    private String githubAvatarUrl;
+
+    @Column(name = "github_name", length = 200)
+    private String githubName;
+
+    @Column(name = "ai_summary", columnDefinition = "TEXT")
+    private String aiSummary;
+
     // Relationships
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", unique = true, nullable = false)

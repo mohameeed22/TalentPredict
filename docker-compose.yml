@@ -45,6 +45,24 @@ services:
     restart: on-failure
 
   # ============================================
+  # Python AI Service
+  # ============================================
+  ai-service:
+    build:
+      context: ./talentpredict-ai
+      dockerfile: Dockerfile
+    container_name: talentpredict-ai
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      CORS_ORIGINS: "http://localhost:4200,http://localhost:80,http://frontend:80"
+    ports:
+      - "8000:8000"
+    networks:
+      - talentpredict-net
+    restart: on-failure
+
+  # ============================================
   # Angular Frontend (served via nginx)
   # ============================================
   frontend:
@@ -56,6 +74,7 @@ services:
       - "80:80"
     depends_on:
       - backend
+      - ai-service
     networks:
       - talentpredict-net
     restart: on-failure

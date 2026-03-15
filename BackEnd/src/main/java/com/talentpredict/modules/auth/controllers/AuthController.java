@@ -1,17 +1,23 @@
 package com.talentpredict.modules.auth.controllers;
 
-import com.talentpredict.modules.user.entities.User;
-import com.talentpredict.modules.auth.dto.AuthDto;
-import com.talentpredict.modules.auth.services.AuthServiceImpl;
-import com.talentpredict.shared.security.JwtService;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.talentpredict.modules.ai.services.ProfileAnalysisOrchestrator;
+import com.talentpredict.modules.auth.dto.AuthDto;
+import com.talentpredict.modules.auth.services.AuthServiceImpl;
+import com.talentpredict.modules.user.entities.User;
+import com.talentpredict.shared.security.JwtService;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -20,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthServiceImpl authServiceImpl;
+    private final ProfileAnalysisOrchestrator profileAnalysisOrchestrator;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
@@ -67,6 +74,8 @@ public class AuthController {
                 redirectUrl);
 
         log.info("Login: {} role={} → {}", user.getEmail(), user.getRole(), redirectUrl);
+        log.info("🤖 Déclenchement analyse IA pour account: {}", response.getId());
+        profileAnalysisOrchestrator.analyserProfil(response.getId());
         return ResponseEntity.ok(response);
     }
 

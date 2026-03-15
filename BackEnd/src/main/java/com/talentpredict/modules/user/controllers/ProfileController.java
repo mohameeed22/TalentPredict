@@ -1,19 +1,42 @@
 package com.talentpredict.modules.user.controllers;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.talentpredict.modules.ai.services.CvAnalysisService;
+import com.talentpredict.modules.ai.services.OpenRouterService;
+import com.talentpredict.modules.ai.services.ProfileAnalysisOrchestrator;
+import com.talentpredict.modules.skills.dto.SkillDto;
+import com.talentpredict.modules.skills.services.SkillService;
 import com.talentpredict.modules.user.dto.ProfileDto;
 import com.talentpredict.modules.user.services.ProfileService;
+import com.talentpredict.shared.services.AnalysisStatusService;
+import com.talentpredict.shared.services.FileStorageService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.UUID;
 
 /**
- * Profile Controller — TASK 3
- * Exposes profile CRUD endpoints for employee self-service profile editing.
+ * Profile Controller — Exposes endpoints for managing employee profiles.
  */
 @RestController
 @RequestMapping("/api/profiles")
@@ -22,32 +45,179 @@ import java.util.UUID;
 public class ProfileController {
 
     private final ProfileService profileService;
+    private final SkillService skillService;
+    private final ProfileAnalysisOrchestrator profileAnalysisOrchestrator;
+    private final CvAnalysisService cvAnalysisService;
+    private final FileStorageService fileStorageService;
+    private final AnalysisStatusService analysisStatusService;
 
-    /**
-     * GET /api/profiles/users/{userId}
-     * Returns profile merged with user read-only fields (name, email, position,
-     * department).
-     */
-    @GetMapping("/users/{userId}")
+    @Value("${app.base-url:http://localhost:8081}")
+    private String appBaseUrl;
+
+    @Autowired
+    private OpenRouterService openRouterService;
+
+    @GetMapping("/test-claude")
+    public ResponseEntity<String> testClaude() {
+        String reponse = openRouterService.executePrompt(
+            "Réponds uniquement: {\"message\": \"Claude fonctionne!\"}"
+        );
+        return ResponseEntity.ok(reponse);
+    }
+
+    /** GET /api/profiles/users/{id} */
+    @GetMapping("/users/{id}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<ProfileDto.Response> getProfileByAccount(@PathVariable UUID userId) {
-        log.info("Fetching profile for userId={}", userId);
-        ProfileDto.Response response = profileService.getProfileByAccountId(userId);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ProfileDto.Response> getProfileByAccount(@PathVariable UUID id) {
+        log.info("Fetching profile for id={}", id);
+        return ResponseEntity.ok(profileService.getProfileByAccountId(id));
+    }
+
+    /** PUT /api/profiles/users/{id} — partial update */
+    @PutMapping("/users/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<ProfileDto.Response> updateProfileByAccount(
+            @PathVariable UUID id,
+            @Valid @RequestBody ProfileDto.UpdateRequest request) {
+        log.info("Updating profile for id={}", id);
+        return ResponseEntity.ok(profileService.updateProfileByAccountId(id, request));
     }
 
     /**
-     * PUT /api/profiles/users/{userId}
-     * Update or create the profile for the given user.
-     * Partial update — only non-null fields are changed.
+     * POST /api/profiles/accounts/{id}/upload-photo
+     * Accepts an image file, stores it, updates profile.urlPhoto, returns updated profile.
      */
-    @PutMapping("/users/{userId}")
+    @PostMapping("/accounts/{id}/upload-photo")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<ProfileDto.Response> updateProfileByAccount(
-            @PathVariable UUID userId,
-            @Valid @RequestBody ProfileDto.UpdateRequest request) {
-        log.info("Updating profile for userId={}", userId);
-        ProfileDto.Response response = profileService.updateProfileByAccountId(userId, request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> uploadPhoto(
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file) {
+
+        log.info("Upload photo for account {}: '{}'", id, file.getOriginalFilename());
+
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Le fichier est vide"));
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Seules les images sont acceptées"));
+        }
+
+        try {
+            String path = fileStorageService.store(file, "photos");
+            ProfileDto.UpdateRequest req = new ProfileDto.UpdateRequest();
+            req.setUrlPhoto(appBaseUrl + path);
+            ProfileDto.Response updated = profileService.updateProfileByAccountId(id, req);
+            log.info("Photo uploaded for account {}: {}", id, path);
+            return ResponseEntity.ok(updated);
+        } catch (Exception e) {
+            log.error("Photo upload failed for account {}: {}", id, e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("message", "Erreur lors de l'upload: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/profiles/accounts/{id}/upload-cv
+     * Stores the PDF, updates profile.cvUrl, analyzes skills with AI.
+     */
+    @PostMapping("/accounts/{id}/upload-cv")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Map<String, Object>> uploadCvEtAnalyser(
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file) {
+
+        log.info("Upload CV for account {}: '{}'", id, file.getOriginalFilename());
+
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "message", "Le fichier est vide", "status", "ERROR"
+            ));
+        }
+
+        String originalName = file.getOriginalFilename();
+        if (originalName == null || !originalName.toLowerCase().endsWith(".pdf")) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "message", "Seuls les fichiers PDF sont acceptés", "status", "ERROR"
+            ));
+        }
+
+        // Store file and update cvUrl in profile
+        try {
+            String cvPath = fileStorageService.store(file, "cvs");
+            ProfileDto.UpdateRequest req = new ProfileDto.UpdateRequest();
+            req.setCvUrl(appBaseUrl + cvPath);
+            profileService.updateProfileByAccountId(id, req);
+            log.info("CV stored for account {}: {}", id, cvPath);
+        } catch (Exception e) {
+            log.warn("CV storage failed (continuing with analysis): {}", e.getMessage());
+        }
+
+        // Analyze CV and extract skills
+        List<SkillDto.CreateRequest> skillsDetectes = cvAnalysisService.analyserCvFile(file);
+
+        // Save skills without duplicates
+        List<String> skillsAjoutes = new ArrayList<>();
+        List<String> skillsExistants = new ArrayList<>();
+
+        List<SkillDto.Response> existingSkills = skillService.getSkillsByUser(id);
+        Set<String> existingNames = new HashSet<>();
+        existingSkills.forEach(s -> existingNames.add(s.getNom().toLowerCase().trim()));
+
+        for (SkillDto.CreateRequest skill : skillsDetectes) {
+            String nameNorm = skill.getNom().toLowerCase().trim();
+            if (existingNames.contains(nameNorm)) {
+                skillsExistants.add(skill.getNom());
+            } else {
+                try {
+                    skillService.creerSkill(id, skill);
+                    skillsAjoutes.add(skill.getNom());
+                    existingNames.add(nameNorm);
+                } catch (Exception e) {
+                    log.warn("Skill non ajouté '{}': {}", skill.getNom(), e.getMessage());
+                }
+            }
+        }
+
+        log.info("CV analysé: {} ajoutés, {} déjà existants", skillsAjoutes.size(), skillsExistants.size());
+
+        return ResponseEntity.ok(Map.of(
+            "message", skillsAjoutes.size() + " nouveaux skills détectés et ajoutés depuis votre CV",
+            "status", "SUCCESS",
+            "skillsAjoutes", skillsAjoutes,
+            "skillsDejaPresentss", skillsExistants,
+            "totalDetectes", skillsDetectes.size()
+        ));
+    }
+
+    /** POST /api/profiles/accounts/{id}/analyse-ia — triggers full AI analysis in background */
+    @PostMapping("/accounts/{id}/analyse-ia")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Map<String, String>> lancerAnalyseIA(@PathVariable UUID id) {
+        log.info("Analyse IA manuelle demandée pour account: {}", id);
+        profileAnalysisOrchestrator.analyserProfil(id);
+        return ResponseEntity.ok(Map.of(
+            "message", "Analyse IA lancée en arrière-plan. Vos skills seront mis à jour dans 15-30 secondes.",
+            "status", "PROCESSING",
+            "accountId", id.toString()
+        ));
+    }
+
+    /** GET /api/profiles/accounts/{id}/analyse-status — poll analysis progress */
+    @GetMapping("/accounts/{id}/analyse-status")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Map<String, Object>> getAnalyseStatus(@PathVariable UUID id) {
+        AnalysisStatusService.AnalysisStatus status = analysisStatusService.getStatus(id);
+        if (status == null) {
+            return ResponseEntity.ok(Map.of("status", "IDLE"));
+        }
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("status", status.getStatus());
+        result.put("timestamp", status.getTimestamp().toString());
+        result.put("skillsFound", status.getSkillsFound());
+        if (status.getError() != null) {
+            result.put("error", status.getError());
+        }
+        return ResponseEntity.ok(result);
     }
 }

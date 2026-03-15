@@ -3,28 +3,22 @@ export enum TypeSkill {
   TECH = 'TECH'
 }
 
-export interface Skill {
-  id: number;
-  userId: number;
+export interface SkillResponse {
+  id: string;
   nom: string;
   type: TypeSkill;
   niveau: number; // 1-5
-  dateAjout: Date;
+  description: string;
+  source: string; // CV, GITHUB, PYTHON_AI, PCM
+  dateEvaluation: string;
+  validee: boolean;
 }
 
 export interface SkillRequest {
   nom: string;
   type: TypeSkill;
   niveau: number;
-}
-
-export interface SkillResponse {
-  id: number;
-  userId: number;
-  nom: string;
-  type: TypeSkill;
-  niveau: number;
-  dateAjout: Date;
+  description?: string;
 }
 
 export interface SkillComparison {

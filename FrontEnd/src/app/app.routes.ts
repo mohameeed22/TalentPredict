@@ -134,12 +134,7 @@ export const routes: Routes = [
           import('./modules/skills/components/github-analyzer/github-analyzer.component')
             .then(m => m.GithubAnalyzerComponent)
       },
-      {
-        path: 'comparison',
-        loadComponent: () =>
-          import('./modules/skills/components/skill-comparison/skill-comparison.component')
-            .then(m => m.SkillComparisonComponent)
-      }
+
     ]
   },
 
