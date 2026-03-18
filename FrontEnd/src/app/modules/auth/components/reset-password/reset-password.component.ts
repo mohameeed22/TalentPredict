@@ -2,8 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../../../environments/environment';
+import { AuthService } from '../../services/auth.service';
 
 /**
  * TASK 3 — Reset Password Component
@@ -117,7 +116,7 @@ import { environment } from '../../../../../environments/environment';
   `]
 })
 export class ResetPasswordComponent implements OnInit {
-    private http = inject(HttpClient);
+  private auth = inject(AuthService);
     private router = inject(Router);
     private route = inject(ActivatedRoute);
 
@@ -149,10 +148,7 @@ export class ResetPasswordComponent implements OnInit {
         }
 
         this.loading.set(true);
-        this.http.post<{ message: string }>(
-            `${environment.apiUrl}/auth/reset-password`,
-            { token: this.token, newPassword: this.newPassword }
-        ).subscribe({
+        this.auth.resetPassword(this.token!, this.newPassword).subscribe({
             next: () => {
                 this.loading.set(false);
                 this.success.set(true);

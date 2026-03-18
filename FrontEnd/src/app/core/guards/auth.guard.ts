@@ -15,7 +15,7 @@ export const authGuard: CanActivateFn = (route, state) => {
   }
 
   // Clear any stale session data
-  authService.logout();
+  authService.clearSession();
 
   // Return UrlTree so the router handles the redirect properly
   return router.createUrlTree(['/auth/login'], {

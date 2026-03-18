@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.analyze_candidate_route import router as analyze_router
+from db.database import init_db
 
 # Load environment variables from .env file
 load_dotenv()
@@ -43,6 +44,21 @@ app.add_middleware(
 
 # Include API routes
 app.include_router(analyze_router)
+
+
+@app.on_event("startup")
+async def startup() -> None:
+    """Create DB tables on startup (no-op if they already exist).
+
+    Failure is non-fatal: the service runs with in-memory (L1) cache only
+    when the PostgreSQL database is unavailable.
+    """
+    try:
+        await init_db()
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "DB init failed — running with in-memory cache only: %s", exc
+        )
 
 
 @app.get("/health")

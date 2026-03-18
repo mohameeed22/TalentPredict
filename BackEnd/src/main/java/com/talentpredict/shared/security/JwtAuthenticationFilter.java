@@ -11,6 +11,8 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.talentpredict.modules.auth.services.TokenBlocklistService;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,6 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final TokenBlocklistService tokenBlocklistService;
 
     @Override
     protected void doFilterInternal(
@@ -54,6 +57,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            // Check if token is in blocklist (logged out or invalidated)
+            if (tokenBlocklistService.isTokenBlocked(jwt)) {
+                log.warn("Attempt to use blocked token for user: {}", userEmail);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             UserDetails userDetails;
             try {
                 userDetails = this.userDetailsService.loadUserByUsername(userEmail);
@@ -79,7 +89,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
-        
+
         filterChain.doFilter(request, response);
     }
 }

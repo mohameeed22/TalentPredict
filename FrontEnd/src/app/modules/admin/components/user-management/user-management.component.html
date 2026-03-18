@@ -83,7 +83,7 @@
               <td>
                 <div class="user-cell">
                   <div class="user-avatar">
-                    {{ user.firstName?.charAt(0) }}{{ user.lastName?.charAt(0) }}
+                    {{ (user.firstName || '')[0] }}{{ (user.lastName || '')[0] }}
                   </div>
                   <div class="user-info">
                     <span class="user-name">{{ user.firstName }} {{ user.lastName }}</span>

@@ -1,7 +1,7 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject, ApplicationRef } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, throwError } from 'rxjs';
+import { catchError, throwError, switchMap } from 'rxjs';
 import { AuthService } from '../../modules/auth/services/auth.service';
 import { NotificationService } from '../services/notification.service';
 
@@ -12,32 +12,76 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const appRef = inject(ApplicationRef);
   const token = authService.getToken();
 
+  // Always send credentials (cookies) for cross-site refresh/clear
+  const withCreds = { withCredentials: true } as const;
+
   if (token) {
     req = req.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
-      }
+      },
+      ...withCreds
     });
+  } else {
+    req = req.clone({ ...withCreds });
   }
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Skip interceptor error handling for auth endpoints (login/register)
-      const isAuthRequest = req.url.includes('/api/auth/');
-      if (isAuthRequest) {
+      // Skip global handling only for public auth endpoints.
+      const isPublicAuthRequest =
+        req.url.includes('/api/auth/login') ||
+        req.url.includes('/api/auth/register') ||
+        req.url.includes('/api/auth/forgot-password') ||
+        req.url.includes('/api/auth/reset-password');
+
+      if (isPublicAuthRequest) {
         return throwError(() => error);
       }
 
       switch (error.status) {
         case 401:
-          // Only force logout if the token is genuinely valid (not expired client-side)
-          // This prevents false logouts caused by race conditions or backend hiccups
-          if (authService.isAuthenticated()) {
-            authService.logout();
-            notificationService.error('Session expirée. Veuillez vous reconnecter.');
-            router.navigateByUrl('/auth/login').then(() => appRef.tick());
+          // Token is expired or invalid — attempt to refresh
+          if (authService.getToken() && !authService.isRefreshInProgress()) {
+            return authService.refreshAccessToken().pipe(
+              switchMap(response => {
+                // Retry original request with new token
+                const newReq = req.clone({
+                  setHeaders: {
+                    Authorization: `Bearer ${response.accessToken}`
+                  }
+                });
+                return next(newReq);
+              }),
+              catchError(refreshError => {
+                // Refresh failed — force logout
+                authService.logout().subscribe(
+                  () => {
+                    notificationService.error('Session expirée. Veuillez vous reconnecter.');
+                    router.navigateByUrl('/auth/login').then(() => appRef.tick());
+                  },
+                  () => {
+                    notificationService.error('Session expirée. Veuillez vous reconnecter.');
+                    router.navigateByUrl('/auth/login').then(() => appRef.tick());
+                  }
+                );
+                return throwError(() => refreshError);
+              })
+            );
+          } else {
+            // Already refreshing or no token — proceed with error
+            authService.logout().subscribe(
+              () => {
+                notificationService.error('Session expirée. Veuillez vous reconnecter.');
+                router.navigateByUrl('/auth/login').then(() => appRef.tick());
+              },
+              () => {
+                notificationService.error('Session expirée. Veuillez vous reconnecter.');
+                router.navigateByUrl('/auth/login').then(() => appRef.tick());
+              }
+            );
+            return throwError(() => error);
           }
-          break;
 
         case 403:
           notificationService.error('Accès refusé. Vous n\'avez pas les permissions nécessaires.');

@@ -160,6 +160,145 @@
   margin-top: 0.25rem;
 }
 
+.password-requirements {
+  margin-top: 0.625rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.password-requirements ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+
+  li {
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #94a3b8;
+    transition: color 0.2s;
+
+    &::before {
+      content: '○';
+      font-size: 0.6rem;
+      width: 14px;
+      flex-shrink: 0;
+    }
+
+    &.unmet {
+      color: #ef4444;
+
+      &::before {
+        content: '✗';
+        color: #ef4444;
+      }
+    }
+
+    &.met {
+      color: #16a34a;
+
+      &::before {
+        content: '✓';
+        color: #16a34a;
+      }
+    }
+  }
+}
+
+// Social signup buttons
+.social-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-bottom: 1.25rem;
+}
+
+.btn-social {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1.5px solid #e2e8f0;
+  transition: all 0.2s ease;
+  text-align: left;
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &.google {
+    background: white;
+    color: #3c4043;
+    &:hover:not(:disabled) {
+      background: #f8f9fa;
+      border-color: #dadce0;
+    }
+  }
+
+  &.github {
+    background: #24292f;
+    color: white;
+    border-color: #24292f;
+    &:hover:not(:disabled) {
+      background: #1b1f24;
+      border-color: #1b1f24;
+    }
+  }
+
+  &.linkedin {
+    background: #0A66C2;
+    color: white;
+    border-color: #0A66C2;
+    &:hover:not(:disabled) {
+      background: #004182;
+      border-color: #004182;
+    }
+  }
+}
+
+.social-separator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  color: #94a3b8;
+  font-size: 0.8125rem;
+  font-weight: 500;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+  }
+}
+
 .btn-submit {
   width: 100%;
   display: flex;
@@ -216,107 +355,6 @@
 
     &:hover {
       text-decoration: underline;
-    }
-  }
-}
-
-// TASK 1: Role Selection Cards
-.role-selection {
-  margin-bottom: 1.5rem;
-}
-
-.role-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 0.75rem;
-}
-
-.role-cards {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-
-.role-card {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.875rem 1rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  background: white;
-  cursor: pointer;
-  text-align: left;
-  transition: all 0.2s ease;
-  position: relative;
-
-  &:hover {
-    border-color: #c7d2fe;
-    background: #f5f3ff;
-    transform: translateY(-1px);
-  }
-
-  &.selected {
-    border-color: #6366f1;
-    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-  }
-
-  .role-icon {
-    width: 44px;
-    height: 44px;
-    background: #f1f5f9;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: #6366f1;
-    transition: background 0.2s;
-  }
-
-  &.selected .role-icon {
-    background: #6366f1;
-    color: white;
-  }
-
-  .role-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-  }
-
-  .role-name {
-    font-weight: 700;
-    font-size: 0.9rem;
-    color: #1e293b;
-  }
-
-  .role-desc {
-    font-size: 0.75rem;
-    color: #64748b;
-    line-height: 1.3;
-  }
-
-  .role-check {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: #6366f1;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    opacity: 0;
-    transform: scale(0.6);
-    transition: all 0.2s ease;
-
-    &.visible {
-      opacity: 1;
-      transform: scale(1);
     }
   }
 }

@@ -22,18 +22,6 @@ import com.talentpredict.shared.services.AnalysisStatusService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * Orchestrateur principal de l'analyse IA du profil utilisateur.
- *
- * Ce service coordonne les sources d'analyse:
- *   1. CV PDF        -> Skills TECH
- *   2. GitHub        -> Skills TECH + Profile stats (repos, followers, bio...)
- *   3. Python AI     -> Skills TECH
- *   4. Test PCM      -> Skills SOFT
- *   5. Résumé IA     -> AI-generated profile summary
- *
- * @Async : s'exécute en ARRIÈRE-PLAN pour ne pas bloquer la réponse HTTP.
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j

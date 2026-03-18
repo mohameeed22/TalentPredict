@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-register',
@@ -19,34 +20,34 @@ export class RegisterComponent {
   private notificationService = inject(NotificationService);
   private appRef = inject(ApplicationRef);
 
-  /** TASK 1: Default role is USER (Employee) */
-  selectedRole: string = 'USER';
+  /** Password policy must match backend: 8+ chars with uppercase, lowercase, digit, special char */
+  private passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
   registerForm: FormGroup = this.fb.group({
     nom: ['', [Validators.required]],
     prenom: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]]
+    phoneNumber: ['', [Validators.pattern(/^\+?[0-9]{7,15}$/)]],
+    password: ['', [
+      Validators.required,
+      Validators.minLength(8),
+      Validators.pattern(this.passwordPattern)
+    ]]
   });
 
   loading = false;
-
-  /** TASK 1: Select role card */
-  selectRole(role: string): void {
-    this.selectedRole = role;
-  }
+  socialLoading = false;
 
   onSubmit(): void {
     if (this.registerForm.valid) {
       this.loading = true;
       const formValue = {
         ...this.registerForm.value,
-        role: this.selectedRole  // TASK 1: include selected role
+        role: 'USER'
       };
       this.authService.register(formValue).subscribe({
         next: (response) => {
           this.notificationService.success('Compte créé avec succès !');
-          // TASK 1: Role-based redirect using backend's redirectUrl
           const redirectUrl = response.redirectUrl || this.authService.getRedirectUrl();
           this.router.navigateByUrl(redirectUrl).then(() => this.appRef.tick());
         },
@@ -60,5 +61,46 @@ export class RegisterComponent {
         }
       });
     }
+  }
+
+  startGoogle(): void {
+    this.socialLoading = true;
+    if (!environment.googleClientId) {
+      this.notificationService.error('ID client Google manquant.');
+      this.socialLoading = false;
+      return;
+    }
+    const redirectUri = `${environment.oauthRedirectBase}/auth/callback/google`;
+    const params = new URLSearchParams({
+      client_id: environment.googleClientId,
+      redirect_uri: redirectUri,
+      response_type: 'code',
+      scope: 'openid profile email',
+      access_type: 'online',
+      prompt: 'consent'
+    });
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  }
+
+  startGithub(): void {
+    this.socialLoading = true;
+    if (!environment.githubClientId) {
+      this.notificationService.error('ID client GitHub manquant.');
+      this.socialLoading = false;
+      return;
+    }
+    const redirectUri = `${environment.oauthRedirectBase}/auth/callback/github`;
+    const params = new URLSearchParams({
+      client_id: environment.githubClientId,
+      redirect_uri: redirectUri,
+      scope: 'read:user user:email'
+    });
+    window.location.href = `https://github.com/login/oauth/authorize?${params.toString()}`;
+  }
+
+  startLinkedin(): void {
+    this.socialLoading = true;
+    this.notificationService.error('Connexion LinkedIn non encore configurée.');
+    this.socialLoading = false;
   }
 }

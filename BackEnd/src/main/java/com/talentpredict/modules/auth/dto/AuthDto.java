@@ -3,6 +3,7 @@ package com.talentpredict.modules.auth.dto;
 import com.talentpredict.modules.user.entities.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,6 +11,9 @@ import lombok.Data;
 import java.util.UUID;
 
 public class AuthDto {
+
+    private static final String PASSWORD_POLICY =
+            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,}$";
 
     @Data
     @AllArgsConstructor
@@ -50,8 +54,14 @@ public class AuthDto {
         private String email;
 
         @NotBlank(message = "Password is required")
-        @Size(min = 6, message = "Password must be at least 6 characters")
+        @Size(min = 8, message = "Password must be at least 8 characters")
+        @Pattern(
+            regexp = PASSWORD_POLICY,
+            message = "Password must contain uppercase, lowercase, number, and special character")
         private String password;
+
+        /** Optional phone number, used for SMS password reset */
+        private String phoneNumber;
 
         /**
          * Role chosen at signup: USER (Employee) or ADMIN (HR Manager).
@@ -68,16 +78,21 @@ public class AuthDto {
         private String email;
 
         @NotBlank(message = "Password is required")
-        @Size(min = 6, message = "Password must be at least 6 characters")
+        @Size(min = 8, message = "Password must be at least 8 characters")
         private String password;
     }
 
     /** TASK 3: Step 1 — user submits their email to request a reset link */
     @Data
     public static class ForgotPasswordRequest {
+        /** EMAIL or SMS */
+        private DeliveryChannel channel = DeliveryChannel.EMAIL;
+
         @Email(message = "Invalid email format")
-        @NotBlank(message = "Email is required")
         private String email;
+
+        /** E.164 recommended when SMS is used */
+        private String phoneNumber;
     }
 
     /** TASK 3: Step 2 — user submits the token + new password */
@@ -87,7 +102,23 @@ public class AuthDto {
         private String token;
 
         @NotBlank(message = "New password is required")
-        @Size(min = 6, message = "Password must be at least 6 characters")
+        @Size(min = 8, message = "Password must be at least 8 characters")
+        @Pattern(
+                regexp = PASSWORD_POLICY,
+                message = "Password must contain uppercase, lowercase, number, and special character")
+        private String newPassword;
+    }
+
+    @Data
+    public static class ChangePasswordRequest {
+        @NotBlank(message = "Current password is required")
+        private String currentPassword;
+
+        @NotBlank(message = "New password is required")
+        @Size(min = 8, message = "Password must be at least 8 characters")
+        @Pattern(
+                regexp = PASSWORD_POLICY,
+                message = "Password must contain uppercase, lowercase, number, and special character")
         private String newPassword;
     }
 
@@ -96,5 +127,27 @@ public class AuthDto {
     @AllArgsConstructor
     public static class MessageResponse {
         private String message;
+    }
+
+    /** Response for token refresh endpoint */
+    @Data
+    @AllArgsConstructor
+    public static class RefreshResponse {
+        private String accessToken;
+        private String type = "Bearer";
+    }
+
+    @Data
+    public static class SocialLoginRequest {
+        @NotBlank(message = "Authorization code is required")
+        private String code;
+
+        @NotBlank(message = "Redirect URI is required")
+        private String redirectUri;
+    }
+
+    public enum DeliveryChannel {
+        EMAIL,
+        SMS
     }
 }

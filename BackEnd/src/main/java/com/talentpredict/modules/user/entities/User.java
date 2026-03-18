@@ -56,6 +56,9 @@ public class User {
     @Column(nullable = false, length = 100)
     private String lastName;
 
+    @Column(name = "phone_number", length = 30, unique = true)
+    private String phoneNumber;
+
     @Column(length = 100)
     private String department;
 
@@ -67,6 +70,15 @@ public class User {
 
     @Column(name = "profile_picture_url", length = 500)
     private String profilePictureUrl;
+
+    @Column(name = "failed_login_attempts", nullable = false)
+    private Integer failedLoginAttempts = 0;
+
+    @Column(name = "lock_until")
+    private Instant lockUntil;
+
+    @Column(name = "last_login_at")
+    private Instant lastLoginAt;
 
     // relationships
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
@@ -116,5 +128,10 @@ public class User {
     // enums
     public enum Role {
         USER, ADMIN
+    }
+
+    @Transient
+    public boolean isLocked() {
+        return lockUntil != null && lockUntil.isAfter(Instant.now());
     }
 }

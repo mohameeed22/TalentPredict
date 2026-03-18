@@ -5,6 +5,7 @@ import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -27,6 +28,7 @@ export class LoginComponent implements OnInit {
   });
 
   loading = false;
+  socialLoading = false;
 
   ngOnInit(): void {
     // If already authenticated, redirect to appropriate dashboard
@@ -70,5 +72,46 @@ export class LoginComponent implements OnInit {
         }
       });
     }
+  }
+
+  startGoogle(): void {
+    this.socialLoading = true;
+    if (!environment.googleClientId) {
+      this.notificationService.error('ID client Google manquant.');
+      this.socialLoading = false;
+      return;
+    }
+    const redirectUri = `${environment.oauthRedirectBase}/auth/callback/google`;
+    const params = new URLSearchParams({
+      client_id: environment.googleClientId,
+      redirect_uri: redirectUri,
+      response_type: 'code',
+      scope: 'openid profile email',
+      access_type: 'online',
+      prompt: 'consent'
+    });
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  }
+
+  startGithub(): void {
+    this.socialLoading = true;
+    if (!environment.githubClientId) {
+      this.notificationService.error('ID client GitHub manquant.');
+      this.socialLoading = false;
+      return;
+    }
+    const redirectUri = `${environment.oauthRedirectBase}/auth/callback/github`;
+    const params = new URLSearchParams({
+      client_id: environment.githubClientId,
+      redirect_uri: redirectUri,
+      scope: 'read:user user:email'
+    });
+    window.location.href = `https://github.com/login/oauth/authorize?${params.toString()}`;
+  }
+
+  startLinkedin(): void {
+    this.socialLoading = true;
+    this.notificationService.error('Connexion LinkedIn non encore configurée.');
+    this.socialLoading = false;
   }
 }

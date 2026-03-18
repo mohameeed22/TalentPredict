@@ -86,8 +86,10 @@ export class App implements OnInit, OnDestroy {
   }
 
   logout(): void {
-    this.authService.logout();
-    this.router.navigateByUrl('/auth/login').then(() => this.appRef.tick());
+    this.authService.logout().subscribe({
+      next: () => this.router.navigateByUrl('/auth/login').then(() => this.appRef.tick()),
+      error: () => this.router.navigateByUrl('/auth/login').then(() => this.appRef.tick())
+    });
   }
 
   getCurrentUser() {

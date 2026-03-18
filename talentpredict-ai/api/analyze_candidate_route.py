@@ -41,18 +41,22 @@ async def analyze_candidate(
     try:
         # Parse CV if uploaded
         cv_text: str | None = None
+        cv_warning: str | None = None
         if cv_file and cv_file.filename:
             contents = await cv_file.read()
             if contents:
                 cv_result = analyze_cv(contents)
                 if cv_result.get("raw_text"):
                     cv_text = cv_result["raw_text"]
+                else:
+                    cv_warning = "Le PDF du CV ne contient pas de texte extractible (PDF scanné ou image). L'analyse du CV a été ignorée."
+                    logger.warning("CV text extraction failed for %s: %s", cv_file.filename, cv_result.get("error", "no text"))
 
         portfolio_url = portfolio.strip() or None
         github_username = github.strip()
         linkedin_url_val = linkedin_url.strip() or None
         linkedin_content_val = linkedin_content.strip() or None
-
+        # stripe() make a new copy of string
         logger.info(
             "Analyzing candidate: github=%s, portfolio=%s, cv=%s, linkedin_url=%s",
             github_username,
@@ -71,6 +75,9 @@ async def analyze_candidate(
 
         if "error" in result:
             return JSONResponse(status_code=422, content=result)
+
+        if cv_warning:
+            result["cv_warning"] = cv_warning
 
         return result
     except Exception as exc:

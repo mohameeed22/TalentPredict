@@ -1,9 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../../../environments/environment';
+import { RouterLink } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
 
 /**
  * TASK 3 — Forgot Password Component
@@ -28,7 +27,7 @@ import { environment } from '../../../../../environments/environment';
     </div>
 
     <h1>Mot de passe oublié</h1>
-    <p class="subtitle">Saisissez votre adresse e-mail. Si elle est enregistrée,<br>vous recevrez un lien de réinitialisation.</p>
+    <p class="subtitle">Choisissez Email ou SMS pour recevoir le lien de réinitialisation.</p>
 
     @if (sent()) {
       <div class="success-box">
@@ -39,24 +38,47 @@ import { environment } from '../../../../../environments/environment';
       </div>
     } @else {
       <form (ngSubmit)="onSubmit()">
-        <div class="form-group">
-          <label for="email">Adresse e-mail</label>
-          <input
-            id="email"
-            type="email"
-            [(ngModel)]="email"
-            name="email"
-            placeholder="votre@email.com"
-            required
-            [disabled]="loading()"
-          />
+        <div class="channel-toggle">
+          <button type="button" [class.active]="channel === 'EMAIL'" (click)="channel = 'EMAIL'">Email</button>
+          <button type="button" [class.active]="channel === 'SMS'" (click)="channel = 'SMS'">SMS</button>
         </div>
+
+        @if (channel === 'EMAIL') {
+          <div class="form-group">
+            <label for="email">Adresse e-mail</label>
+            <input
+              id="email"
+              type="email"
+              [(ngModel)]="email"
+              name="email"
+              placeholder="votre@email.com"
+              required
+              [disabled]="loading()"
+            />
+          </div>
+        }
+
+        @if (channel === 'SMS') {
+          <div class="form-group">
+            <label for="phone">Téléphone (E.164)</label>
+            <input
+              id="phone"
+              type="tel"
+              [(ngModel)]="phoneNumber"
+              name="phoneNumber"
+              placeholder="+33612345678"
+              required
+              [disabled]="loading()"
+            />
+          </div>
+        }
 
         @if (error()) {
           <div class="error-msg">{{ error() }}</div>
         }
 
-        <button type="submit" class="btn-primary" [disabled]="loading() || !email">
+        <button type="submit" class="btn-primary"
+                [disabled]="loading() || (channel === 'EMAIL' && !email) || (channel === 'SMS' && !phoneNumber)">
           @if (loading()) { <span class="spinner-inline"></span> }
           {{ loading() ? 'Envoi en cours...' : 'Envoyer le lien' }}
         </button>
@@ -86,40 +108,46 @@ import { environment } from '../../../../../environments/environment';
     @keyframes spin { to { transform: rotate(360deg); } }
     .error-msg { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: .5rem; padding: .75rem 1rem; font-size: .875rem; margin-bottom: 1rem; text-align: left; }
     .success-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: .75rem; padding: 1.25rem; display: flex; flex-direction: column; align-items: center; gap: .75rem; color: #166534; font-size: .95rem; line-height: 1.6; }
+    .channel-toggle { display: grid; grid-template-columns: repeat(2,1fr); gap: .5rem; margin-bottom: 1rem; }
+    .channel-toggle button { border: 1.5px solid #e5e7eb; background: #f9fafb; padding: .6rem; border-radius: .75rem; font-weight: 600; color: #374151; cursor: pointer; }
+    .channel-toggle button.active { border-color: #6366f1; color: #111827; box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
     .auth-footer { margin-top: 1.5rem; font-size: .9rem; }
     .auth-footer a { color: #6366f1; text-decoration: none; font-weight: 600; }
     .auth-footer a:hover { text-decoration: underline; }
   `]
 })
 export class ForgotPasswordComponent {
-    private http = inject(HttpClient);
+  private auth = inject(AuthService);
 
-    email = '';
-    loading = signal(false);
-    sent = signal(false);
-    error = signal<string | null>(null);
-    message = signal('');
+  channel: 'EMAIL' | 'SMS' = 'EMAIL';
+  email = '';
+  phoneNumber = '';
+  loading = signal(false);
+  sent = signal(false);
+  error = signal<string | null>(null);
+  message = signal('');
 
-    onSubmit(): void {
-        if (!this.email || this.loading()) return;
-        this.loading.set(true);
-        this.error.set(null);
+  onSubmit(): void {
+    this.error.set(null);
+    if (this.channel === 'EMAIL' && !this.email) return;
+    if (this.channel === 'SMS' && !this.phoneNumber) return;
 
-        this.http.post<{ message: string }>(
-            `${environment.apiUrl}/auth/forgot-password`,
-            { email: this.email }
-        ).subscribe({
-            next: (res) => {
-                this.loading.set(false);
-                this.sent.set(true);
-                this.message.set(res.message || 'Si votre email est enregistré, vous recevrez un lien.');
-            },
-            error: () => {
-                this.loading.set(false);
-                // Even on error, show success to avoid email enumeration
-                this.sent.set(true);
-                this.message.set('Si votre email est enregistré, vous recevrez un lien de réinitialisation.');
-            }
-        });
-    }
+    this.loading.set(true);
+    const request$ = this.channel === 'SMS'
+      ? this.auth.requestPasswordResetSms(this.phoneNumber)
+      : this.auth.requestPasswordResetEmail(this.email);
+
+    request$.subscribe({
+      next: (res) => {
+        this.loading.set(false);
+        this.sent.set(true);
+        this.message.set(res.message || 'Si votre compte est enregistré, vous recevrez un lien.');
+      },
+      error: () => {
+        this.loading.set(false);
+        this.sent.set(true);
+        this.message.set('Si votre compte est enregistré, vous recevrez un lien de réinitialisation.');
+      }
+    });
+  }
 }

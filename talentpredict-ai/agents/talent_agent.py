@@ -1,20 +1,12 @@
-"""TalentPredict AI Agent.
-
-Orchestrates a Claude tool-use agentic loop. The agent receives candidate
-inputs, iteratively calls tools (GitHub analyzer, CV parser, portfolio
-analyzer, skill extractor, scoring engine, job matcher), and returns a
-structured JSON analysis.
-"""
 
 from __future__ import annotations
-
 import json
 import logging
 import os
 from typing import Any
 
 import anthropic
-import httpx
+import httpx  #for API calls to Ollama 
 
 from memory.agent_memory import memory
 from prompts.agent_prompt_template import SYSTEM_PROMPT, TOOL_DEFINITIONS
@@ -58,8 +50,6 @@ def _build_user_message(
         parts.append(f"CV text (extracted from PDF):\n{cv_text[:3000]}")
     if linkedin_url:
         parts.append(f"LinkedIn profile URL: {linkedin_url}")
-    if linkedin_content:
-        parts.append(f"LinkedIn profile (pasted content):\n{linkedin_content[:4000]}")
     if not any([github_username, portfolio_url, cv_text, linkedin_url, linkedin_content]):
         parts.append("No sources provided. Return an error message.")
     parts.append(
@@ -184,7 +174,6 @@ async def _run_direct_pipeline(
             "score": job_result.get("job_match_score", 0),
             "matched_skills": job_result.get("matched_skills", []),
             "missing_skills": job_result.get("missing_skills", []),
-            "recommendations": job_result.get("recommendations", []),
         },
     }
 
@@ -248,12 +237,14 @@ async def run_agent(
 ) -> dict[str, Any]:
     """Run the TalentPredict agent and return a structured analysis."""
 
-    # Check memory cache (include linkedin in key if we want cache per combo)
+    # Check memory cache — skip if fresh content sources are provided (CV, portfolio,
+    # LinkedIn text) since those inputs may have changed since the last run.
     cache_key = github_username or "unknown"
-    cached = memory.get(cache_key)
-    if cached:
-        logger.info("Returning cached result for %s", cache_key)
-        return cached
+    if not cv_text and not portfolio_url and not linkedin_content:
+        cached = await memory.get(cache_key)
+        if cached:
+            logger.info("Returning cached result for %s", cache_key)
+            return cached
 
     api_key = os.getenv("ANTHROPIC_API_KEY", "")
 
@@ -264,7 +255,7 @@ async def run_agent(
             github_username, portfolio_url, cv_text, linkedin_url, linkedin_content
         )
         if "error" not in result:
-            memory.set(cache_key, result)
+            await memory.set(cache_key, result)
         return result
 
     # OpenRouter/Anthropic require an API key
@@ -281,7 +272,7 @@ async def run_agent(
         result = await _run_agent_anthropic(api_key, user_message, github_username)
 
     if "error" not in result:
-        memory.set(cache_key, result)
+        await memory.set(cache_key, result)
     return result
 
 

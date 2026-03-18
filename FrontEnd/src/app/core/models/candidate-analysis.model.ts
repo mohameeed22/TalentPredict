@@ -28,5 +28,6 @@ export interface CandidateAnalysis {
   linkedin_analysis?: string;
   job_match: JobMatch;
   raw_analysis?: string;
+  cv_warning?: string;
   error?: string;
 }

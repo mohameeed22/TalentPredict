@@ -3,5 +3,8 @@ export const environment = {
   apiUrl: 'https://api.talentpredict.com/api',
   jiraApiUrl: 'https://api.talentpredict.com/api/jira',
   aiServiceUrl: 'https://ai.talentpredict.com',
-  openAiEnabled: true
+  openAiEnabled: true,
+   githubClientId:"Iv23linEBoVPLyPrWzIM",
+  googleClientId: '468943423599-l1ab4c1429dmtbgak12l6qa96jupghrk.apps.googleusercontent.com',
+  oauthRedirectBase: 'https://talentpredict.com'
 };

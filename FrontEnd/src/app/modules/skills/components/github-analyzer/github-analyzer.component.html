@@ -21,11 +21,12 @@
 
   <!-- GitHub stats from previous analysis -->
   @if (!profileLoading() && hasGithubStats()) {
+    @let p = profile()!;
     <div class="github-stats-card">
       <div class="stats-header">
         <div class="stats-avatar-wrap">
-          @if (profile()!.githubAvatarUrl) {
-            <img [src]="profile()!.githubAvatarUrl" alt="GitHub avatar" class="stats-avatar" />
+          @if (p.githubAvatarUrl) {
+            <img [src]="p.githubAvatarUrl" alt="GitHub avatar" class="stats-avatar" />
           } @else {
             <div class="stats-avatar-fallback">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
@@ -33,14 +34,14 @@
           }
         </div>
         <div class="stats-identity">
-          <span class="stats-name">{{ profile()!.githubName || githubUsername() }}</span>
-          @if (profile()!.githubBio) {
-            <span class="stats-bio">{{ profile()!.githubBio }}</span>
+          <span class="stats-name">{{ p.githubName || githubUsername() }}</span>
+          @if (p.githubBio) {
+            <span class="stats-bio">{{ p.githubBio }}</span>
           }
-          @if (profile()!.githubCompany || profile()!.githubLocation) {
+          @if (p.githubCompany || p.githubLocation) {
             <span class="stats-meta">
-              @if (profile()!.githubCompany) { <span>🏢 {{ profile()!.githubCompany }}</span> }
-              @if (profile()!.githubLocation) { <span>📍 {{ profile()!.githubLocation }}</span> }
+              @if (p.githubCompany) { <span>🏢 {{ p.githubCompany }}</span> }
+              @if (p.githubLocation) { <span>📍 {{ p.githubLocation }}</span> }
             </span>
           }
         </div>
@@ -48,17 +49,17 @@
       </div>
       <div class="stats-numbers">
         <div class="stat-item">
-          <span class="stat-value">{{ profile()!.githubRepos }}</span>
+          <span class="stat-value">{{ p.githubRepos }}</span>
           <span class="stat-label">Repositories</span>
         </div>
         <div class="stat-divider"></div>
         <div class="stat-item">
-          <span class="stat-value">{{ profile()!.githubFollowers }}</span>
+          <span class="stat-value">{{ p.githubFollowers }}</span>
           <span class="stat-label">Followers</span>
         </div>
         <div class="stat-divider"></div>
         <div class="stat-item">
-          <span class="stat-value">{{ profile()!.githubFollowing }}</span>
+          <span class="stat-value">{{ p.githubFollowing }}</span>
           <span class="stat-label">Following</span>
         </div>
       </div>
@@ -197,47 +198,55 @@
 
   <!-- ===== RESULTS ===== -->
   @if (analysisComplete() && analysis()) {
+    @let a = analysis()!;
+
+    @if (a.cv_warning) {
+      <div class="warning-banner">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>{{ a.cv_warning }}</span>
+      </div>
+    }
 
     <!-- Score Summary Cards -->
     <div class="score-cards">
       <div class="score-card">
         <span class="score-label">Score d'expérience</span>
-        <span class="score-value primary">{{ analysis()!.experience_score }}<small>/100</small></span>
+        <span class="score-value primary">{{ a.experience_score }}<small>/100</small></span>
       </div>
       <div class="score-card">
         <span class="score-label">Match emploi</span>
-        <span class="score-value accent">{{ analysis()!.job_match?.score || 0 }}<small>/100</small></span>
+        <span class="score-value accent">{{ (a.job_match && a.job_match.score) || 0 }}<small>/100</small></span>
       </div>
       <div class="score-card">
         <span class="score-label">Repos analysés</span>
-        <span class="score-value neutral">{{ analysis()!.repositories_analyzed }}</span>
+        <span class="score-value neutral">{{ a.repositories_analyzed }}</span>
       </div>
       <div class="score-card">
         <span class="score-label">Compétences</span>
-        <span class="score-value neutral">{{ analysis()!.skills?.length || 0 }}</span>
+        <span class="score-value neutral">{{ (a.skills && a.skills.length) || 0 }}</span>
       </div>
     </div>
 
     <!-- Sources used -->
-    @if (analysis()!.data_sources && analysis()!.data_sources.length > 0) {
+    @if (a.data_sources && a.data_sources.length > 0) {
       <div class="sources-used">
         <span class="sources-label">Sources analysées :</span>
-        @for (src of analysis()!.data_sources; track src) {
+        @for (src of a.data_sources; track src) {
           <span class="source-chip" [style.background]="getSourceColor(src)">{{ getSourceLabel(src) }}</span>
         }
       </div>
     }
 
     <!-- Skills List -->
-    @if (analysis()!.skills && analysis()!.skills.length > 0) {
+    @if (a.skills && a.skills.length > 0) {
       <div class="analysis-results">
         <div class="card-header">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           <h3>Compétences détectées</h3>
-          <span class="results-count">{{ analysis()!.skills.length }}</span>
+          <span class="results-count">{{ a.skills.length }}</span>
         </div>
         <div class="skills-list">
-          @for (skill of analysis()!.skills; track skill.name) {
+          @for (skill of a.skills; track skill.name) {
             <div class="skill-item">
               <div class="skill-header-row">
                 <div class="skill-info">
@@ -267,52 +276,52 @@
     }
 
     <!-- Summary -->
-    @if (analysis()!.summary) {
+    @if (a.summary) {
       <div class="summary-card">
         <div class="card-header">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           <h3>Résumé</h3>
         </div>
-        <p class="summary-text">{{ analysis()!.summary }}</p>
+        <p class="summary-text">{{ a.summary }}</p>
       </div>
     }
 
     <!-- LinkedIn Analysis -->
-    @if (analysis()!.linkedin_analysis) {
+    @if (a.linkedin_analysis) {
       <div class="linkedin-card">
         <div class="card-header">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
           <h3>Analyse LinkedIn</h3>
         </div>
-        <pre class="linkedin-analysis-text">{{ analysis()!.linkedin_analysis }}</pre>
+        <pre class="linkedin-analysis-text">{{ a.linkedin_analysis }}</pre>
       </div>
     }
 
     <!-- Job Match Details -->
-    @if (analysis()!.job_match) {
+    @if (a.job_match) {
       <div class="job-match-card">
         <div class="card-header">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
           <h3>Correspondance Emploi</h3>
         </div>
-        @if (analysis()!.job_match.profile) {
-          <p class="job-profile"><strong>Profil :</strong> {{ analysis()!.job_match.profile }}</p>
+        @if (a.job_match.profile) {
+          <p class="job-profile"><strong>Profil :</strong> {{ a.job_match.profile }}</p>
         }
-        @if (analysis()!.job_match.matched_skills && analysis()!.job_match.matched_skills.length > 0) {
+        @if (a.job_match.matched_skills && a.job_match.matched_skills.length > 0) {
           <div class="match-section">
             <span class="match-label success">Compétences correspondantes</span>
             <div class="tag-list">
-              @for (skill of analysis()!.job_match.matched_skills; track skill) {
+              @for (skill of a.job_match.matched_skills; track skill) {
                 <span class="tag tag-success">{{ skill }}</span>
               }
             </div>
           </div>
         }
-        @if (analysis()!.job_match.missing_skills && analysis()!.job_match.missing_skills.length > 0) {
+        @if (a.job_match.missing_skills && a.job_match.missing_skills.length > 0) {
           <div class="match-section">
             <span class="match-label warning">Compétences manquantes</span>
             <div class="tag-list">
-              @for (skill of analysis()!.job_match.missing_skills; track skill) {
+              @for (skill of a.job_match.missing_skills; track skill) {
                 <span class="tag tag-warning">{{ skill }}</span>
               }
             </div>

@@ -114,6 +114,12 @@ export interface InscriptionRequest {
   nom: string;
   prenom: string;
   email: string;
+  phoneNumber?: string;
   password: string;
   role: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }

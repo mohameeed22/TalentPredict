@@ -4,7 +4,7 @@ import { Observable, BehaviorSubject, tap, catchError, throwError } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
   AuthRequest, AuthResponse, AuthUser, InscriptionRequest,
-  Role, User, ProfileResponse, ProfileUpdateRequest
+  Role, User, ProfileResponse, ProfileUpdateRequest, ChangePasswordRequest
 } from '../models/user.model';
 
 @Injectable({
@@ -22,10 +22,15 @@ export class AuthService {
   private userProfileSubject = new BehaviorSubject<User | null>(null);
   public userProfile$ = this.userProfileSubject.asObservable();
 
+  // Track if a refresh is in progress to prevent multiple simultaneous refreshes
+  private refreshInProgress = false;
+  private refreshSubject = new BehaviorSubject<boolean>(false);
+
   constructor() { }
 
   /**
    * TASK 1: Login — redirects based on role returned from backend.
+   * Backend returns access token in body + refresh token in HttpOnly cookie
    */
   login(credentials: AuthRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.baseUrl}/login`, credentials).pipe(
@@ -36,20 +41,90 @@ export class AuthService {
     );
   }
 
+  /** Social login: exchanges OAuth code for backend JWT */
+  loginWithGoogle(code: string, redirectUri?: string): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.baseUrl}/oauth/google`, {
+      code,
+      redirectUri: redirectUri || `${environment.oauthRedirectBase}/auth/callback/google`
+    }).pipe(tap(res => this.setSession(res)));
+  }
+
+  loginWithGithub(code: string, redirectUri?: string): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.baseUrl}/oauth/github`, {
+      code,
+      redirectUri: redirectUri || `${environment.oauthRedirectBase}/auth/callback/github`
+    }).pipe(tap(res => this.setSession(res)));
+  }
+
   /**
    * TASK 1: Register — sends role in payload, redirectUrl returned by backend.
+   * Backend returns access token in body + refresh token in HttpOnly cookie
    */
   register(data: InscriptionRequest): Observable<AuthResponse> {
     const backendPayload = {
       lastName: data.nom,
       firstName: data.prenom,
       email: data.email,
+      phoneNumber: (data as any).phoneNumber,
       password: data.password,
       role: data.role  // ← sends USER or ADMIN
     };
     return this.http.post<AuthResponse>(`${this.baseUrl}/register`, backendPayload).pipe(
       tap(response => {
         this.setSession(response);
+      })
+    );
+  }
+
+  /**
+   * SECURITY FEATURE: Refresh the access token using refresh token
+   * Refresh token is automatically sent in HttpOnly cookie by browser
+   */
+  refreshAccessToken(): Observable<{ accessToken: string }> {
+    if (this.refreshInProgress) {
+      return throwError(() => new Error('Refresh in progress'));
+    }
+
+    this.refreshInProgress = true;
+    this.refreshSubject.next(true);
+
+    return this.http.post<{ accessToken: string }>(`${this.baseUrl}/refresh-token`, {}).pipe(
+      tap(response => {
+        // Update stored access token
+        const user = this.getCurrentUser();
+        if (user) {
+          localStorage.setItem('token', response.accessToken);
+        }
+        this.refreshInProgress = false;
+        this.refreshSubject.next(false);
+      }),
+      catchError(err => {
+        this.refreshInProgress = false;
+        this.refreshSubject.next(false);
+        return throwError(() => err);
+      })
+    );
+  }
+
+  /**
+   * SECURITY FEATURE: Check if token refresh is in progress
+   */
+  isRefreshInProgress(): boolean {
+    return this.refreshInProgress;
+  }
+
+  /**
+   * SECURITY FEATURE: Logout — invalidate refresh token and clear session
+   */
+  logout(): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/logout`, {}).pipe(
+      tap(() => {
+        this.clearSession();
+      }),
+      catchError(err => {
+        // Clear session even if logout request fails
+        this.clearSession();
+        return throwError(() => err);
       })
     );
   }
@@ -81,6 +156,31 @@ export class AuthService {
    */
   updateProfile(userId: string, data: ProfileUpdateRequest): Observable<ProfileResponse> {
     return this.http.put<ProfileResponse>(`${this.profilesUrl}/users/${userId}`, data);
+  }
+
+  changePassword(data: ChangePasswordRequest): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/change-password`, data);
+  }
+
+  requestPasswordResetEmail(email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/forgot-password`, {
+      channel: 'EMAIL',
+      email
+    });
+  }
+
+  requestPasswordResetSms(phoneNumber: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/forgot-password`, {
+      channel: 'SMS',
+      phoneNumber
+    });
+  }
+
+  resetPassword(token: string, newPassword: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/reset-password`, {
+      token,
+      newPassword
+    });
   }
 
   /**
@@ -117,13 +217,6 @@ export class AuthService {
   getAssetUrl(path: string): string {
     if (!path || path.startsWith('http')) return path;
     return environment.apiUrl.replace('/api', '') + path;
-  }
-
-  logout(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    this.currentUserSubject.next(null);
-    this.userProfileSubject.next(null);
   }
 
   getToken(): string | null {
@@ -175,6 +268,13 @@ export class AuthService {
     };
     localStorage.setItem('user', JSON.stringify(user));
     this.currentUserSubject.next(user);
+  }
+
+  clearSession(): void {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    this.currentUserSubject.next(null);
+    this.userProfileSubject.next(null);
   }
 
   private getUserFromStorage(): AuthUser | null {
