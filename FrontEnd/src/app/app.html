@@ -201,6 +201,13 @@
   </aside>
   }
 
+  <!-- Top actions (floating right) -->
+  @if (showSidebar()) {
+  <div class="top-bar-actions" style="position: fixed; top: 1rem; right: 1.5rem; display: flex; align-items: center; gap: 0.75rem; z-index: 1000;">
+    <app-notifications-center />
+  </div>
+  }
+
   <!-- Main content -->
   <main [class.main-content]="showSidebar()"
     [style.margin-left]="showSidebar() ? (isSidebarOpen ? '240px' : '0px') : '0px'"

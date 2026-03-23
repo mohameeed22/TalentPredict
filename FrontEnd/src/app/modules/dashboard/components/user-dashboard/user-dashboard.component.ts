@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { DashboardService, EmployeeDashboardResponse } from '../../services/dashboard.service';
 import { AuthService } from '../../../auth/services/auth.service';
+import { SkillsRadarChartComponent } from '../skills-radar-chart/skills-radar-chart.component';
 
 @Component({
   selector: 'app-user-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, SkillsRadarChartComponent],
   templateUrl: './user-dashboard.component.html',
   styleUrls: ['./user-dashboard.component.scss']
 })
