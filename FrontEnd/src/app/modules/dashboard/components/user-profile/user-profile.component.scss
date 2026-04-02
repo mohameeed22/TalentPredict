@@ -747,3 +747,69 @@
   transition: background 0.2s;
   &:hover { background: #f5f3ff; }
 }
+
+.job-match-card {
+  margin-bottom: 1.5rem;
+  .hint {
+    color: #64748b;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+  }
+  .jm-input,
+  .jm-textarea {
+    width: 100%;
+    margin-bottom: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    padding: 0.5rem 0.75rem;
+  }
+  .jm-result {
+    margin-top: 1rem;
+  }
+  .jm-overall {
+    font-size: 1.1rem;
+  }
+  .jm-bars {
+    margin-top: 0.75rem;
+  }
+  .jm-row {
+    display: grid;
+    grid-template-columns: 1fr 3fr auto;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+  }
+  .bar-track {
+    height: 10px;
+    background: #e2e8f0;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.4s ease;
+  }
+  .bar-strong {
+    background: #22c55e;
+  }
+  .bar-partial {
+    background: #f59e0b;
+  }
+  .bar-miss {
+    background: #ef4444;
+  }
+  .jm-tag {
+    font-size: 0.75rem;
+    text-transform: capitalize;
+    color: #64748b;
+  }
+  .jm-ai {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+}

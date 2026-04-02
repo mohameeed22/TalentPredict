@@ -87,6 +87,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
                         // NOTE: /camunda/** removed — Camunda is disabled. Re-add when re-enabled.
                         // User routes – ADMIN only
                         .requestMatchers(HttpMethod.POST, "/api/users").hasRole("ADMIN")

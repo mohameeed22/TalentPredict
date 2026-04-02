@@ -1,0 +1,18 @@
+<h1>Alertes fraude</h1>
+<table *ngIf="rows.length">
+  <thead>
+    <tr>
+      <th>Nom</th>
+      <th>Risque</th>
+      <th>Score</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let r of rows">
+      <td>{{ r.firstName }} {{ r.lastName }}</td>
+      <td><span class="badge">{{ r.fraudRisk }}</span></td>
+      <td>{{ r.realScore ?? '—' }}</td>
+    </tr>
+  </tbody>
+</table>
+<p *ngIf="!rows.length">Aucune alerte pour le moment.</p>

@@ -127,7 +127,9 @@ public class User {
 
     // enums
     public enum Role {
-        USER, ADMIN
+        USER,
+        ADMIN,
+        RECRUITER
     }
 
     @Transient

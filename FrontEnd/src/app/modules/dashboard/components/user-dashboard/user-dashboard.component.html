@@ -53,8 +53,8 @@
         </svg>
       </div>
       <div class="stat-content">
-        <span class="stat-label">Tests complétés</span>
-        <span class="stat-value">{{ nombreTests }}</span>
+        <span class="stat-label">Tests complétés (tous)</span>
+        <span class="stat-value">{{ totalCompletedTests }}</span>
       </div>
     </div>
 
@@ -173,6 +173,50 @@
       </div>
       }
     </div>
+  </div>
+
+  <div class="detail-card skill-tests-card">
+    <div class="detail-header">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 3v18h18" />
+        <path d="M7 15l4-4 3 3 5-6" />
+      </svg>
+      <h2>Derniers Resultats Skill Test</h2>
+    </div>
+
+    <div class="skill-tests-meta">
+      <p>Sessions recentes: <strong>{{ skillTestCount }}</strong></p>
+      @if (latestSkillTestScore !== null) {
+      <p>Dernier score: <strong>{{ latestSkillTestScore }}%</strong></p>
+      }
+      <button type="button" class="btn-action btn-secondary-action" (click)="exportSkillReport()" [disabled]="exportingPdf">
+        {{ exportingPdf ? 'Export PDF...' : 'Exporter PDF' }}
+      </button>
+    </div>
+
+    @if (loadingSkillTests) {
+      <div class="empty-state">
+        <p>Chargement des resultats skill test...</p>
+      </div>
+    } @else if (recentSkillTests.length > 0) {
+      <ul class="test-list">
+        @for (item of recentSkillTests; track item.taken_at) {
+          <li class="test-row">
+            <div>
+              <strong>{{ item.overall_score }}%</strong>
+              <p>{{ item.taken_at | date:'dd/MM/yyyy HH:mm' }}</p>
+            </div>
+            <span class="status-badge" [class.status-complete]="item.passed" [class.status-pending]="!item.passed">
+              {{ item.passed ? 'Valide' : 'A renforcer' }}
+            </span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <div class="empty-state">
+        <p>Aucun resultat de skill test pour le moment.</p>
+      </div>
+    }
   </div>
   }
 </div>

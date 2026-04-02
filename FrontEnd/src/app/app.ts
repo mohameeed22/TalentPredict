@@ -86,6 +86,20 @@ export class App implements OnInit, OnDestroy {
     return this.authService.isAdmin();
   }
 
+  isRecruiter(): boolean {
+    return this.authService.isRecruiter();
+  }
+
+  canAccessRecruiter(): boolean {
+    return this.isAdmin() || this.isRecruiter();
+  }
+
+  getCurrentRoleLabel(): string {
+    if (this.isAdmin()) return '🏢 RH / Manager';
+    if (this.isRecruiter()) return '🎯 Recruiter';
+    return '👤 Employé';
+  }
+
   logout(): void {
     this.authService.logout().subscribe({
       next: () => this.router.navigateByUrl('/auth/login').then(() => this.appRef.tick()),

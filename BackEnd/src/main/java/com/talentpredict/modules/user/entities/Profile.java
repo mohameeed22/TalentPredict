@@ -85,6 +85,25 @@ public class Profile {
     @Column(name = "ai_summary", columnDefinition = "TEXT")
     private String aiSummary;
 
+    @Column(name = "real_score")
+    private Integer realScore;
+
+    @Column(name = "test_taken_at")
+    private Instant testTakenAt;
+
+    /** JSON map skill name -> score 0-100 */
+    @Column(name = "skill_real_scores", columnDefinition = "TEXT")
+    private String skillRealScoresJson;
+
+    @Column(name = "test_passed")
+    private Boolean testPassed;
+
+    @Column(name = "fraud_risk", length = 20)
+    private String fraudRisk;
+
+    @Column(name = "public_slug", unique = true, length = 80)
+    private String publicSlug;
+
     // Relationships
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", unique = true, nullable = false)

@@ -10,6 +10,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.analyze_candidate_route import router as analyze_router
+from api.analysis_routes import router as analysis_router
+from api.jobs_routes import router as jobs_router
+from api.recruiter_routes import router as recruiter_router
+from api.test_routes import router as test_router
 from db.database import init_db
 
 # Load environment variables from .env file
@@ -31,7 +35,10 @@ app = FastAPI(
 )
 
 # CORS — allow Angular dev server and configurable origins
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:4200,http://localhost:3000")
+cors_origins = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:4200,http://127.0.0.1:4200,http://localhost:3000",
+)
 origins = [o.strip() for o in cors_origins.split(",") if o.strip()]
 
 app.add_middleware(
@@ -44,6 +51,10 @@ app.add_middleware(
 
 # Include API routes
 app.include_router(analyze_router)
+app.include_router(test_router)
+app.include_router(analysis_router)
+app.include_router(jobs_router)
+app.include_router(recruiter_router)
 
 
 @app.on_event("startup")

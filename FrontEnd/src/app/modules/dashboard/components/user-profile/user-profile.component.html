@@ -111,6 +111,42 @@
     <!-- Profile Completeness Score -->
     <app-profile-completeness [profile]="profile" />
 
+    <!-- Job match -->
+    <div class="edit-card job-match-card">
+      <div class="card-header">
+        <h3>Correspondance avec une offre</h3>
+      </div>
+      <p class="hint">Collez l’URL de l’annonce ou le texte de l’offre d’emploi.</p>
+      <input class="jm-input" type="url" [(ngModel)]="jobUrl" placeholder="https://..." />
+      <textarea class="jm-textarea" rows="5" [(ngModel)]="jobText" placeholder="Description…"></textarea>
+      <button type="button" class="btn-save" (click)="runJobMatch()" [disabled]="jobMatchLoading">
+        {{ jobMatchLoading ? 'Analyse…' : 'Analyser la correspondance' }}
+      </button>
+      @if (jobMatchResult) {
+      <div class="jm-result">
+        <p class="jm-overall">Match global : <strong>{{ jobMatchResult.overall_match }}%</strong></p>
+        <div class="jm-bars">
+          @for (row of jobMatchResult.skill_breakdown; track row.skill) {
+          <div class="jm-row">
+            <span>{{ row.skill }} @if (row.required) { <small>(requis)</small> }</span>
+            <div class="bar-track">
+              <div
+                class="bar-fill"
+                [class]="barClass(row.match)"
+                [style.width.%]="row.candidate_score"
+              ></div>
+            </div>
+            <span class="jm-tag">{{ row.match }}</span>
+          </div>
+          }
+        </div>
+        @if (jobMatchResult.ai_recommendation) {
+        <p class="jm-ai">{{ jobMatchResult.ai_recommendation }}</p>
+        }
+      </div>
+      }
+    </div>
+
     <!-- Editable Form -->
     <div class="edit-card">
       <div class="card-header">

@@ -1,0 +1,14 @@
+<div class="wrap">
+  @if (error) {
+  <p class="err">{{ error }}</p>
+  } @else if (data) {
+  <h1>{{ data['first_name'] }} {{ data['last_name'] }}</h1>
+  <p class="title">{{ data['title'] }}</p>
+  <p class="bio">{{ data['bio'] }}</p>
+  <p *ngIf="data['real_score'] != null">Score test : {{ data['real_score'] }}</p>
+  <h2>Compétences</h2>
+  <ul>
+    <li *ngFor="let s of $any(data['skills'])">{{ s['name'] }} — niveau {{ s['level'] }}</li>
+  </ul>
+  }
+</div>

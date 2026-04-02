@@ -16,14 +16,20 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SmsService {
 
-    @Value("${africastalking.username:}")
-    private String username;
+    @Value("${twilio.account-sid:}")
+    private String twilioAccountSid;
 
-    @Value("${africastalking.api-key:}")
-    private String apiKey;
+    @Value("${twilio.auth-token:}")
+    private String twilioAuthToken;
 
-    @Value("${africastalking.sender-id:}")
-    private String senderId;
+    @Value("${twilio.from-number:}")
+    private String twilioFromNumber;
+
+    @Value("${twilio.whatsapp-from:}")
+    private String twilioWhatsappFrom;
+
+    @Value("${twilio.whatsapp-number:}")
+    private String twilioWhatsappNumber;
 
     public void sendResetToken(String toPhone, String resetLink, String token) {
         if (toPhone == null || toPhone.isBlank()) {
@@ -31,29 +37,90 @@ public class SmsService {
             return;
         }
 
-        if (username == null || username.isBlank() ||
-                apiKey == null || apiKey.isBlank()) {
-            log.info("Africa's Talking not configured — token for {}: {}", toPhone, token);
+        // Send via Twilio if configured; otherwise log and skip
+        if (twilioAccountSid != null && !twilioAccountSid.isBlank()
+                && twilioAuthToken != null && !twilioAuthToken.isBlank()
+                && twilioFromNumber != null && !twilioFromNumber.isBlank()) {
+            try {
+                String message = "Lien de réinitialisation: " + resetLink;
+                String body = "To=" + URLEncoder.encode(toPhone, StandardCharsets.UTF_8)
+                        + "&From=" + URLEncoder.encode(twilioFromNumber, StandardCharsets.UTF_8)
+                        + "&Body=" + URLEncoder.encode(message, StandardCharsets.UTF_8);
+
+                String url = "https://api.twilio.com/2010-04-01/Accounts/" + twilioAccountSid + "/Messages.json";
+                String auth = twilioAccountSid + ":" + twilioAuthToken;
+                String basic = java.util.Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .header("Accept", "application/json")
+                        .header("Authorization", "Basic " + basic)
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(body))
+                        .build();
+
+                HttpResponse<String> response = HttpClient.newHttpClient()
+                        .send(request, HttpResponse.BodyHandlers.ofString());
+
+                if (response.statusCode() == 201 || response.statusCode() == 200) {
+                    log.info("Password reset SMS sent to {} via Twilio", toPhone);
+                } else {
+                    log.warn("Twilio returned {} — body: {}", response.statusCode(), response.body());
+                }
+                return;
+            } catch (Exception ex) {
+                log.warn("Failed to send SMS via Twilio to {} — token fallback: {}", toPhone, token, ex);
+                return;
+            }
+        }
+
+        log.info("SMS not configured — token for {}: {}", toPhone, token);
+    }
+
+    /**
+     * Send a WhatsApp message via Twilio. `toPhone` should be the E.164 number (e.g. +337...) or already
+     * prefixed with "whatsapp:". The configured `twilio.whatsapp-from` or `twilio.from-number` will be used
+     * as the sender and must be the Twilio WhatsApp-enabled sender (e.g. whatsapp:+1415...)
+     */
+    public void sendWhatsAppMessage(String toPhone, String message) {
+        if (toPhone == null || toPhone.isBlank()) {
+            log.info("WhatsApp message skipped: no phone provided");
+            return;
+        }
+
+        if (twilioAccountSid == null || twilioAccountSid.isBlank()
+                || twilioAuthToken == null || twilioAuthToken.isBlank()) {
+            log.warn("Twilio not configured — cannot send WhatsApp to {}", toPhone);
+            return;
+        }
+
+        String from = twilioWhatsappFrom != null && !twilioWhatsappFrom.isBlank()
+            ? twilioWhatsappFrom
+            : (twilioWhatsappNumber != null && !twilioWhatsappNumber.isBlank()
+                ? twilioWhatsappNumber
+                : twilioFromNumber);
+
+        if (from == null || from.isBlank()) {
+            log.warn("Twilio WhatsApp 'from' not configured — cannot send to {}", toPhone);
             return;
         }
 
         try {
-            String message = "Lien de réinitialisation: " + resetLink;
+            String to = toPhone.startsWith("whatsapp:") ? toPhone : "whatsapp:" + toPhone;
+            String fromPref = from.startsWith("whatsapp:") ? from : "whatsapp:" + from;
 
-            String body = "username=" + URLEncoder.encode(username, StandardCharsets.UTF_8)
-                    + "&to=" + URLEncoder.encode(toPhone, StandardCharsets.UTF_8)
-                    + "&message=" + URLEncoder.encode(message, StandardCharsets.UTF_8);
+            String body = "To=" + URLEncoder.encode(to, StandardCharsets.UTF_8)
+                    + "&From=" + URLEncoder.encode(fromPref, StandardCharsets.UTF_8)
+                    + "&Body=" + URLEncoder.encode(message, StandardCharsets.UTF_8);
 
-            if (senderId != null && !senderId.isBlank()) {
-                body += "&from=" + URLEncoder.encode(senderId, StandardCharsets.UTF_8);
-            }
+            String url = "https://api.twilio.com/2010-04-01/Accounts/" + twilioAccountSid + "/Messages.json";
+            String auth = twilioAccountSid + ":" + twilioAuthToken;
+            String basic = java.util.Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
 
-            // Use sandbox URL for testing
-            String url = "https://api.sandbox.africastalking.com/version1/messaging";
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .header("Accept", "application/json")
-                    .header("apiKey", apiKey)
+                    .header("Authorization", "Basic " + basic)
                     .header("Content-Type", "application/x-www-form-urlencoded")
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build();
@@ -61,14 +128,14 @@ public class SmsService {
             HttpResponse<String> response = HttpClient.newHttpClient()
                     .send(request, HttpResponse.BodyHandlers.ofString());
 
-            if (response.statusCode() == 201) {
-                log.info("Password reset SMS sent to {}", toPhone);
+            if (response.statusCode() == 201 || response.statusCode() == 200) {
+                log.info("WhatsApp message sent to {} via Twilio", toPhone);
             } else {
-                log.warn("Africa's Talking returned {} — body: {}", response.statusCode(), response.body());
+                log.warn("Twilio WhatsApp returned {} — body: {}", response.statusCode(), response.body());
             }
 
         } catch (Exception ex) {
-            log.warn("Failed to send SMS to {} — token fallback: {}", toPhone, token, ex);
+            log.warn("Failed to send WhatsApp to {}", toPhone, ex);
         }
     }
 }

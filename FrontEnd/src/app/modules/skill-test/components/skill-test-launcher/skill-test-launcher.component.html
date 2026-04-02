@@ -1,0 +1,99 @@
+<div class="launcher-wrap">
+  <div class="launcher-header">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+    <div>
+      <h1>Test Technique Adaptatif</h1>
+      <p class="sub">Basé sur vos compétences techniques analysées depuis votre profil.</p>
+    </div>
+  </div>
+
+  <!-- Loading skills -->
+  @if (loadingSkills) {
+  <div class="state-box">
+    <div class="spinner"></div>
+    <p>Chargement de vos compétences techniques…</p>
+  </div>
+  }
+
+  <!-- Error loading skills -->
+  @if (!loadingSkills && skillsError) {
+  <div class="state-box error-box">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <p>Impossible de charger vos compétences. Vérifiez votre connexion.</p>
+  </div>
+  }
+
+  <!-- No tech skills found -->
+  @if (!loadingSkills && !skillsError && techSkills.length === 0) {
+  <div class="state-box empty-box">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+      <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+    </svg>
+    <p>Aucune compétence technique trouvée dans votre profil.</p>
+    <a routerLink="/skills/github" class="btn-link">→ Analyser mon profil GitHub pour détecter mes compétences</a>
+  </div>
+  }
+
+  <!-- Skills loaded — show test config -->
+  @if (!loadingSkills && !skillsError && techSkills.length > 0) {
+
+  <!-- Skills chips -->
+  <div class="skills-section">
+    <label class="section-label">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      Vos compétences techniques ({{ techSkills.length }})
+    </label>
+    <div class="skills-grid">
+      @for (skill of techSkills; track skill.id) {
+      <div class="skill-chip">
+        <span class="chip-name">{{ skill.nom }}</span>
+        <span class="chip-dots">
+          @for (dot of getLevelDots(5); track dot) {
+          <span class="dot" [class.filled]="dot <= skill.niveau"></span>
+          }
+        </span>
+      </div>
+      }
+    </div>
+  </div>
+
+  <!-- Level selector -->
+  <div class="level-section">
+    <label class="section-label">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
+      </svg>
+      Niveau de difficulté (auto-détecté)
+    </label>
+    <div class="level-buttons">
+      @for (lv of ['BEGINNER','INTERMEDIATE','ADVANCED','EXPERT']; track lv) {
+      <button type="button" class="level-btn" [class.active]="level === lv" (click)="level = lv">
+        {{ levelLabels[lv] }}
+      </button>
+      }
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button type="button" class="btn primary" [disabled]="loading" (click)="start()">
+      @if (loading) {
+      <span class="btn-spinner"></span> Génération en cours…
+      } @else {
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polygon points="5 3 19 12 5 21 5 3"/>
+      </svg>
+      Lancer le QCM adaptatif
+      }
+    </button>
+      <p class="flow-note">Le code challenge est maintenant integre automatiquement dans le test principal. Le nombre de questions est aleatoire a chaque tentative.</p>
+  </div>
+
+  }
+</div>

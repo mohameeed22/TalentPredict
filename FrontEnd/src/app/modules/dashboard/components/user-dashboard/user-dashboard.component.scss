@@ -115,6 +115,11 @@
     border-color: var(--primary, #6366f1);
     color: var(--primary, #6366f1);
   }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }
 
 /* ===== Profile Card ===== */
@@ -300,6 +305,58 @@
   padding: 1.5rem;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   border: 1px solid var(--border, #e2e8f0);
+}
+
+.skill-tests-card {
+  margin-top: 1.5rem;
+}
+
+.skill-tests-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.8rem;
+
+  p {
+    margin: 0;
+    color: var(--text-secondary, #64748b);
+    font-size: 0.88rem;
+  }
+
+  strong {
+    color: var(--text-primary, #0f172a);
+  }
+}
+
+.test-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.test-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  border-bottom: 1px solid var(--border, #f1f5f9);
+  padding: 0.65rem 0;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  strong {
+    color: var(--text-primary, #0f172a);
+    font-size: 0.98rem;
+  }
+
+  p {
+    margin: 0.15rem 0 0;
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.8rem;
+  }
 }
 
 .detail-header {

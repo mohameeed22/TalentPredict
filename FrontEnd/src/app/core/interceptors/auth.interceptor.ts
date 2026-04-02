@@ -26,22 +26,33 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     req = req.clone({ ...withCreds });
   }
 
+  // These endpoints must NEVER trigger the 401 retry/refresh logic
+  // to avoid infinite loops
+  const isAuthEndpoint =
+    req.url.includes('/api/auth/login') ||
+    req.url.includes('/api/auth/register') ||
+    req.url.includes('/api/auth/refresh-token') ||
+    req.url.includes('/api/auth/logout') ||
+    req.url.includes('/api/auth/forgot-password') ||
+    req.url.includes('/api/auth/reset-password') ||
+    req.url.includes('/api/public/');
+  const isDirectAiEndpoint =
+    req.url.includes('/analyze-candidate') ||
+    req.url.includes('localhost:8000');
+  const isCandidateReportEndpoint =
+    req.url.includes('/api/candidates/') &&
+    (req.url.includes('/generate-report') || req.url.includes('/progress'));
+
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Skip global handling only for public auth endpoints.
-      const isPublicAuthRequest =
-        req.url.includes('/api/auth/login') ||
-        req.url.includes('/api/auth/register') ||
-        req.url.includes('/api/auth/forgot-password') ||
-        req.url.includes('/api/auth/reset-password');
-
-      if (isPublicAuthRequest) {
+      // Skip global handling for auth/public endpoints
+      if (isAuthEndpoint) {
         return throwError(() => error);
       }
 
       switch (error.status) {
         case 401:
-          // Token is expired or invalid — attempt to refresh
+          // Token is expired — attempt a single refresh
           if (authService.getToken() && !authService.isRefreshInProgress()) {
             return authService.refreshAccessToken().pipe(
               switchMap(response => {
@@ -54,32 +65,19 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
                 return next(newReq);
               }),
               catchError(refreshError => {
-                // Refresh failed — force logout
-                authService.logout().subscribe(
-                  () => {
-                    notificationService.error('Session expirée. Veuillez vous reconnecter.');
-                    router.navigateByUrl('/auth/login').then(() => appRef.tick());
-                  },
-                  () => {
-                    notificationService.error('Session expirée. Veuillez vous reconnecter.');
-                    router.navigateByUrl('/auth/login').then(() => appRef.tick());
-                  }
-                );
+                // Refresh failed — clear session locally and redirect
+                // Do NOT call logout() here (would loop through interceptor)
+                authService.clearSession();
+                notificationService.error('Session expirée. Veuillez vous reconnecter.');
+                router.navigateByUrl('/auth/login').then(() => appRef.tick());
                 return throwError(() => refreshError);
               })
             );
           } else {
-            // Already refreshing or no token — proceed with error
-            authService.logout().subscribe(
-              () => {
-                notificationService.error('Session expirée. Veuillez vous reconnecter.');
-                router.navigateByUrl('/auth/login').then(() => appRef.tick());
-              },
-              () => {
-                notificationService.error('Session expirée. Veuillez vous reconnecter.');
-                router.navigateByUrl('/auth/login').then(() => appRef.tick());
-              }
-            );
+            // No token or refresh already in progress — clear and redirect
+            authService.clearSession();
+            notificationService.error('Session expirée. Veuillez vous reconnecter.');
+            router.navigateByUrl('/auth/login').then(() => appRef.tick());
             return throwError(() => error);
           }
 
@@ -89,17 +87,22 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           break;
 
         case 404:
-          notificationService.error('Ressource introuvable.');
+          // Don't show global error for 404 — let components handle it
           break;
 
         case 0:
-          notificationService.error('Impossible de contacter le serveur. Vérifiez votre connexion.');
+          // Let feature-level handlers manage direct AI service outages.
+          if (!isDirectAiEndpoint) {
+            notificationService.error('Impossible de contacter le serveur. Vérifiez votre connexion.');
+          }
           break;
 
         case 500:
         case 502:
         case 503:
-          notificationService.error('Erreur serveur. Veuillez réessayer plus tard.');
+          if (!isCandidateReportEndpoint) {
+            notificationService.error('Erreur serveur. Veuillez réessayer plus tard.');
+          }
           break;
       }
 

@@ -871,4 +871,81 @@
       justify-content: flex-end;
     }
   }
+
+  .take-test-cta {
+    flex-direction: column;
+    text-align: center;
+    .cta-btn { width: 100%; justify-content: center; }
+  }
+}
+
+/* ===== Take Tech Test CTA ===== */
+.take-test-cta {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem 2rem;
+  margin-top: 1.5rem;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+  animation: fadeInUp 0.5s ease;
+
+  .cta-icon {
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    backdrop-filter: blur(8px);
+  }
+
+  .cta-body {
+    flex: 1;
+    h3 {
+      font-size: 1.0625rem;
+      font-weight: 800;
+      color: white;
+      margin: 0 0 0.25rem;
+    }
+    p {
+      font-size: 0.8125rem;
+      color: rgba(255, 255, 255, 0.8);
+      margin: 0;
+      line-height: 1.4;
+    }
+  }
+
+  .cta-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    padding: 0.75rem 1.5rem;
+    background: white;
+    color: #6366f1;
+    border: none;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    &:active { transform: translateY(0); }
+  }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }

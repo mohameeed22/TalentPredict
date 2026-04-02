@@ -249,11 +249,22 @@ export class AuthService {
     return user?.role === Role.ADMIN || user?.role === ('ADMIN' as any);
   }
 
+  isRecruiter(): boolean {
+    const user = this.getCurrentUser();
+    return user?.role === Role.RECRUITER || user?.role === ('RECRUITER' as any);
+  }
+
   /**
    * TASK 1: Get the redirect URL based on role.
    */
   getRedirectUrl(): string {
-    return this.isAdmin() ? '/admin/dashboard' : '/dashboard';
+    if (this.isAdmin()) {
+      return '/admin/dashboard';
+    }
+    if (this.isRecruiter()) {
+      return '/recruiter/candidates';
+    }
+    return '/dashboard';
   }
 
   private setSession(authResponse: AuthResponse): void {

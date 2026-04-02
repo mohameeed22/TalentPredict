@@ -1,0 +1,11 @@
+<h1>Questions d'entretien</h1>
+<label>Faiblesses (virgules)</label>
+<input [(ngModel)]="weak" class="inp" />
+<label>Forces</label>
+<input [(ngModel)]="strong" class="inp" />
+<label>Intitulé du poste</label>
+<input [(ngModel)]="jobTitle" class="inp" />
+<button type="button" (click)="generate()" [disabled]="loading">{{ loading ? '…' : 'Générer' }}</button>
+<ol *ngIf="questions.length">
+  <li *ngFor="let q of questions">{{ q }}</li>
+</ol>

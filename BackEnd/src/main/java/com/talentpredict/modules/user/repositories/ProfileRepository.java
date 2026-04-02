@@ -1,5 +1,6 @@
 package com.talentpredict.modules.user.repositories;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,4 +19,8 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID> {
     /** Find profile by the associated user's id (user_id column). */
     @Query("SELECT p FROM Profile p WHERE p.user.id = :userId")
     Optional<Profile> findByUser_Id(@Param("userId") UUID userId);
+
+    Optional<Profile> findByPublicSlug(String publicSlug);
+
+    List<Profile> findByFraudRiskIn(List<String> risks);
 }

@@ -19,7 +19,7 @@ export const roleGuard = (allowedRoles: string[]): CanActivateFn => {
       return true;
     }
 
-    notificationService.warning('Accès réservé aux administrateurs.');
-    return router.createUrlTree(['/dashboard']);
+    notificationService.warning('Accès réservé.');
+    return router.createUrlTree([authService.getRedirectUrl()]);
   };
 };

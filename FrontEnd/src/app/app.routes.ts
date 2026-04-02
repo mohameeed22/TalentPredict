@@ -162,6 +162,78 @@ export const routes: Routes = [
         .then(m => m.JiraTicketsComponent)
   },
 
+  // ── Skill tests (MCQ / code) ───────────────────────────────────
+  {
+    path: 'skill-test',
+    canActivate: [authGuard],
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./modules/skill-test/components/skill-test-launcher/skill-test-launcher.component').then(
+            m => m.SkillTestLauncherComponent
+          )
+      },
+      {
+        path: 'quiz',
+        loadComponent: () =>
+          import('./modules/skill-test/components/skill-test-quiz/skill-test-quiz.component').then(
+            m => m.SkillTestQuizComponent
+          )
+      },
+      {
+        path: 'progress',
+        loadComponent: () =>
+          import('./modules/skill-test/components/skill-progress/skill-progress.component').then(
+            m => m.SkillProgressComponent
+          )
+      }
+    ]
+  },
+
+  // ── Recruiter dashboard ────────────────────────────────────────
+  {
+    path: 'recruiter',
+    canActivate: [authGuard, roleGuard(['RECRUITER', 'ADMIN'])],
+    loadComponent: () =>
+      import('./modules/recruiter/components/recruiter-shell/recruiter-shell.component').then(
+        m => m.RecruiterShellComponent
+      ),
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'candidates' },
+      {
+        path: 'candidates',
+        loadComponent: () =>
+          import(
+            './modules/recruiter/components/recruiter-candidate-list/recruiter-candidate-list.component'
+          ).then(m => m.RecruiterCandidateListComponent)
+      },
+      {
+        path: 'fraud',
+        loadComponent: () =>
+          import('./modules/recruiter/components/recruiter-fraud-alerts/recruiter-fraud-alerts.component').then(
+            m => m.RecruiterFraudAlertsComponent
+          )
+      },
+      {
+        path: 'interview',
+        loadComponent: () =>
+          import('./modules/recruiter/components/recruiter-interview/recruiter-interview.component').then(
+            m => m.RecruiterInterviewComponent
+          )
+      }
+    ]
+  },
+
+  // ── Public profile by slug (no auth) ───────────────────────────
+  {
+    path: 'p/:slug',
+    loadComponent: () =>
+      import('./modules/public-profile/components/public-profile-view/public-profile-view.component').then(
+        m => m.PublicProfileViewComponent
+      )
+  },
+
   // ── FALLBACK ───────────────────────────────────────────────────
   { path: '**', redirectTo: '/' }
 ];

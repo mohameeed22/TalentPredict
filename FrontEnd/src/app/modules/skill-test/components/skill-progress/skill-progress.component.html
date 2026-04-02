@@ -1,0 +1,132 @@
+<div class="progress-page">
+  <header class="hero-card">
+    <div class="hero-copy">
+      <p class="eyebrow">Skill Intelligence</p>
+      <h1>Progression & benchmark</h1>
+      <p>
+        Analyse continue de vos sessions techniques avec un benchmark visuel par competence.
+      </p>
+    </div>
+
+    <div class="hero-actions">
+      <button type="button" (click)="exportPdf()" [disabled]="exportingPdf">
+        {{ exportingPdf ? 'Export PDF...' : 'Exporter mon rapport PDF' }}
+      </button>
+      <a routerLink="/skill-test" class="hero-link">Nouveau skill test</a>
+    </div>
+  </header>
+
+  <section class="metrics-grid">
+    <article class="metric-card">
+      <span>Sessions total</span>
+      <strong>{{ progress.length }}</strong>
+    </article>
+    <article class="metric-card">
+      <span>Score moyen</span>
+      <strong>{{ averageScore }}%</strong>
+    </article>
+    <article class="metric-card">
+      <span>Taux de validation</span>
+      <strong>{{ passRate }}%</strong>
+    </article>
+    <article class="metric-card accent">
+      <span>Percentile global</span>
+      <strong>{{ overallPercentile }}e</strong>
+      <small *ngIf="overallPercentile > 0">{{ percentileLabel(overallPercentile) }}</small>
+    </article>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Sessions de test</h2>
+        <p>Historique complet de vos evaluations recentes.</p>
+      </div>
+      <a routerLink="/dashboard" class="text-link">Retour dashboard</a>
+    </div>
+
+    <div class="state-box" *ngIf="loadingProgress">Chargement des sessions...</div>
+    <div class="state-box error" *ngIf="!loadingProgress && progressError">{{ progressError }}</div>
+
+    <ul class="session-list" *ngIf="!loadingProgress && !progressError && progress.length > 0">
+      <li class="session-item" *ngFor="let p of progress; trackBy: trackByTakenAt">
+        <div class="session-main">
+          <span class="score-pill">{{ p.overall_score }}%</span>
+          <div class="session-meta">
+            <h3>{{ p.taken_at | date:'dd/MM/yyyy HH:mm' }}</h3>
+            <p>{{ formatTestType(p.test_type) }}</p>
+          </div>
+        </div>
+
+        <div class="session-right">
+          <span class="status-pill" [class.pass]="p.passed" [class.fail]="!p.passed">
+            {{ p.passed ? 'Valide' : 'A renforcer' }}
+          </span>
+
+          <div class="skill-chips" *ngIf="skillEntries(p).length > 0">
+            <span *ngFor="let entry of skillEntries(p)">
+              {{ entry.skill }} {{ entry.score }}%
+            </span>
+          </div>
+        </div>
+      </li>
+    </ul>
+
+    <div class="state-box" *ngIf="!loadingProgress && !progressError && progress.length === 0">
+      Aucune session de test n'est disponible pour le moment.
+    </div>
+  </section>
+
+  <section class="panel benchmark-panel">
+    <div class="panel-head">
+      <div>
+        <h2>Benchmark detaille</h2>
+        <p>Comparaison entre votre score, la moyenne et le niveau top 10%.</p>
+      </div>
+      <span class="overall-tag" *ngIf="overallPercentile > 0">Percentile {{ overallPercentile }}e</span>
+    </div>
+
+    <div class="state-box" *ngIf="loadingBenchmark">Chargement du benchmark...</div>
+    <div class="state-box error" *ngIf="!loadingBenchmark && benchmarkError">{{ benchmarkError }}</div>
+
+    <div class="benchmark-list" *ngIf="!loadingBenchmark && !benchmarkError && benchmarkRows.length > 0">
+      <article class="benchmark-item" *ngFor="let row of benchmarkRows; trackBy: trackBySkill">
+        <header>
+          <div>
+            <h3>{{ row.skill }}</h3>
+            <p>{{ percentileLabel(row.percentile) }} ({{ row.percentile }}e percentile)</p>
+          </div>
+          <strong>{{ row.candidate_score }}</strong>
+        </header>
+
+        <div class="metric-line">
+          <span>Votre score</span>
+          <div class="line-track">
+            <div class="line-fill candidate" [style.width.%]="benchmarkRatio(row.candidate_score, row.top_10_percent_score)"></div>
+          </div>
+          <em>{{ row.candidate_score }}</em>
+        </div>
+
+        <div class="metric-line">
+          <span>Moyenne</span>
+          <div class="line-track">
+            <div class="line-fill average" [style.width.%]="benchmarkRatio(row.avg_score, row.top_10_percent_score)"></div>
+          </div>
+          <em>{{ row.avg_score }}</em>
+        </div>
+
+        <div class="metric-line">
+          <span>Top 10%</span>
+          <div class="line-track">
+            <div class="line-fill top" [style.width.%]="benchmarkRatio(row.top_10_percent_score, row.top_10_percent_score)"></div>
+          </div>
+          <em>{{ row.top_10_percent_score }}</em>
+        </div>
+      </article>
+    </div>
+
+    <div class="state-box" *ngIf="!loadingBenchmark && !benchmarkError && benchmarkRows.length === 0">
+      Aucun benchmark n'a ete retourne pour le moment.
+    </div>
+  </section>
+</div>

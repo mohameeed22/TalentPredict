@@ -5,12 +5,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -99,6 +101,24 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
     }
 
+        @ExceptionHandler(ResponseStatusException.class)
+        public ResponseEntity<ErrorResponse> handleResponseStatusException(
+                        ResponseStatusException ex, HttpServletRequest request) {
+                HttpStatusCode statusCode = ex.getStatusCode();
+                HttpStatus resolved = HttpStatus.resolve(statusCode.value());
+                String reasonPhrase = resolved != null ? resolved.getReasonPhrase() : "Error";
+                String message = ex.getReason() != null ? ex.getReason() : reasonPhrase;
+
+                ErrorResponse error = new ErrorResponse(
+                                LocalDateTime.now(),
+                                statusCode.value(),
+                                reasonPhrase,
+                                message,
+                                request.getRequestURI());
+
+                return ResponseEntity.status(statusCode).body(error);
+        }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(
             RuntimeException ex, HttpServletRequest request) {
@@ -122,7 +142,6 @@ public class GlobalExceptionHandler {
                 ex.getMessage() != null ? ex.getMessage() : "Something went wrong",
                 request.getRequestURI());
         log.error("Unhandled exception occurred: ", ex);
-        ex.printStackTrace(); // Print full stack trace for debugging
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
