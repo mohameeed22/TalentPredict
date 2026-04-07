@@ -1,13 +1,12 @@
 package com.talentpredict.modules.auth.services;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.talentpredict.modules.user.entities.User;
-import com.talentpredict.modules.user.repositories.UserRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Objects;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -15,12 +14,20 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.UUID;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.talentpredict.modules.user.entities.User;
+import com.talentpredict.modules.user.repositories.UserRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("null")
 public class SocialAuthService {
+
+    private static final HttpMethod HTTP_GET = Objects.requireNonNull(HttpMethod.GET);
 
     private final UserRepository userRepository;
     private final RestTemplate restTemplate = new RestTemplate();
@@ -61,14 +68,15 @@ public class SocialAuthService {
         if (body == null || body.accessToken == null) {
             throw new IllegalArgumentException("Impossible de récupérer le token Google");
         }
+        String googleAccessToken = Objects.requireNonNull(body.accessToken, "Google access token must not be null");
 
         HttpHeaders authHeaders = new HttpHeaders();
-        authHeaders.setBearerAuth(body.accessToken);
+        authHeaders.setBearerAuth(googleAccessToken);
         authHeaders.setAccept(MediaType.parseMediaTypes(MediaType.APPLICATION_JSON_VALUE));
 
         ResponseEntity<GoogleUserInfo> infoResp = restTemplate.exchange(
             "https://www.googleapis.com/oauth2/v3/userinfo",
-            org.springframework.http.HttpMethod.GET,
+            HTTP_GET,
             new HttpEntity<>(authHeaders),
             GoogleUserInfo.class);
 
@@ -101,14 +109,15 @@ public class SocialAuthService {
         if (body == null || body.accessToken == null) {
             throw new IllegalArgumentException("Impossible de récupérer le token GitHub");
         }
+        String githubAccessToken = Objects.requireNonNull(body.accessToken, "GitHub access token must not be null");
 
         HttpHeaders authHeaders = new HttpHeaders();
-        authHeaders.setBearerAuth(body.accessToken);
+        authHeaders.setBearerAuth(githubAccessToken);
         authHeaders.setAccept(MediaType.parseMediaTypes(MediaType.APPLICATION_JSON_VALUE));
 
         ResponseEntity<GithubUserInfo> infoResp = restTemplate.exchange(
             "https://api.github.com/user",
-            org.springframework.http.HttpMethod.GET,
+            HTTP_GET,
             new HttpEntity<>(authHeaders),
             GithubUserInfo.class);
 
@@ -118,7 +127,7 @@ public class SocialAuthService {
                 authHeaders.set("Accept", "application/vnd.github+json");
                 ResponseEntity<GithubEmailInfo[]> emailsResp = restTemplate.exchange(
                     "https://api.github.com/user/emails",
-                    org.springframework.http.HttpMethod.GET,
+                    HTTP_GET,
                     new HttpEntity<>(authHeaders),
                     GithubEmailInfo[].class);
             GithubEmailInfo[] emails = emailsResp.getBody();

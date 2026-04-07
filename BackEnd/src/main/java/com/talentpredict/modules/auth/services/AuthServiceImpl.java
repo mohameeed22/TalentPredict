@@ -1,18 +1,11 @@
 package com.talentpredict.modules.auth.services;
 
-import com.talentpredict.modules.user.entities.User;
-import com.talentpredict.modules.user.repositories.UserRepository;
-import com.talentpredict.modules.auth.dto.AuthDto;
-import com.talentpredict.modules.auth.entities.PasswordResetToken;
-import com.talentpredict.modules.auth.entities.RefreshToken;
-import com.talentpredict.modules.auth.repositories.PasswordResetTokenRepository;
-import com.talentpredict.modules.auth.repositories.RefreshTokenRepository;
-import com.talentpredict.shared.exception.ConflictException;
-import com.talentpredict.shared.exception.ResourceNotFoundException;
-import com.talentpredict.shared.security.JwtService;
-import com.talentpredict.shared.sms.SmsService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
@@ -21,11 +14,20 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import com.talentpredict.modules.auth.dto.AuthDto;
+import com.talentpredict.modules.auth.entities.PasswordResetToken;
+import com.talentpredict.modules.auth.entities.RefreshToken;
+import com.talentpredict.modules.auth.repositories.PasswordResetTokenRepository;
+import com.talentpredict.modules.auth.repositories.RefreshTokenRepository;
+import com.talentpredict.modules.user.entities.User;
+import com.talentpredict.modules.user.repositories.UserRepository;
+import com.talentpredict.shared.exception.ConflictException;
+import com.talentpredict.shared.exception.ResourceNotFoundException;
+import com.talentpredict.shared.security.JwtService;
+import com.talentpredict.shared.sms.SmsService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -36,7 +38,6 @@ public class AuthServiceImpl implements IAuthService {
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final TokenBlocklistService tokenBlocklistService;
     private final AuditLogService auditLogService;
     private final JwtService jwtService;
     private final SmsService smsService;
@@ -137,7 +138,7 @@ public class AuthServiceImpl implements IAuthService {
             .deviceId(deviceId)
             .build();
 
-        refreshTokenRepository.save(refreshToken);
+        refreshTokenRepository.save(Objects.requireNonNull(refreshToken, "refreshToken must not be null"));
         log.info("Refresh token generated for user: {}", user.getEmail());
         return token;
     }
@@ -162,7 +163,7 @@ public class AuthServiceImpl implements IAuthService {
 
         // Generate new access token and new refresh token
         String newAccessToken = jwtService.generateAccessToken(user.getEmail());
-        String newRefreshToken = generateRefreshToken(user, rtToken.getDeviceId());
+        generateRefreshToken(user, rtToken.getDeviceId());
 
         log.info("Access token refreshed for user: {}", user.getEmail());
         return newAccessToken;

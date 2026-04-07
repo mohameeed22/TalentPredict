@@ -15,7 +15,10 @@ class AnalysisCache(Base):
     __tablename__ = "analysis_cache"
 
     github_username = Column(String(255), primary_key=True, nullable=False)
-    result_json = Column(Text, nullable=False)
+    portfolio_url = Column(String(500), nullable=True)
+    linkedin_username = Column(String(255), nullable=True)
+    summary = Column(Text, nullable=True)
+    result = Column(Text, nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(
         DateTime,

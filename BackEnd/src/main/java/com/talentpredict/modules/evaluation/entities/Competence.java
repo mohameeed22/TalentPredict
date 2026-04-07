@@ -36,21 +36,25 @@ public class Competence {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "niveau", nullable = false, length = 30)
+    @Builder.Default
     private Niveau niveau = Niveau.DEBUTANT;
 
     @Column(name = "date_evaluation")
     private LocalDateTime dateEvaluation;
 
     @Column(name = "date_creation")
+    @Builder.Default
     private LocalDateTime dateCreation = LocalDateTime.now();
 
     @Column(name = "date_modification")
+    @Builder.Default
     private LocalDateTime dateModification = LocalDateTime.now();
 
     // relationships
     @OneToMany(mappedBy = "competence", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     @ToString.Exclude
+    @Builder.Default
     private List<CompetenceAccount> utilisateurs = new ArrayList<>();
 
     // enums

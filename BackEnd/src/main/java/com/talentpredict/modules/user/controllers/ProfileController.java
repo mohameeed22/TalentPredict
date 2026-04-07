@@ -1,6 +1,7 @@
 package com.talentpredict.modules.user.controllers;
 
 import java.util.ArrayList;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -111,7 +112,7 @@ public class ProfileController {
             ProfileDto.Response updated = profileService.updateProfileByAccountId(id, req);
             log.info("Photo uploaded for account {}: {}", id, path);
             return ResponseEntity.ok(updated);
-        } catch (Exception e) {
+        } catch (IOException | RuntimeException e) {
             log.error("Photo upload failed for account {}: {}", id, e.getMessage());
             return ResponseEntity.internalServerError().body(Map.of("message", "Erreur lors de l'upload: " + e.getMessage()));
         }
@@ -149,7 +150,7 @@ public class ProfileController {
             req.setCvUrl(appBaseUrl + cvPath);
             profileService.updateProfileByAccountId(id, req);
             log.info("CV stored for account {}: {}", id, cvPath);
-        } catch (Exception e) {
+        } catch (IOException | RuntimeException e) {
             log.warn("CV storage failed (continuing with analysis): {}", e.getMessage());
         }
 

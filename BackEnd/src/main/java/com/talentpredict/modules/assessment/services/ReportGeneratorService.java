@@ -5,6 +5,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.springframework.stereotype.Service;
 
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
@@ -12,13 +18,6 @@ import com.talentpredict.modules.assessment.entities.CandidateTestResult;
 import com.talentpredict.modules.skills.entities.Skill;
 import com.talentpredict.modules.user.entities.Profile;
 import com.talentpredict.modules.user.entities.User;
-
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.common.PDRectangle;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

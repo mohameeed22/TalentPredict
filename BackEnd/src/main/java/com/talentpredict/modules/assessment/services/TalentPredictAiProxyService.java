@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("null")
 public class TalentPredictAiProxyService {
 
     private final WebClient talentPredictAiWebClient;
@@ -43,7 +44,7 @@ public class TalentPredictAiProxyService {
         } catch (WebClientResponseException e) {
             log.warn("AI service error: {} {}", e.getStatusCode(), e.getResponseBodyAsString());
             throw new ResponseStatusException(e.getStatusCode(), e.getResponseBodyAsString(), e);
-        } catch (Exception e) {
+        } catch (java.io.IOException | RuntimeException e) {
             log.error("AI proxy failed: {}", e.getMessage());
             throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_GATEWAY,
                     "AI service unavailable", e);

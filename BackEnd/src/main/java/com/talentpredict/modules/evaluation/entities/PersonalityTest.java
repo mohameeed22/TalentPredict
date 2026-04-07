@@ -27,6 +27,7 @@ public class PersonalityTest {
 
     // infos
     @Column(name = "date_test", nullable = false)
+    @Builder.Default
     private LocalDateTime dateTest = LocalDateTime.now();
 
     @Column(name = "type_test", length = 50)
@@ -36,6 +37,7 @@ public class PersonalityTest {
     @CollectionTable(name = "test_reponses", joinColumns = @JoinColumn(name = "test_id"))
     @MapKeyColumn(name = "question_key")
     @Column(name = "reponse_value", columnDefinition = "TEXT")
+    @Builder.Default
     private Map<String, String> reponses = new HashMap<>();
 
     @Column(columnDefinition = "TEXT")

@@ -1,0 +1,409 @@
+<section class="exec-dashboard">
+
+  <!-- ── Ambient Background Glow ──────────────────────────────── -->
+  <div class="ambient-glow"></div>
+
+  <!-- ── Page Header ───────────────────────────────────────────── -->
+  <header class="exec-header">
+    <div class="header-left">
+      <div class="header-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Executive Dashboard</h1>
+        <p class="header-sub">
+          <span class="header-live-dot"></span>
+          {{ getFormattedDate() }} &nbsp;·&nbsp; {{ getFormattedTime() }}
+        </p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-glass btn-sm" (click)="refreshData()" [disabled]="loading()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+        </svg>
+        {{ loading() ? 'Refreshing...' : 'Refresh' }}
+      </button>
+      <a routerLink="/admin/reports" class="btn btn-ghost btn-sm">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
+        </svg>
+        Reports
+      </a>
+      <a routerLink="/admin/campaigns" class="btn btn-primary btn-sm btn-glow">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+        Campaigns
+      </a>
+    </div>
+  </header>
+
+  @if (loadError()) {
+  <div class="dashboard-error">
+    {{ loadError() }}
+  </div>
+  }
+
+  <!-- ── Quick Metrics Ribbon ─────────────────────────────────── -->
+  <div class="metrics-ribbon">
+    <div class="ribbon-item">
+      <span class="ribbon-label">Active Profiles</span>
+      <span class="ribbon-value">{{ todayPipeline }}</span>
+    </div>
+    <div class="ribbon-divider"></div>
+    <div class="ribbon-item">
+      <span class="ribbon-label">Assessment Coverage</span>
+      <span class="ribbon-value ribbon-highlight">{{ avgResponseTime }}</span>
+    </div>
+    <div class="ribbon-divider"></div>
+    <div class="ribbon-item">
+      <span class="ribbon-label">Pending Assessments</span>
+      <span class="ribbon-value">{{ testsRunning }}</span>
+    </div>
+    <div class="ribbon-divider"></div>
+    <div class="ribbon-item">
+      <span class="ribbon-label">Predictions Generated</span>
+      <span class="ribbon-value">{{ aiCallsToday }}</span>
+    </div>
+    <div class="ribbon-divider"></div>
+    <div class="ribbon-item">
+      <span class="ribbon-label">Platform Health</span>
+      <span class="ribbon-value ribbon-green">● Operational</span>
+    </div>
+  </div>
+
+  <!-- ── KPI Cards ─────────────────────────────────────────────── -->
+  <div class="kpi-grid">
+    @for (kpi of kpis(); track kpi.label; let i = $index) {
+    <div class="kpi-card kpi-{{ kpi.color }}" [style.animation-delay]="i * 0.05 + 's'">
+      <div class="kpi-shimmer"></div>
+      <div class="kpi-top">
+        <div class="kpi-icon-box">
+          @if (kpi.icon === 'briefcase') {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+          }
+          @if (kpi.icon === 'users') {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          }
+          @if (kpi.icon === 'target') {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          }
+          @if (kpi.icon === 'check-circle') {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          }
+          @if (kpi.icon === 'shield') {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7.5 4.5v6c0 5-3.5 7.5-7.5 8.5-4-1-7.5-3.5-7.5-8.5v-6L12 3z"/></svg>
+          }
+          @if (kpi.icon === 'activity') {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          }
+        </div>
+        <div class="kpi-trend" [class.trend-up]="kpi.trend === 'up'" [class.trend-down]="kpi.trend === 'down'" [class.trend-neutral]="kpi.trend === 'neutral'">
+          @if (kpi.trend === 'up') { <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg> }
+          @if (kpi.trend === 'down') { <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg> }
+          <span>{{ kpi.trendValue }}</span>
+        </div>
+      </div>
+      <div class="kpi-value">{{ kpi.value }}</div>
+      <div class="kpi-label">{{ kpi.label }}</div>
+      <div class="kpi-sub">{{ kpi.subLabel }}</div>
+      <!-- Mini sparkline -->
+      <div class="kpi-sparkline">
+        <svg viewBox="0 0 80 24" preserveAspectRatio="none">
+          <defs>
+            <linearGradient [attr.id]="'spark-' + kpi.color" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="currentColor" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="currentColor" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path class="sparkline-area" [attr.d]="getSparklineArea(kpi.color)" [attr.fill]="'url(#spark-' + kpi.color + ')'"/>
+          <path class="sparkline-line" [attr.d]="getSparklinePath(kpi.color)" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+      </div>
+    </div>
+    }
+  </div>
+
+  <!-- ── Main Body ─────────────────────────────────────────────── -->
+  <div class="dashboard-body">
+
+    <!-- LEFT column: Funnel + Activity -->
+    <div class="col-wide">
+
+      <!-- Candidate Funnel -->
+      <div class="panel funnel-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <div class="panel-icon-wrap gradient-indigo">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            </div>
+            <div>
+              <h2>Workforce Pipeline</h2>
+              <span class="panel-subtitle">Derived from live employee records</span>
+            </div>
+          </div>
+          <span class="panel-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Live user context
+          </span>
+        </div>
+
+        <div class="funnel-chart">
+          @for (stage of funnelStages(); track stage.label; let i = $index) {
+          <div class="funnel-row" [style.animation-delay]="i * 0.08 + 's'">
+            <div class="funnel-meta">
+              <span class="funnel-stage-num">{{ i + 1 }}</span>
+              <div>
+                <span class="funnel-stage-label">{{ stage.label }}</span>
+                <span class="funnel-count">{{ stage.count | number }} candidates</span>
+              </div>
+            </div>
+            <div class="funnel-bar-wrap">
+              <div class="funnel-bar" [style.width.%]="stage.percent" [style.background]="stage.color">
+                <span class="funnel-bar-label">{{ stage.percent }}%</span>
+              </div>
+            </div>
+            @if (stage.dropOff > 0) {
+            <span class="funnel-drop">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              -{{ stage.dropOff }}%
+            </span>
+            } @else {
+            <span class="funnel-drop funnel-start">START</span>
+            }
+          </div>
+          }
+        </div>
+
+        <div class="funnel-summary">
+          <div class="funnel-stat">
+            <span class="fs-value">{{ funnelStages()[0].count | number }}</span>
+            <span class="fs-label">Total Profiles</span>
+          </div>
+          <div class="funnel-divider"></div>
+          <div class="funnel-stat">
+            <span class="fs-value fs-highlight">{{ activeProfiles }}</span>
+            <span class="fs-label">Active Profiles</span>
+          </div>
+          <div class="funnel-divider"></div>
+          <div class="funnel-stat">
+            <span class="fs-value fs-accent">{{ assessmentCoverage }}%</span>
+            <span class="fs-label">Assessment Coverage</span>
+          </div>
+          <div class="funnel-divider"></div>
+          <div class="funnel-stat">
+            <span class="fs-value">{{ readyProfiles }}</span>
+            <span class="fs-label">Ready Profiles</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="panel activity-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <div class="panel-icon-wrap gradient-emerald">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div>
+              <h2>Live Activity</h2>
+              <span class="panel-subtitle">Built from current user records</span>
+            </div>
+          </div>
+          <span class="live-dot"><span></span>Live Snapshot</span>
+        </div>
+
+        <div class="activity-list">
+          @for (item of recentActivity(); track item.text; let i = $index) {
+          <div class="activity-item" [style.animation-delay]="i * 0.06 + 's'">
+            <div class="activity-icon-wrap ai-{{ item.color }}">
+              @if (item.color === 'green') {
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              }
+              @if (item.color === 'red') {
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              }
+              @if (item.color === 'blue') {
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              }
+              @if (item.color === 'purple') {
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              }
+              @if (item.color === 'orange') {
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              }
+              @if (item.color === 'teal') {
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              }
+            </div>
+            <div class="activity-body">
+              <p class="activity-text">{{ item.text }}</p>
+              <p class="activity-sub">{{ item.subText }}</p>
+            </div>
+            <span class="activity-time">{{ item.time }}</span>
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT column: Fraud + AI Health -->
+    <div class="col-narrow">
+
+      <!-- Fraud Alerts -->
+      <div class="panel fraud-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <div class="panel-icon-wrap gradient-rose">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7.5 4.5v6c0 5-3.5 7.5-7.5 8.5-4-1-7.5-3.5-7.5-8.5v-6L12 3z"/></svg>
+            </div>
+            <div>
+              <h2>Fraud Alerts</h2>
+              <span class="panel-subtitle">From recruiter fraud endpoint</span>
+            </div>
+          </div>
+          @if (unresolvedAlerts() > 0) {
+          <span class="alert-badge pulse-badge">
+            <span class="alert-dot"></span>
+            {{ unresolvedAlerts() }} open
+          </span>
+          }
+        </div>
+
+        <div class="fraud-list">
+          @if (fraudAlerts().length === 0) {
+          <div class="fraud-empty">No high or medium fraud-risk profiles detected.</div>
+          }
+          @for (alert of fraudAlerts(); track alert.id; let i = $index) {
+          <div class="fraud-item" [class.resolved]="alert.resolved" [style.animation-delay]="i * 0.06 + 's'">
+            <div class="fraud-top">
+              <div class="fraud-left">
+                <span class="severity-tag" [class]="getSeverityClass(alert.severity)">
+                  @if (alert.severity === 'high') {
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                  }
+                  {{ alert.severity }}
+                </span>
+                <span class="fraud-name">{{ alert.candidateName }}</span>
+              </div>
+              <span class="fraud-time">{{ alert.time }}</span>
+            </div>
+            <p class="fraud-type">{{ alert.type }}</p>
+            <p class="fraud-detail">{{ alert.detail }}</p>
+            <div class="fraud-actions">
+              @if (!alert.resolved) {
+              <button class="btn-resolve" (click)="resolveAlert(alert.id)">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Mark Resolved
+              </button>
+              <button class="btn-investigate">Investigate</button>
+              } @else {
+              <span class="resolved-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Resolved
+              </span>
+              }
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+
+      <!-- AI Model Health -->
+      <div class="panel ai-health-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <div class="panel-icon-wrap gradient-violet">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M12 8v4l3 3"/>
+              </svg>
+            </div>
+            <div>
+              <h2>Data Health Snapshot</h2>
+              <span class="panel-subtitle">Live API and profile coverage</span>
+            </div>
+          </div>
+          <span class="health-status"
+                [class.status-healthy]="modelHealth().status === 'healthy'"
+                [class.status-degraded]="modelHealth().status === 'degraded'"
+                [class.status-down]="modelHealth().status === 'down'">
+            <span class="health-dot"></span>
+            {{ modelHealth().status | titlecase }}
+          </span>
+        </div>
+
+        <div class="health-grid">
+          <div class="health-item">
+            <span class="hi-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              Source
+            </span>
+            <span class="hi-value">{{ modelHealth().model }}</span>
+          </div>
+          <div class="health-item">
+            <span class="hi-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.24 12.24a6 6 0 00-8.49-8.49L5 10.5V19h8.5z"/></svg>
+              Endpoint
+            </span>
+            <span class="hi-value hi-version">{{ modelHealth().promptVersion }}</span>
+          </div>
+          <div class="health-item">
+            <span class="hi-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              Coverage
+            </span>
+            <span class="hi-value hi-green">{{ modelHealth().accuracy }}%</span>
+          </div>
+          <div class="health-item">
+            <span class="hi-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Active
+            </span>
+            <span class="hi-value">{{ modelHealth().avgLatency }}</span>
+          </div>
+          <div class="health-item">
+            <span class="hi-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              High Risk
+            </span>
+            <span class="hi-value hi-orange">{{ modelHealth().errorRate }}</span>
+          </div>
+          <div class="health-item">
+            <span class="hi-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Last Sync
+            </span>
+            <span class="hi-value">{{ modelHealth().lastDeployed }}</span>
+          </div>
+        </div>
+
+        <div class="accuracy-bar-wrap">
+          <div class="accuracy-bar-label">
+            <span>Assessment Coverage</span>
+            <strong>{{ modelHealth().accuracy }}%</strong>
+          </div>
+          <div class="accuracy-bar-bg">
+            <div class="accuracy-bar-fill" [style.width.%]="modelHealth().accuracy"></div>
+          </div>
+        </div>
+
+        <div class="model-actions">
+          <a routerLink="/admin/workforce" class="btn btn-secondary btn-sm">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Workforce Details
+          </a>
+          <button class="btn btn-ghost btn-sm" (click)="refreshData()" [disabled]="loading()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+            {{ loading() ? 'Refreshing...' : 'Refresh Data' }}
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</section>

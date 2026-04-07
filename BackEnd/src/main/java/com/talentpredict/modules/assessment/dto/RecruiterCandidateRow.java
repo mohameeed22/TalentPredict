@@ -9,5 +9,6 @@ public record RecruiterCandidateRow(
         String lastName,
         Integer realScore,
         String fraudRisk,
-        String publicSlug) {
+        String publicSlug,
+        String githubUsername) {
 }

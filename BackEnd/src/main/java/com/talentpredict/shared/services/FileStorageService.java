@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -29,7 +30,7 @@ public class FileStorageService {
      * Example: /uploads/photos/uuid.jpg
      */
     public String store(MultipartFile file, String subDir) throws IOException {
-        String original = file.getOriginalFilename() != null ? file.getOriginalFilename() : "file";
+        String original = Objects.requireNonNullElse(file.getOriginalFilename(), "file");
         String ext = original.contains(".")
                 ? original.substring(original.lastIndexOf('.'))
                 : "";

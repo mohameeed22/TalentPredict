@@ -26,15 +26,18 @@ public class CompetenceAccount {
 
     // infos
     @Column(name = "score")
+    @Builder.Default
     private Double score = 0.0;
 
     @Column(name = "date_evaluation")
     private LocalDateTime dateEvaluation;
 
     @Column(name = "date_creation")
+    @Builder.Default
     private LocalDateTime dateCreation = LocalDateTime.now();
 
     @Column(name = "date_modification")
+    @Builder.Default
     private LocalDateTime dateModification = LocalDateTime.now();
 
     // relationships

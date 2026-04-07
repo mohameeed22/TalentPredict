@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -27,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Service
 @Slf4j
+@SuppressWarnings("null")
 public class OpenRouterService {
 
     @Value("${openrouter.apikey:}")
@@ -40,6 +43,11 @@ public class OpenRouterService {
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private void backoff(int attempt) {
+        long delayMillis = 2000L * attempt;
+        LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(delayMillis));
+    }
 
     // ================================================================
     //  MÉTHODE CENTRALE : Envoyer un prompt à Claude via OpenRouter
@@ -79,7 +87,7 @@ public class OpenRouterService {
                         String errMsg = errorCheck.path("error").path("message").asText("");
                         log.warn("LLM returned error (attempt {}/{}): {}", attempt, maxRetries, errMsg);
                         if (attempt < maxRetries) {
-                            Thread.sleep(2000L * attempt);
+                            backoff(attempt);
                             continue;
                         }
                         return null;
@@ -97,10 +105,10 @@ public class OpenRouterService {
                 log.info("LLM a repondu ({} caracteres, attempt {})", content.length(), attempt);
                 return content;
 
-            } catch (Exception e) {
+            } catch (java.io.IOException | RuntimeException e) {
                 log.error("Erreur appel LLM (attempt {}/{}): {}", attempt, maxRetries, e.getMessage());
                 if (attempt < maxRetries) {
-                    try { Thread.sleep(2000L * attempt); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                    backoff(attempt);
                 }
             }
         }
@@ -283,7 +291,7 @@ public class OpenRouterService {
                     if (!skill.getNom().isBlank()) {
                         result.add(skill);
                     }
-                } catch (Exception e) {
+                } catch (RuntimeException e) {
                     log.warn(" Skill ignoré lors du parsing: {} - {}", node, e.getMessage());
                 }
             }
@@ -291,7 +299,7 @@ public class OpenRouterService {
             log.info("{} skills extraits depuis la réponse Claude", result.size());
             return result;
 
-        } catch (Exception e) {
+        } catch (java.io.IOException | RuntimeException e) {
             log.error("Erreur parsing JSON Claude: {} | JSON reçu: {}",
                 e.getMessage(),
                 json.substring(0, Math.min(300, json.length()))

@@ -2,6 +2,7 @@ package com.talentpredict.modules.dashboard.services;
 
 import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.modules.user.repositories.UserRepository;
+import com.talentpredict.modules.assessment.repositories.CandidateTestResultRepository;
 import com.talentpredict.modules.ai.dto.PredictionDto;
 import com.talentpredict.modules.ai.repositories.PredictionRepository;
 import com.talentpredict.modules.dashboard.dto.DashboardDto;
@@ -42,6 +43,7 @@ public class DashboardService {
     // Direct repos for admin overview aggregation
     private final UserRepository userRepository;
     private final PersonalityTestRepository personalityTestRepository;
+        private final CandidateTestResultRepository candidateTestResultRepository;
     private final FormationRepository formationRepository;
     private final PredictionRepository predictionRepository;
 
@@ -98,7 +100,10 @@ public class DashboardService {
         // Score moyen
         if (!tests.isEmpty()) {
             double scoreMoyen = tests.stream()
-                    .mapToInt(t -> t.getScore() != null ? t.getScore() : 0)
+                                        .mapToInt(t -> {
+                                                Integer score = t.getScore();
+                                                return score != null ? score : 0;
+                                        })
                     .average()
                     .orElse(0.0);
             dashboard.setScoreEvaluationMoyen(scoreMoyen);
@@ -134,12 +139,15 @@ public class DashboardService {
                 .sum();
         overview.setTotalFormationsEnCours((int) formationsEnCours);
 
-        // Total personality tests (completed)
-        long totalTests = personalityTestRepository.count();
+        // Total completed evaluations across both legacy and assessment pipelines.
+        long legacyTests = personalityTestRepository.count();
+        long assessmentTests = candidateTestResultRepository.count();
+        long totalTests = legacyTests + assessmentTests;
         overview.setTotalTestsCompleted((int) totalTests);
 
-        // Total predictions
-        long totalPredictions = predictionRepository.count();
+        // Prediction count can come from legacy predictions or the new assessment flow.
+        long legacyPredictions = predictionRepository.count();
+        long totalPredictions = Math.max(legacyPredictions, assessmentTests);
         overview.setTotalPredictions((int) totalPredictions);
 
         // Employee summary list
@@ -155,14 +163,20 @@ public class DashboardService {
                     dto.setActive(Boolean.TRUE.equals(emp.getIsActive()));
                     dto.setFormationCount((int) formationRepository
                             .countByUserId(emp.getId()));
-                    dto.setTestCount(personalityTestRepository
-                            .findByUserIdOrderByDateTestDesc(emp.getId()).size());
+                                        long legacyTestCount = personalityTestRepository.countByUserId(emp.getId());
+                                        long assessmentTestCount = candidateTestResultRepository.countByUser_Id(emp.getId());
+                                        dto.setTestCount((int) (legacyTestCount + assessmentTestCount));
                     return dto;
                 })
                 .collect(Collectors.toList());
         overview.setEmployees(employeeSummaries);
 
-        log.info("Admin overview: {} employees, {} formations en cours", employees.size(), formationsEnCours);
+                log.info(
+                                "Admin overview: {} employees, {} formations en cours, {} tests, {} predictions",
+                                employees.size(),
+                                formationsEnCours,
+                                totalTests,
+                                totalPredictions);
         return overview;
     }
 }

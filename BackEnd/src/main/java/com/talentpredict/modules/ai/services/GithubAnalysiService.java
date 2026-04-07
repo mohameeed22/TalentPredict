@@ -17,7 +17,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.talentpredict.modules.skills.dto.SkillDto;
 
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -27,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Service
 @Slf4j
+@SuppressWarnings("null")
 public class GithubAnalysiService {
 
     private final OpenRouterService openRouterService;
@@ -132,7 +132,7 @@ public class GithubAnalysiService {
             log.info(" GitHub profil: {} | repos={}, followers={}, location={}",
                 result.getName(), result.getPublicRepos(), result.getFollowers(), result.getLocation());
 
-        } catch (Exception e) {
+        } catch (java.io.IOException | RuntimeException e) {
             log.warn(" Impossible de récupérer le profil GitHub: {}", e.getMessage());
         }
     }
@@ -175,7 +175,7 @@ public class GithubAnalysiService {
 
             return langageCounts;
 
-        } catch (Exception e) {
+        } catch (java.io.IOException | RuntimeException e) {
             log.error(" Erreur appel API GitHub: {}", e.getMessage());
             return Map.of();
         }

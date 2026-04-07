@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import com.talentpredict.modules.ai.services.ProfileAnalysisOrchestrator;
 import com.talentpredict.modules.auth.dto.AuthDto;
 import com.talentpredict.modules.auth.services.AuthServiceImpl;
-import com.talentpredict.modules.auth.services.TokenBlocklistService;
 import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.shared.security.JwtService;
 
@@ -33,7 +32,6 @@ public class AuthController {
     private final ProfileAnalysisOrchestrator profileAnalysisOrchestrator;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-    private final TokenBlocklistService tokenBlocklistService;
 
     @Value("${security.cookie.secure:false}")
     private boolean refreshCookieSecure;
@@ -164,7 +162,7 @@ public class AuthController {
             response.addCookie(cookie);
 
             return ResponseEntity.ok(new AuthDto.RefreshResponse(newAccessToken, "Bearer"));
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }

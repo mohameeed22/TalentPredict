@@ -11,6 +11,7 @@ import com.talentpredict.modules.evaluation.repositories.CompetenceRepository;
 import com.talentpredict.shared.exception.ResourceNotFoundException;
 
 @Service
+@SuppressWarnings("null")
 public class CompetenceService {
     
     private final CompetenceRepository competenceRepository;

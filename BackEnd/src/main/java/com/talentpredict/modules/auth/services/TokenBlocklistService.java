@@ -1,15 +1,18 @@
 package com.talentpredict.modules.auth.services;
 
-import com.talentpredict.modules.auth.entities.TokenBlocklist;
-import com.talentpredict.modules.auth.repositories.TokenBlocklistRepository;
-import com.talentpredict.shared.security.JwtService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.Instant;
+import java.util.Objects;
+
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
+import com.talentpredict.modules.auth.entities.TokenBlocklist;
+import com.talentpredict.modules.auth.repositories.TokenBlocklistRepository;
+import com.talentpredict.shared.security.JwtService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +37,7 @@ public class TokenBlocklistService {
                 .expiresAt(expiresAt)
                 .build();
 
-            tokenBlocklistRepository.save(blocklist);
+            tokenBlocklistRepository.save(Objects.requireNonNull(blocklist, "blocklist must not be null"));
             log.info("Token blocked: reason={}", reason);
         } catch (Exception e) {
             log.error("Failed to block token", e);

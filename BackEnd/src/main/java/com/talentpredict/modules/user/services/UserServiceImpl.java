@@ -17,6 +17,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class UserServiceImpl implements IUserService {
 
     private final UserRepository userRepository;

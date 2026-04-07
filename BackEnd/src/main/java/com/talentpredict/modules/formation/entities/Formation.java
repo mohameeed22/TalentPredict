@@ -44,6 +44,7 @@ public class Formation {
     private String url;
 
     @Column(name = "date_proposition")
+    @Builder.Default
     private LocalDateTime dateProposition = LocalDateTime.now();
 
     @Column(name = "date_debut")
@@ -53,6 +54,7 @@ public class Formation {
     private LocalDateTime dateFin;
 
     @Column
+    @Builder.Default
     private Integer progression = 0; // 0-100
 
     @Enumerated(EnumType.STRING)
@@ -61,6 +63,7 @@ public class Formation {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
+    @Builder.Default
     private StatutFormation statut = StatutFormation.PROPOSEE;
 
     // relationships
@@ -79,6 +82,7 @@ public class Formation {
     @OneToMany(mappedBy = "formation", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     @ToString.Exclude
+    @Builder.Default
     private List<Ticket> tickets = new ArrayList<>();
 
     // enums

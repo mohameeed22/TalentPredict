@@ -51,7 +51,13 @@ class AgentMemory:
             async with AsyncSessionLocal() as session:
                 row = await session.get(AnalysisCache, username)
                 if row is not None:
-                    data = json.loads(row.result_json)
+                    raw_result = row.result
+                    if isinstance(raw_result, str):
+                        data = json.loads(raw_result)
+                    elif isinstance(raw_result, dict):
+                        data = raw_result
+                    else:
+                        data = {}
                     self._l1_set(username, data)
                     logger.debug("Cache L2 (DB) hit for %s", username)
                     return data
@@ -60,7 +66,14 @@ class AgentMemory:
 
         return None
 
-    async def set(self, username: str, data: dict[str, Any]) -> None:
+    async def set(
+        self,
+        username: str,
+        data: dict[str, Any],
+        portfolio_url: str | None = None,
+        linkedin_username: str | None = None,
+        summary: str | None = None,
+    ) -> None:
         """Persist *data* for *username* in both L1 and the DB."""
         self._l1_set(username, data)
 
@@ -68,10 +81,22 @@ class AgentMemory:
             async with AsyncSessionLocal() as session:
                 row = await session.get(AnalysisCache, username)
                 payload = json.dumps(data, default=str)
+                summary_text = summary or data.get("summary", "")
                 if row is None:
-                    session.add(AnalysisCache(github_username=username, result_json=payload))
+                    session.add(
+                        AnalysisCache(
+                            github_username=username,
+                            portfolio_url=portfolio_url,
+                            linkedin_username=linkedin_username,
+                            summary=summary_text,
+                            result=payload,
+                        )
+                    )
                 else:
-                    row.result_json = payload
+                    row.portfolio_url = portfolio_url
+                    row.linkedin_username = linkedin_username
+                    row.summary = summary_text
+                    row.result = payload
                 await session.commit()
             logger.debug("Cache L2 (DB) written for %s", username)
         except Exception as exc:

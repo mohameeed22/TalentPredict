@@ -29,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/jobs")
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class JobMatchController {
 
     private final TalentPredictAiProxyService aiProxyService;
@@ -54,7 +55,8 @@ public class JobMatchController {
                 .map(s -> {
                     Map<String, Object> m = new HashMap<>();
                     m.put("name", s.getNom());
-                    int n = s.getNiveau() != null ? s.getNiveau() : 1;
+                    Integer levelValue = s.getNiveau();
+                    int n = levelValue == null ? 1 : levelValue;
                     m.put("score", Math.min(100, n * 20));
                     m.put("niveau", n);
                     return m;

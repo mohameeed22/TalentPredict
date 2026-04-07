@@ -1,0 +1,441 @@
+<section class="campaign-manager">
+
+  <!-- ── Header ────────────────────────────────────────────────── -->
+  <header class="cm-header">
+    <div class="header-left">
+      <div class="header-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Communication Hub</h1>
+        <p class="header-sub">Live workforce messaging context powered by TalentPredict backend</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-glass" (click)="refreshLiveData()" [disabled]="loading()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        {{ loading() ? 'Syncing...' : 'Sync Live Data' }}
+      </button>
+
+      @if (activeTab() === 'campaigns') {
+      <button class="btn btn-primary" (click)="startNewCampaign()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Campaign
+      </button>
+      }
+      @if (activeTab() === 'templates') {
+      <button class="btn btn-primary" (click)="startNewTemplate()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Template
+      </button>
+      }
+    </div>
+  </header>
+
+  @if (loadError()) {
+  <div class="cm-alert cm-alert-error">{{ loadError() }}</div>
+  }
+
+  <div class="cm-live-note">
+    <span>Live context sync:</span>
+    <strong>{{ lastSync() }}</strong>
+  </div>
+
+  <!-- ── Tabs ───────────────────────────────────────────────────── -->
+  <div class="tab-bar">
+    <button class="tab-btn" [class.active]="activeTab() === 'templates'" (click)="setTab('templates')" id="tab-templates">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Templates
+      <span class="tab-count">{{ templates().length }}</span>
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'campaigns'" (click)="setTab('campaigns')" id="tab-campaigns">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      Campaigns
+      <span class="tab-count">{{ campaigns().length }}</span>
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'logs'" (click)="setTab('logs')" id="tab-logs">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      Delivery Log
+      <span class="tab-count">{{ deliveryLogs().length }}</span>
+    </button>
+  </div>
+
+  <div class="ops-strip">
+    <div class="ops-item">
+      <span class="ops-label">Total Campaigns</span>
+      <span class="ops-value">{{ campaigns().length }}</span>
+    </div>
+    <div class="ops-divider"></div>
+    <div class="ops-item">
+      <span class="ops-label">Recipients Reach</span>
+      <span class="ops-value">{{ totalRecipients() }}</span>
+    </div>
+    <div class="ops-divider"></div>
+    <div class="ops-item">
+      <span class="ops-label">Delivered</span>
+      <span class="ops-value ops-good">{{ totalSent() }}</span>
+    </div>
+    <div class="ops-divider"></div>
+    <div class="ops-item">
+      <span class="ops-label">Failed</span>
+      <span class="ops-value ops-bad">{{ totalFailed() }}</span>
+    </div>
+    <div class="ops-divider"></div>
+    <div class="ops-item">
+      <span class="ops-label">Scheduled</span>
+      <span class="ops-value">{{ scheduledCampaigns() }}</span>
+    </div>
+    <div class="ops-divider"></div>
+    <div class="ops-item">
+      <span class="ops-label">Delivery Rate</span>
+      <span class="ops-value ops-highlight">{{ deliveryRate() }}%</span>
+    </div>
+    <div class="ops-divider"></div>
+    <div class="ops-item">
+      <span class="ops-label">Last Sync</span>
+      <span class="ops-value">{{ lastSync() }}</span>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- TAB 1 — Templates                                           -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'templates') {
+  <div class="templates-layout">
+
+    <!-- Template List -->
+    <div class="template-list-col">
+      <div class="template-list">
+        @for (t of templates(); track t.id) {
+        <div class="template-card" [class.selected]="selectedTemplate()?.id === t.id" (click)="selectTemplate(t)">
+          <div class="tc-top">
+            <span class="channel-badge ch-{{ t.channel.toLowerCase() }}">{{ getChannelIcon(t.channel) }} {{ t.channel }}</span>
+            <button class="tc-delete" (click)="$event.stopPropagation(); deleteTemplate(t.id)" title="Delete">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            </button>
+          </div>
+          <p class="tc-name">{{ t.name }}</p>
+          <p class="tc-preview">{{ t.body | slice:0:80 }}...</p>
+          <div class="tc-footer">
+            <span class="tc-vars">{{ t.variables.length }} variables</span>
+            <span class="tc-date">{{ t.createdAt }}</span>
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+
+    <!-- Template Editor -->
+    <div class="template-editor-col">
+
+      <!-- Create New -->
+      @if (isCreatingTemplate()) {
+      <div class="editor-panel animate-fade-in">
+        <h3 class="editor-title">New Template</h3>
+        <div class="form-group">
+          <label class="form-label">Template Name *</label>
+          <input class="form-input" [(ngModel)]="newTemplate.name" placeholder="e.g. Test Invitation" id="tmpl-name"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Channel</label>
+          <select class="form-input" [(ngModel)]="newTemplate.channel" id="tmpl-channel">
+            <option value="SMS">📱 SMS</option>
+            <option value="EMAIL">📧 Email</option>
+            <option value="WHATSAPP">💬 WhatsApp</option>
+          </select>
+        </div>
+        @if (newTemplate.channel === 'EMAIL') {
+        <div class="form-group">
+          <label class="form-label">Subject Line</label>
+          <input class="form-input" [(ngModel)]="newTemplate.subject" [placeholder]="'Interview Confirmed - {{job_title}}'" id="tmpl-subject"/>
+        </div>
+        }
+        <div class="form-group">
+          <label class="form-label">Message Body * <span class="var-hint">Use {{ '{{variable_name}}' }} for placeholders</span></label>
+          <textarea class="form-input editor-textarea" [(ngModel)]="newTemplate.body" rows="8" [placeholder]="'Hi {{candidate_name}}, you are invited to...'" id="tmpl-body"></textarea>
+        </div>
+        <div class="editor-actions">
+          <button class="btn btn-primary" (click)="saveNewTemplate()">Save Template</button>
+          <button class="btn btn-ghost" (click)="isCreatingTemplate.set(false)">Cancel</button>
+        </div>
+      </div>
+      }
+
+      <!-- Edit Existing -->
+      @if (selectedTemplate() && !isCreatingTemplate()) {
+      <div class="editor-panel animate-fade-in">
+        <h3 class="editor-title">Edit Template</h3>
+        <div class="form-group">
+          <label class="form-label">Name</label>
+          <input class="form-input" [(ngModel)]="selectedTemplate()!.name" id="edit-tmpl-name"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Channel</label>
+          <select class="form-input" [(ngModel)]="selectedTemplate()!.channel" id="edit-tmpl-channel">
+            <option value="SMS">📱 SMS</option>
+            <option value="EMAIL">📧 Email</option>
+            <option value="WHATSAPP">💬 WhatsApp</option>
+          </select>
+        </div>
+        @if (selectedTemplate()!.channel === 'EMAIL') {
+        <div class="form-group">
+          <label class="form-label">Subject</label>
+          <input class="form-input" [(ngModel)]="selectedTemplate()!.subject" id="edit-tmpl-subject"/>
+        </div>
+        }
+        <div class="form-group">
+          <label class="form-label">Body <span class="var-hint">Placeholders: {{ '{{variable}}' }}</span></label>
+          <textarea class="form-input editor-textarea" [(ngModel)]="selectedTemplate()!.body" rows="8" id="edit-tmpl-body"></textarea>
+        </div>
+        <div class="variables-row">
+          <span class="vars-label">Variables detected:</span>
+          @for (v of selectedTemplate()!.variables; track v) {
+          <span class="var-chip">{{ '{{' + v + '}}' }}</span>
+          }
+        </div>
+        <div class="editor-actions">
+          <button class="btn btn-primary" (click)="saveEditedTemplate()">Save Changes</button>
+        </div>
+      </div>
+      }
+
+      @if (!selectedTemplate() && !isCreatingTemplate()) {
+      <div class="editor-empty">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <p>Select a template to edit it,<br>or create a new one</p>
+      </div>
+      }
+
+      <div class="context-panel animate-fade-in">
+        <h3 class="context-title">Candidate Context Composer</h3>
+        <p class="context-subtitle">Pick candidate username, paste URL, generate contextual body, then send email.</p>
+
+        @if (getContextCandidates().length === 0) {
+        <div class="context-empty">No candidates found. Sync live data first.</div>
+        } @else {
+        <div class="candidate-radio-list">
+          @for (candidate of getContextCandidates(); track candidate.userId) {
+          <label class="candidate-radio-item">
+            <input
+              type="radio"
+              name="candidate-radio"
+              [value]="candidate.userId"
+              [ngModel]="selectedCandidateId()"
+              (ngModelChange)="selectedCandidateId.set($event)"
+            />
+            <span class="candidate-radio-content">
+              <strong>{{ getCandidateUsername(candidate) }}</strong>
+              <small>{{ getCandidateDisplayLabel(candidate) }} • {{ candidate.email }}</small>
+            </span>
+          </label>
+          }
+        </div>
+        }
+
+        <div class="form-group">
+          <label class="form-label">Target URL *</label>
+          <input
+            class="form-input"
+            [(ngModel)]="targetUrlInput"
+            placeholder="Paste URL here (example: https://...)"
+            id="context-target-url"
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Campaign Context *</label>
+          <textarea
+            class="form-input editor-textarea"
+            [(ngModel)]="campaignContextInput"
+            rows="4"
+            placeholder="Describe the campaign objective and what candidate should do."
+            id="context-campaign-text"
+          ></textarea>
+        </div>
+
+        <div class="context-actions">
+          <button class="btn btn-secondary" (click)="generateBodyFromCampaignContext()">
+            Generate Body
+          </button>
+          <button class="btn btn-primary" (click)="sendCampaignEmailToCandidate()" [disabled]="sendingEmail() || !selectedCandidateId()">
+            {{ sendingEmail() ? 'Sending...' : 'Send Email' }}
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  }
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- TAB 2 — Campaigns                                           -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'campaigns') {
+  <div class="campaigns-layout">
+
+    <!-- Create Campaign Form -->
+    @if (isCreatingCampaign()) {
+    <div class="create-campaign-panel animate-fade-in">
+      <h3>New Campaign</h3>
+      <div class="cc-grid">
+        <div class="form-group">
+          <label class="form-label">Campaign Name *</label>
+          <input class="form-input" [(ngModel)]="newCampaign.name" placeholder="e.g. April React Shortlist" id="cc-name"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Message Template *</label>
+          <select class="form-input" [(ngModel)]="newCampaign.templateId" id="cc-template">
+            <option value="">— Select a template —</option>
+            @for (t of templates(); track t.id) {
+            <option [value]="t.id">{{ t.name }} ({{ t.channel }})</option>
+            }
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Channel</label>
+          <select class="form-input" [(ngModel)]="newCampaign.channel" id="cc-channel">
+            <option value="SMS">📱 SMS</option>
+            <option value="EMAIL">📧 Email</option>
+            <option value="WHATSAPP">💬 WhatsApp</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Target Group</label>
+          <select class="form-input" [(ngModel)]="newCampaign.targetGroup" id="cc-group">
+            @for (group of targetGroupOptions; track group.key) {
+            <option [value]="group.key">{{ group.label }} ({{ getTargetGroupCount(group.key) }})</option>
+            }
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Schedule Date &amp; Time (optional)</label>
+          <input class="form-input" type="datetime-local" [(ngModel)]="newCampaign.scheduledAt" id="cc-schedule"/>
+        </div>
+      </div>
+      <div class="cc-actions">
+        <button class="btn btn-primary" (click)="createCampaign()">Create Campaign</button>
+        <button class="btn btn-ghost" (click)="cancelCampaignCreate()">Cancel</button>
+      </div>
+    </div>
+    }
+
+    <!-- Campaign Cards -->
+    <div class="campaign-grid">
+      @if (campaigns().length === 0) {
+      <div class="campaign-empty">No campaigns available yet. Sync live data or create a campaign.</div>
+      }
+      @for (c of campaigns(); track c.id) {
+      <div class="campaign-card">
+        <div class="cc-top-row">
+          <span class="channel-badge ch-{{ c.channel.toLowerCase() }}">{{ getChannelIcon(c.channel) }} {{ c.channel }}</span>
+          <span class="status-tag {{ getStatusClass(c.status) }}">{{ c.status }}</span>
+        </div>
+        <h3 class="cc-title">{{ c.name }}</h3>
+        <p class="cc-meta">Template: <strong>{{ c.templateName }}</strong></p>
+        <p class="cc-meta">Group: <strong>{{ getTargetGroupLabel(c.targetGroup) }}</strong></p>
+        @if (c.scheduledAt) {
+        <p class="cc-meta cc-schedule">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          {{ formatDate(c.scheduledAt) }}
+        </p>
+        } @else {
+        <p class="cc-meta">Schedule: <strong>Not scheduled</strong></p>
+        }
+        <div class="cc-stats">
+          <div class="cc-stat">
+            <span class="cs-val">{{ c.recipientCount }}</span>
+            <span class="cs-lbl">Recipients</span>
+          </div>
+          <div class="cc-stat">
+            <span class="cs-val cs-green">{{ c.sentCount }}</span>
+            <span class="cs-lbl">Sent</span>
+          </div>
+          <div class="cc-stat">
+            <span class="cs-val cs-red">{{ c.failedCount }}</span>
+            <span class="cs-lbl">Failed</span>
+          </div>
+        </div>
+        <div class="cc-progress">
+          <div class="cc-progress-row">
+            <span class="cc-progress-label">Delivery progress</span>
+            <span class="cc-progress-value">{{ getCampaignProgress(c) }}%</span>
+          </div>
+          <div class="cc-progress-track">
+            <span class="cc-progress-fill" [style.width.%]="getCampaignProgress(c)"></span>
+          </div>
+        </div>
+        <div class="cc-card-actions">
+          @if (c.status !== 'SENT') {
+          <button class="btn btn-primary btn-sm" (click)="launchCampaign(c.id)">Launch</button>
+          }
+          <button class="btn btn-secondary btn-sm" (click)="duplicateCampaign(c.id)">Duplicate</button>
+        </div>
+      </div>
+      }
+    </div>
+  </div>
+  }
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!-- TAB 3 — Delivery Logs                                       -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'logs') {
+  <div class="logs-layout">
+    <div class="logs-toolbar">
+      <div class="search-wrap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-input search-input" [ngModel]="logSearch()" (ngModelChange)="logSearch.set($event)" placeholder="Search by recipient or campaign..." id="log-search"/>
+      </div>
+      <div class="log-stats">
+        <span class="log-stat-item">
+          <span class="dot dot-green"></span>
+          {{ getLogCount('DELIVERED') }} Delivered
+        </span>
+        <span class="log-stat-item">
+          <span class="dot dot-red"></span>
+          {{ getLogCount('FAILED') }} Failed
+        </span>
+        <span class="log-stat-item">
+          <span class="dot dot-yellow"></span>
+          {{ getLogCount('PENDING') }} Pending
+        </span>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Recipient</th>
+            <th>Campaign</th>
+            <th>Channel</th>
+            <th>Status</th>
+            <th>Sent At</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (filteredLogs().length === 0) {
+          <tr>
+            <td colspan="6" class="log-empty-row">No delivery logs available for current live campaigns.</td>
+          </tr>
+          }
+          @for (log of filteredLogs(); track log.id) {
+          <tr>
+            <td class="log-recipient">{{ log.recipient }}</td>
+            <td>{{ log.campaignName }}</td>
+            <td><span class="channel-badge ch-{{ log.channel.toLowerCase() }}">{{ getChannelIcon(log.channel) }} {{ log.channel }}</span></td>
+            <td><span class="status-tag {{ getStatusClass(log.status) }}">{{ log.status }}</span></td>
+            <td class="log-time">{{ formatDate(log.sentAt) }}</td>
+            <td class="log-error">{{ log.errorMessage || '—' }}</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+  }
+
+</section>

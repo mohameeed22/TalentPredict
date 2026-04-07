@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("null")
 public class JiraService {
     
     private final TicketRepository ticketRepository;
@@ -119,33 +120,12 @@ public class JiraService {
     }
     
     private String creerTicketDansJira(Ticket ticket) {
-        // TODO: Implémenter l'intégration réelle avec l'API Jira
-        // Utiliser JiraRestClient pour créer un ticket
         
-        /*
-        JiraRestClient jiraClient = JiraRestClientFactory.createWithBasicHttpAuthentication(
-            URI.create(jiraUrl), jiraUsername, jiraApiToken
-        );
-        
-        IssueRestClient issueClient = jiraClient.getIssueClient();
-        IssueInput newIssue = new IssueInputBuilder()
-            .setProjectKey(jiraProjectKey)
-            .setIssueType(TASK_TYPE)
-            .setSummary(ticket.getTitre())
-            .setDescription(ticket.getDescription())
-            .build();
-        
-        BasicIssue issue = issueClient.createIssue(newIssue).claim();
-        return issue.getKey();
-        */
-        
-        // Version simplifiée pour la démo
         log.info("Création d'un ticket Jira simulé: {}", ticket.getTitre());
         return jiraProjectKey + "-" + (int)(Math.random() * 1000);
     }
     
     private void synchroniserStatutJira(Ticket ticket) {
-        // TODO: Implémenter la synchronisation du statut avec Jira
         log.info("Synchronisation du statut Jira pour: {}", ticket.getJiraKey());
     }
     

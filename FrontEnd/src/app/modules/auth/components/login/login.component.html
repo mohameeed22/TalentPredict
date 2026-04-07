@@ -2,11 +2,7 @@
   <div class="auth-left">
     <div class="brand-section">
       <div class="brand-logo">
-        <svg viewBox="0 0 48 48" fill="none">
-          <rect width="48" height="48" rx="12" fill="white" fill-opacity="0.15" />
-          <path d="M15 33V18l9-6 9 6v15l-9 6-9-6z" stroke="white" stroke-width="2.5" fill="none" />
-          <circle cx="24" cy="24" r="4.5" fill="white" />
-        </svg>
+        <img src="favicon.ico" alt="TalentPredict logo" width="58" height="58" />
       </div>
       <h1 class="brand-title">TalentPredict</h1>
       <p class="brand-subtitle">Plateforme d'Intelligence des Talents</p>
@@ -48,6 +44,7 @@
   <div class="auth-right">
     <div class="auth-card">
       <div class="auth-header">
+        <span class="auth-kicker">Acces securise</span>
         <h2>Connexion</h2>
         <p>Bienvenue ! Connectez-vous à votre compte.</p>
       </div>
@@ -99,8 +96,14 @@
 
         <div class="form-group">
           <label for="password" class="form-label">Mot de passe</label>
-          <input id="password" type="password" formControlName="password" placeholder="••••••••" class="form-input"
-            [class.input-error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" />
+          <div class="password-wrap">
+            <input id="password" [type]="showPassword ? 'text' : 'password'" formControlName="password" placeholder="••••••••"
+              class="form-input" [class.input-error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" />
+            <button type="button" class="password-toggle" (click)="showPassword = !showPassword"
+              [attr.aria-label]="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'">
+              {{ showPassword ? 'Masquer' : 'Afficher' }}
+            </button>
+          </div>
           @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
           <span class="form-error">Minimum 6 caractères requis</span>
           }
@@ -118,6 +121,8 @@
           </svg>
           }
         </button>
+
+        <p class="compliance-note">Connexion chiffree, conforme aux standards de securite.</p>
       </form>
 
       <div class="auth-footer">

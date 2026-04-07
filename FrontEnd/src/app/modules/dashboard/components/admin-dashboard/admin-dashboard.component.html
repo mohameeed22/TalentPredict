@@ -13,7 +13,14 @@
       <div>
         <h1>Dashboard RH</h1>
         <p class="header-subtitle">Vue d'ensemble des employés et formations</p>
+        <p class="header-subtitle live-sync">Derniere synchro: {{ lastSync }}</p>
       </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn btn-glass btn-sm" (click)="refreshData()" [disabled]="loading">
+        {{ loading ? 'Synchronisation...' : 'Rafraichir' }}
+      </button>
     </div>
   </div>
 
@@ -96,6 +103,49 @@
         <span class="stat-meta">Générées</span>
       </div>
     </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-box green">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 6L9 17l-5-5" />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">Profils Prêts</span>
+        <span class="stat-value">{{ readyEmployeesCount }}</span>
+        <span class="stat-meta">Actifs + tests + formations</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-box red">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 9v4" />
+          <path d="M12 17h.01" />
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">Profils à Risque</span>
+        <span class="stat-value">{{ atRiskEmployeesCount }}</span>
+        <span class="stat-meta">Fraud risk high/medium</span>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon-box indigo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12h18" />
+          <path d="M3 6h18" />
+          <path d="M3 18h18" />
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">Couverture Tests</span>
+        <span class="stat-value">{{ assessmentCoverage }}%</span>
+        <span class="stat-meta">Employés avec au moins un test</span>
+      </div>
+    </div>
   </div>
 
   <!-- TASK 2: Employee Table -->
@@ -105,10 +155,19 @@
         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
         <circle cx="9" cy="7" r="4" />
       </svg>
-      <h2>Liste des Employés ({{ overview.totalEmployees }})</h2>
+      <h2>Liste des Employés ({{ filteredEmployees.length }}/{{ overview.totalEmployees }})</h2>
     </div>
 
-    @if (employees.length > 0) {
+    <div class="table-toolbar">
+      <input
+        class="form-input search-input"
+        [(ngModel)]="searchTerm"
+        placeholder="Rechercher par nom, email, poste ou département..."
+        id="workforce-search"
+      />
+    </div>
+
+    @if (filteredEmployees.length > 0) {
     <div class="employees-table">
       <table>
         <thead>
@@ -119,11 +178,13 @@
             <th>Département</th>
             <th>Formations</th>
             <th>Tests</th>
+            <th>Risque</th>
+            <th>Readiness</th>
             <th>Statut</th>
           </tr>
         </thead>
         <tbody>
-          @for (emp of employees; track emp.id) {
+          @for (emp of filteredEmployees; track emp.id) {
           <tr>
             <td>
               <div class="employee-name">
@@ -141,6 +202,12 @@
               <span class="badge badge-purple">{{ emp.testCount }}</span>
             </td>
             <td>
+              <span class="risk-badge" [class]="getRiskClass(emp.id)">{{ getRiskLabel(emp.id) }}</span>
+            </td>
+            <td>
+              <span class="readiness-badge" [class]="getReadinessClass(emp)">{{ getReadinessLabel(emp) }}</span>
+            </td>
+            <td>
               <span class="status-dot" [class.active]="emp.active" [class.inactive]="!emp.active">
                 {{ emp.active ? 'Actif' : 'Inactif' }}
               </span>
@@ -156,7 +223,7 @@
         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
         <circle cx="9" cy="7" r="4" />
       </svg>
-      <p>Aucun employé trouvé</p>
+      <p>Aucun employé trouvé pour ce filtre</p>
     </div>
     }
   </div>

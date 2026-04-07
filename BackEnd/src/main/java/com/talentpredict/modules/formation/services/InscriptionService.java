@@ -1,6 +1,5 @@
 package com.talentpredict.modules.formation.services;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,6 +14,7 @@ import com.talentpredict.shared.exception.BadRequestException;
 import com.talentpredict.shared.exception.ResourceNotFoundException;
 
 @Service
+@SuppressWarnings("null")
 public class InscriptionService {
     
     private final InscriptionRepository inscriptionRepository;

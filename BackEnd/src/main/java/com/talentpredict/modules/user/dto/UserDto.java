@@ -72,6 +72,7 @@ public class UserDto {
         private String position;
         private LocalDate hireDate;
         private String profilePictureUrl;
+        @Builder.Default
         private Boolean isActive = true;
         private String role;
     }

@@ -12,6 +12,7 @@ import com.talentpredict.modules.evaluation.repositories.PCMResultRepository;
 import com.talentpredict.shared.exception.ResourceNotFoundException;
 
 @Service
+@SuppressWarnings("null")
 public class PCMResultService {
     
     private final PCMResultRepository pcmResultRepository;

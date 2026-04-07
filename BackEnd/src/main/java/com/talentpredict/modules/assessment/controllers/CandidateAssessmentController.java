@@ -35,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/api/candidates")
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("null")
 public class CandidateAssessmentController {
 
     private final CandidateTestResultRepository candidateTestResultRepository;

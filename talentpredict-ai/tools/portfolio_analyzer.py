@@ -18,18 +18,118 @@ logger = logging.getLogger(__name__)
 
 # Technology keywords to detect in portfolio page content
 PORTFOLIO_TECH_KEYWORDS: list[str] = [
-    "Python", "Java", "JavaScript", "TypeScript", "C#", "C++",
-    "Go", "Rust", "Ruby", "PHP", "Swift", "Kotlin",
-    "React", "Angular", "Vue", "Svelte", "Next.js",
+    # Languages
+    "Python", "Java", "JavaScript", "TypeScript", "C#", "C++", "C",
+    "Go", "Golang", "Rust", "Ruby", "PHP", "Swift", "Kotlin", "Scala",
+    "R", "MATLAB", "Julia", "Perl", "Lua", "Haskell", "Elixir", "Dart",
+    "Zig", "Groovy", "Bash", "Shell", "PowerShell", "SQL", "Solidity",
+    "Objective-C", "COBOL", "Fortran", "Assembly", "VBA", "Apex", "ABAP",
+
+    # Frontend Frameworks & Libraries
+    "React", "Angular", "Vue", "Svelte", "SvelteKit", "Next.js", "Nuxt",
+    "Gatsby", "Remix", "Astro", "SolidJS", "Qwik", "Ember.js", "Preact",
+    "HTMX", "Alpine.js", "Lit", "Web Components", "jQuery",
+
+    # CSS Frameworks & UI Libraries
+    "Tailwind CSS", "Tailwind", "Bootstrap", "Material UI", "Chakra UI",
+    "shadcn/ui", "Ant Design", "Mantine", "DaisyUI", "Radix UI", "Bulma",
+    "Styled Components", "Emotion", "Framer Motion", "GSAP",
+    "Three.js", "D3.js", "CSS", "Sass", "LESS", "HTML",
+
+    # Backend Frameworks
     "Spring Boot", "Django", "Flask", "FastAPI", "Express", "Node.js",
-    "Rails", "Laravel", ".NET",
-    "Flutter", "React Native",
-    "Docker", "Kubernetes", "AWS", "Azure", "GCP", "Terraform",
-    "PostgreSQL", "MySQL", "MongoDB", "Redis", "Elasticsearch",
-    "GraphQL", "REST", "Kafka",
-    "TensorFlow", "PyTorch", "Machine Learning", "Deep Learning",
-    "Git", "Linux", "CI/CD", "DevOps", "Microservices",
-    "Figma", "UI/UX", "Tailwind", "Bootstrap", "Material UI",
+    "NestJS", "Fastify", "Koa", "Rails", "Laravel", "Symfony",
+    "CodeIgniter", "Phoenix", "Ktor", "Quarkus", "Gin", "Fiber",
+    "Actix", "Axum", ".NET", "ASP.NET", "Blazor", "Strapi",
+
+    # Mobile
+    "Flutter", "React Native", "Expo", "Ionic", "SwiftUI", "UIKit",
+    "Jetpack Compose", "Capacitor", ".NET MAUI", "Xamarin",
+
+    # Databases & Storage
+    "PostgreSQL", "MySQL", "MariaDB", "MongoDB", "Redis", "Elasticsearch",
+    "SQLite", "Cassandra", "DynamoDB", "Firestore", "Firebase",
+    "CockroachDB", "Neo4j", "InfluxDB", "ClickHouse", "Snowflake",
+    "BigQuery", "Redshift", "Oracle DB", "SQL Server", "Supabase",
+    "PlanetScale", "Neon", "Turso", "FaunaDB",
+
+    # ORMs & Query Builders
+    "Prisma", "TypeORM", "Sequelize", "Drizzle ORM", "SQLAlchemy",
+    "Hibernate", "Active Record", "GORM",
+
+    # DevOps & Cloud
+    "Docker", "Kubernetes", "Helm", "ArgoCD", "Istio",
+    "AWS", "Azure", "GCP", "Vercel", "Netlify", "Heroku",
+    "Cloudflare", "DigitalOcean", "Render", "Fly.io",
+    "Terraform", "Ansible", "Pulumi", "Vagrant",
+    "CI/CD", "DevOps", "DevSecOps", "SRE",
+    "GitHub Actions", "GitLab CI", "CircleCI", "Jenkins",
+    "Prometheus", "Grafana", "Datadog", "Sentry", "OpenTelemetry",
+    "Nginx", "Apache", "Caddy", "Linux", "Serverless",
+
+    # APIs & Protocols
+    "GraphQL", "REST", "gRPC", "tRPC", "WebSockets", "OpenAPI",
+    "Swagger", "JWT", "OAuth", "MQTT",
+
+    # Messaging & Streaming
+    "Kafka", "RabbitMQ", "NATS", "Celery", "Amazon SQS", "Apache Pulsar",
+
+    # AI & Machine Learning
+    "TensorFlow", "PyTorch", "Scikit-learn", "Keras", "JAX",
+    "Pandas", "NumPy", "SciPy", "Matplotlib", "Plotly",
+    "Machine Learning", "Deep Learning", "NLP", "Computer Vision",
+    "LLMs", "Generative AI", "RAG", "Prompt Engineering",
+    "LangChain", "LlamaIndex", "Hugging Face", "OpenAI API",
+    "Anthropic API", "Ollama", "CrewAI", "LangGraph", "AutoGen",
+    "MLflow", "Weights & Biases", "Ray", "Apache Spark", "PySpark",
+    "Apache Airflow", "Prefect", "XGBoost", "LightGBM",
+    "OpenCV", "spaCy", "ONNX",
+
+    # Vector Databases
+    "Pinecone", "Weaviate", "Qdrant", "ChromaDB", "Milvus",
+
+    # Testing
+    "Jest", "Vitest", "Cypress", "Playwright", "Selenium",
+    "Pytest", "RSpec", "JUnit", "Mocha", "Storybook", "TDD", "BDD",
+
+    # Build Tools & Runtimes
+    "Vite", "Webpack", "Turborepo", "Nx", "Bun", "Deno",
+    "Gradle", "Maven", "Cargo", "npm", "Yarn", "pnpm",
+
+    # Version Control
+    "Git", "GitHub", "GitLab", "Bitbucket",
+
+    # Architecture & Patterns
+    "Microservices", "Monorepo", "Event-Driven Architecture",
+    "Domain-Driven Design", "CQRS", "Clean Architecture",
+    "API Gateway", "Service Mesh", "SOLID",
+
+    # Security
+    "OWASP", "Penetration Testing", "Zero Trust", "Cryptography",
+    "SOC 2", "DevSecOps",
+
+    # Design & UX
+    "Figma", "UI/UX", "Adobe XD", "Sketch", "Miro", "Zeplin",
+    "Design Systems", "Accessibility", "WCAG", "Wireframing",
+    "Prototyping", "User Research",
+
+    # Project & Analytics Tools
+    "Jira", "Confluence", "Notion", "Linear", "Asana",
+    "Tableau", "Power BI", "Looker", "Google Analytics",
+    "Mixpanel", "Amplitude", "PostHog",
+
+    # Methodology
+    "Agile", "Scrum", "Kanban", "Lean", "DevOps",
+    "Pair Programming", "Code Review",
+
+    # CMS & E-commerce
+    "WordPress", "Shopify", "Contentful", "Sanity", "Webflow",
+    "Storyblok", "Payload CMS",
+
+    # Blockchain & Web3
+    "Ethereum", "Solana", "Solidity", "Hardhat", "Ethers.js",
+    "Web3.js", "IPFS", "Smart Contracts", "Web3", "Blockchain",
+    "NFT", "DeFi",
 ]
 
 

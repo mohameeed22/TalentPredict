@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class PersonalityTestService {
     
     private final PersonalityTestRepository testRepository;

@@ -28,13 +28,16 @@ public class Inscription {
 
     // infos
     @Column(name = "date_inscription")
+    @Builder.Default
     private LocalDate dateInscription = LocalDate.now();
 
     @Enumerated(EnumType.STRING)
     @Column(name = "statut", nullable = false, length = 30)
+    @Builder.Default
     private StatutInscription statut = StatutInscription.EN_COURS;
 
     @Column(name = "progression")
+    @Builder.Default
     private Integer progression = 0;
 
     @Column(name = "date_fin")

@@ -12,4 +12,6 @@ import com.talentpredict.modules.assessment.entities.CandidateTestResult;
 public interface CandidateTestResultRepository extends JpaRepository<CandidateTestResult, UUID> {
 
     List<CandidateTestResult> findByUser_IdOrderByTakenAtDesc(UUID userId);
+
+    long countByUser_Id(UUID userId);
 }

@@ -28,7 +28,7 @@ import { Subscription } from 'rxjs';
           <div class="notif-header-title">
             <h4>Notifications</h4>
             @if (unreadCount > 0) {
-            <span class="header-badge">{{ unreadCount }} nlle(s)</span>
+            <span class="header-badge">{{ unreadCount }} new</span>
             }
           </div>
           <div class="notif-actions">
@@ -42,11 +42,25 @@ import { Subscription } from 'rxjs';
                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             </button>
             }
+            <button class="notif-action-btn" (click)="close()" title="Fermer">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
         </div>
 
+        <div class="notif-filters">
+          <button class="filter-chip" [class.active]="activeFilter === 'all'" (click)="setFilter('all')">
+            All
+            <span>{{ notifications.length }}</span>
+          </button>
+          <button class="filter-chip" [class.active]="activeFilter === 'unread'" (click)="setFilter('unread')">
+            Unread
+            <span>{{ unreadCount }}</span>
+          </button>
+        </div>
+
         <div class="notif-list">
-          @if (notifications.length === 0) {
+          @if (filteredNotifications().length === 0) {
           <div class="notif-empty">
             <div class="empty-icon-wrapper">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -54,11 +68,11 @@ import { Subscription } from 'rxjs';
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
             </div>
-            <h5>Aucune notification</h5>
-            <p>Vous êtes à jour dans vos alertes !</p>
+            <h5>{{ activeFilter === 'unread' ? 'No unread notifications' : 'No notifications' }}</h5>
+            <p>{{ activeFilter === 'unread' ? 'Everything has been reviewed.' : 'You are up to date with your alerts.' }}</p>
           </div>
           }
-          @for (notif of notifications; track notif.id) {
+          @for (notif of filteredNotifications(); track notif.id) {
           <div class="notif-item" [class.unread]="!notif.read" (click)="markRead(notif.id)">
             <div class="notif-indicator"></div>
             <span class="notif-type-icon" [class]="'type-' + notif.type">
@@ -251,6 +265,58 @@ import { Subscription } from 'rxjs';
       color: var(--danger, #ef4444);
     }
 
+    .notif-filters {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.7rem 1.25rem;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      background: rgba(248, 250, 252, 0.72);
+    }
+
+    .filter-chip {
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      background: white;
+      color: var(--text-secondary, #64748b);
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.55rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+    }
+
+    .filter-chip span {
+      min-width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(100, 116, 139, 0.12);
+      color: inherit;
+      font-size: 0.68rem;
+      line-height: 1;
+      padding: 0 0.3rem;
+    }
+
+    .filter-chip:hover {
+      border-color: rgba(99, 102, 241, 0.35);
+      color: var(--primary, #6366f1);
+    }
+
+    .filter-chip.active {
+      border-color: rgba(99, 102, 241, 0.35);
+      background: rgba(99, 102, 241, 0.12);
+      color: var(--primary-dark, #4f46e5);
+    }
+
+    .filter-chip.active span {
+      background: rgba(79, 70, 229, 0.16);
+    }
+
     .notif-list {
       flex: 1;
       overflow-y: auto;
@@ -433,6 +499,21 @@ import { Subscription } from 'rxjs';
       from { opacity: 0; transform: scale(0.96) translateY(-10px); }
       to { opacity: 1; transform: scale(1) translateY(0); }
     }
+
+    @media (max-width: 560px) {
+      .notif-dropdown {
+        width: min(92vw, 380px);
+        right: -8px;
+      }
+
+      .notif-header {
+        padding: 0.85rem 1rem;
+      }
+
+      .notif-item {
+        padding: 0.85rem 1rem;
+      }
+    }
   `]
 })
 export class NotificationsCenterComponent implements OnInit, OnDestroy {
@@ -445,6 +526,7 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   notifications: AppNotification[] = [];
   unreadCount = 0;
   isOpen = false;
+  activeFilter: 'all' | 'unread' = 'all';
 
   ngOnInit(): void {
     this.sub = this.notificationService.appNotifications$.subscribe(list => {
@@ -462,6 +544,22 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  close(): void {
+    this.isOpen = false;
+    this.cdr.markForCheck();
+  }
+
+  setFilter(filter: 'all' | 'unread'): void {
+    this.activeFilter = filter;
+  }
+
+  filteredNotifications(): AppNotification[] {
+    if (this.activeFilter === 'unread') {
+      return this.notifications.filter(n => !n.read);
+    }
+    return this.notifications;
+  }
+
   markRead(id: string): void {
     this.notificationService.markRead(id);
   }
@@ -472,6 +570,7 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
 
   clearAll(): void {
     this.notificationService.clearAll();
+    this.activeFilter = 'all';
     this.isOpen = false;
   }
 
@@ -495,6 +594,13 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     if (this.isOpen && !this.elRef.nativeElement.contains(event.target)) {
       this.isOpen = false;
       this.cdr.markForCheck();
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.isOpen) {
+      this.close();
     }
   }
 

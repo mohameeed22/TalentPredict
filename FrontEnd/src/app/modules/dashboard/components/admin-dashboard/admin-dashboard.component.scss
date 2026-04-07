@@ -6,6 +6,10 @@
 
 /* ===== Page Header ===== */
 .page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
   margin-bottom: 2rem;
 
   .header-left {
@@ -41,6 +45,31 @@
       color: var(--text-secondary, #64748b);
       margin: 0.125rem 0 0;
     }
+
+    .live-sync {
+      font-size: 0.75rem;
+      color: var(--text-tertiary, #94a3b8);
+      margin-top: 0.25rem;
+    }
+  }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-glass {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--border, #e2e8f0);
+  color: var(--text-secondary, #64748b);
+  backdrop-filter: blur(8px);
+
+  &:hover {
+    color: var(--primary, #6366f1);
+    border-color: #c7d2fe;
+    background: rgba(255, 255, 255, 0.95);
   }
 }
 
@@ -165,6 +194,14 @@
 
     svg {
       color: #0d9488;
+    }
+  }
+
+  &.red {
+    background: #fee2e2;
+
+    svg {
+      color: #dc2626;
     }
   }
 
@@ -413,6 +450,14 @@
   }
 }
 
+.table-toolbar {
+  margin-bottom: 1rem;
+
+  .search-input {
+    max-width: 420px;
+  }
+}
+
 .employees-table {
   overflow-x: auto;
 
@@ -490,6 +535,58 @@
     background: #ede9fe;
     color: #5b21b6;
   }
+}
+
+.risk-badge,
+.readiness-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.risk-high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.risk-medium {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.risk-low {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.readiness-ready {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.readiness-assessed {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.readiness-training {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.readiness-onboarding {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.readiness-inactive {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .status-dot {
@@ -572,9 +669,17 @@
     padding: 1rem;
   }
 
-  .page-header .header-left {
-    h1 {
-      font-size: 1.375rem;
+  .page-header {
+    flex-direction: column;
+
+    .header-left {
+      h1 {
+        font-size: 1.375rem;
+      }
+    }
+
+    .header-actions {
+      width: 100%;
     }
   }
 

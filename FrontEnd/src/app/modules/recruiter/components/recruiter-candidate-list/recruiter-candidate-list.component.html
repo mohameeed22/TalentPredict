@@ -1,25 +1,78 @@
-<h1>Candidats</h1>
-<p class="err" *ngIf="error">{{ error }}</p>
-<table *ngIf="rows.length">
-  <thead>
-    <tr>
-      <th>Nom</th>
-      <th>Email</th>
-      <th>Score</th>
-      <th>Fraude</th>
-      <th>Profil public</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let r of rows">
-      <td>{{ r.firstName }} {{ r.lastName }}</td>
-      <td>{{ r.email }}</td>
-      <td>{{ r.realScore ?? '—' }}</td>
-      <td>{{ r.fraudRisk ?? '—' }}</td>
-      <td>
-        <a *ngIf="r.publicSlug" [href]="'/p/' + r.publicSlug" target="_blank" rel="noopener">/p/{{ r.publicSlug }}</a>
-        <span *ngIf="!r.publicSlug">—</span>
-      </td>
-    </tr>
-  </tbody>
-</table>
+<section class="recruiter-page">
+  <header class="page-head">
+    <div>
+      <h2>Candidats</h2>
+      <p>Vue pipeline avec relance IA GitHub et verification fraude.</p>
+    </div>
+
+    <button type="button" class="refresh-btn" (click)="loadCandidates()" [disabled]="loading">
+      {{ loading ? 'Chargement...' : 'Actualiser' }}
+    </button>
+  </header>
+
+  <div class="page-stats">
+    <span class="chip">Total: {{ rows.length }}</span>
+    <span class="chip warning">Risque moyen: {{ mediumRiskCount }}</span>
+    <span class="chip danger">Risque eleve: {{ highRiskCount }}</span>
+  </div>
+
+  <div class="filters">
+    <input [(ngModel)]="search" placeholder="Rechercher nom, email ou GitHub" />
+    <select [(ngModel)]="riskFilter">
+      <option value="ALL">Tous les niveaux</option>
+      <option value="HIGH">Risque eleve</option>
+      <option value="MEDIUM">Risque moyen</option>
+      <option value="LOW">Risque faible</option>
+      <option value="UNKNOWN">Non evalue</option>
+    </select>
+  </div>
+
+  <p class="err" *ngIf="error">{{ error }}</p>
+
+  <div class="table-wrap" *ngIf="filteredRows.length && !loading; else candidateState">
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Email</th>
+          <th>GitHub</th>
+          <th>Score</th>
+          <th>Fraude</th>
+          <th>Profil public</th>
+          <th>Actions IA</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of filteredRows">
+          <td>{{ r.firstName }} {{ r.lastName }}</td>
+          <td>{{ r.email }}</td>
+          <td>{{ r.githubUsername || '—' }}</td>
+          <td>{{ r.realScore ?? '—' }}</td>
+          <td>
+            <span class="risk-badge" [ngClass]="getRiskClass(r.fraudRisk)">{{ r.fraudRisk ?? 'N/A' }}</span>
+          </td>
+          <td>
+            <a *ngIf="r.publicSlug" [href]="'/p/' + r.publicSlug" target="_blank" rel="noopener">/p/{{ r.publicSlug }}</a>
+            <span *ngIf="!r.publicSlug">—</span>
+          </td>
+          <td>
+            <div class="actions">
+              <button type="button" class="action-btn" (click)="runGithubDeep(r)" [disabled]="runningByUser[r.userId]">
+                GitHub Deep
+              </button>
+              <button type="button" class="action-btn ghost" (click)="runFraudCheck(r)" [disabled]="runningByUser[r.userId]">
+                Fraud Check
+              </button>
+            </div>
+            <div *ngIf="statusByUser[r.userId]" class="status-text">{{ statusByUser[r.userId] }}</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ng-template #candidateState>
+    <p class="hint" *ngIf="loading">Chargement des candidats...</p>
+    <p class="hint" *ngIf="!loading && !filteredRows.length">Aucun candidat ne correspond aux filtres.</p>
+  </ng-template>
+</section>

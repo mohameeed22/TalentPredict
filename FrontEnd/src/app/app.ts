@@ -94,6 +94,10 @@ export class App implements OnInit, OnDestroy {
     return this.isAdmin() || this.isRecruiter();
   }
 
+  isRecruiterSectionActive(): boolean {
+    return this.router.url.startsWith('/recruiter');
+  }
+
   getCurrentRoleLabel(): string {
     if (this.isAdmin()) return '🏢 RH / Manager';
     if (this.isRecruiter()) return '🎯 Recruiter';

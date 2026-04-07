@@ -44,6 +44,7 @@ public class PCMResult {
     private Integer scoreRebelle;
 
     @Column(name = "date_evaluation")
+    @Builder.Default
     private LocalDateTime dateEvaluation = LocalDateTime.now();
 
     // relationships

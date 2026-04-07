@@ -30,12 +30,15 @@ public class RecommendationItem {
     private String texte;
 
     @Column(name = "priorite")
+    @Builder.Default
     private Integer priorite = 1;
 
     @Column(name = "date_creation")
+    @Builder.Default
     private LocalDateTime dateCreation = LocalDateTime.now();
 
     @Column(name = "date_modification")
+    @Builder.Default
     private LocalDateTime dateModification = LocalDateTime.now();
 
     // relationships

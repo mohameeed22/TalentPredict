@@ -1,18 +1,57 @@
-<h1>Alertes fraude</h1>
-<table *ngIf="rows.length">
-  <thead>
-    <tr>
-      <th>Nom</th>
-      <th>Risque</th>
-      <th>Score</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let r of rows">
-      <td>{{ r.firstName }} {{ r.lastName }}</td>
-      <td><span class="badge">{{ r.fraudRisk }}</span></td>
-      <td>{{ r.realScore ?? '—' }}</td>
-    </tr>
-  </tbody>
-</table>
-<p *ngIf="!rows.length">Aucune alerte pour le moment.</p>
+<section class="fraud-page">
+  <header class="page-head">
+    <div>
+      <h2>Alertes fraude</h2>
+      <p>Priorisez les dossiers sensibles et relancez une verification ciblée.</p>
+    </div>
+    <button type="button" class="refresh-btn" (click)="loadAlerts()" [disabled]="loading">
+      {{ loading ? 'Chargement...' : 'Actualiser' }}
+    </button>
+  </header>
+
+  <div class="filters">
+    <label for="riskFilter">Filtre risque</label>
+    <select id="riskFilter" [(ngModel)]="riskFilter">
+      <option value="ALL">Tous</option>
+      <option value="HIGH">Eleve</option>
+      <option value="MEDIUM">Moyen</option>
+      <option value="LOW">Faible</option>
+      <option value="UNKNOWN">Non evalue</option>
+    </select>
+  </div>
+
+  <p class="err" *ngIf="error">{{ error }}</p>
+
+  <div class="table-wrap" *ngIf="filteredRows.length && !loading; else fraudState">
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Risque</th>
+          <th>Score</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of filteredRows">
+          <td>{{ r.firstName }} {{ r.lastName }}</td>
+          <td>
+            <span class="badge" [ngClass]="getRiskClass(r.fraudRisk)">{{ r.fraudRisk || 'N/A' }}</span>
+          </td>
+          <td>{{ r.realScore ?? '—' }}</td>
+          <td>
+            <button type="button" class="action-btn" (click)="runFraudCheck(r)" [disabled]="runningByUser[r.userId]">
+              Recheck
+            </button>
+            <div *ngIf="statusByUser[r.userId]" class="status-text">{{ statusByUser[r.userId] }}</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ng-template #fraudState>
+    <p class="hint" *ngIf="loading">Chargement des alertes...</p>
+    <p class="hint" *ngIf="!loading && !filteredRows.length">Aucune alerte pour le moment.</p>
+  </ng-template>
+</section>

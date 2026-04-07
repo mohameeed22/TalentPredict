@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("null")
 public class PythonAiClient {
 
     @Value("${talentpredict.ai.base-url:}")
@@ -63,7 +64,7 @@ public class PythonAiClient {
             return List.of();
         }
 
-        String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
+        String url = UriComponentsBuilder.fromUriString(baseUrl)
             .path("/analyze-candidate")
             .build()
             .toUriString();
@@ -90,7 +91,7 @@ public class PythonAiClient {
             }
 
             return parseSkillsFromResponse(root);
-        } catch (Exception e) {
+        } catch (java.io.IOException | RuntimeException e) {
             log.warn("Python AI call failed (service down or invalid response): {}", e.getMessage());
             return List.of();
         }

@@ -1,18 +1,20 @@
 package com.talentpredict.modules.skills.services;
 
-import com.talentpredict.modules.user.entities.User;
-import com.talentpredict.modules.skills.dto.SkillDto;
-import com.talentpredict.shared.exception.ResourceNotFoundException;
-import com.talentpredict.modules.skills.entities.Skill;
-import com.talentpredict.modules.skills.repositories.SkillRepository;
-import com.talentpredict.modules.auth.services.AuthServiceImpl;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.talentpredict.modules.auth.services.AuthServiceImpl;
+import com.talentpredict.modules.skills.dto.SkillDto;
+import com.talentpredict.modules.skills.entities.Skill;
+import com.talentpredict.modules.skills.repositories.SkillRepository;
+import com.talentpredict.modules.user.entities.User;
+import com.talentpredict.shared.exception.ResourceNotFoundException;
+
+import lombok.RequiredArgsConstructor;
 
 /**
  * Skills Module - Skill Management Service
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class SkillService {
     
     private final SkillRepository skillRepository;

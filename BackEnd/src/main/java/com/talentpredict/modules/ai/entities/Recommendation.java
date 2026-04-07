@@ -33,18 +33,23 @@ public class Recommendation {
     private String description;
 
     @Column(name = "score")
+    @Builder.Default
     private Double score = 0.0;
 
     @Column(name = "priorite")
+    @Builder.Default
     private Integer priorite = 1;
 
     @Column(name = "date_generation")
+    @Builder.Default
     private LocalDateTime dateGeneration = LocalDateTime.now();
 
     @Column(name = "date_creation")
+    @Builder.Default
     private LocalDateTime dateCreation = LocalDateTime.now();
 
     @Column(name = "date_modification")
+    @Builder.Default
     private LocalDateTime dateModification = LocalDateTime.now();
 
     // relationships
@@ -57,5 +62,6 @@ public class Recommendation {
     @OneToMany(mappedBy = "recommendation", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     @ToString.Exclude
+    @Builder.Default
     private List<RecommendationItem> items = new ArrayList<>();
 }

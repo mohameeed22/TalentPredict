@@ -1,30 +1,38 @@
 package com.talentpredict.modules.user.services;
 
-import com.talentpredict.modules.user.dto.ProfileDto;
-import com.talentpredict.modules.user.entities.User;
-import com.talentpredict.modules.user.entities.Profile;
-import com.talentpredict.modules.user.repositories.UserRepository;
-import com.talentpredict.modules.user.repositories.ProfileRepository;
-import com.talentpredict.shared.exception.ResourceNotFoundException;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import com.talentpredict.modules.user.dto.ProfileDto;
+import com.talentpredict.modules.user.entities.Profile;
+import com.talentpredict.modules.user.entities.User;
+import com.talentpredict.modules.user.repositories.ProfileRepository;
+import com.talentpredict.modules.user.repositories.UserRepository;
+import com.talentpredict.shared.exception.ResourceNotFoundException;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("null")
 public class ProfileService {
 
     private final ProfileRepository profileRepository;
-    private final UserRepository UserRepository;
+    private final UserRepository userRepository;
+
+    private static <T> T requireNonNull(T value, String name) {
+        return Objects.requireNonNull(value, name + " must not be null");
+    }
 
     public Profile createProfile(Profile profile) {
-        return profileRepository.save(profile);
+        return profileRepository.save(requireNonNull(profile, "profile"));
     }
 
     /**
@@ -33,29 +41,31 @@ public class ProfileService {
      */
     @Transactional
     public Profile updateProfile(UUID id, Profile profileDetails) {
-        Profile profile = profileRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Profile not found with id: " + id));
+        UUID safeId = requireNonNull(id, "id");
+        Profile safeProfileDetails = requireNonNull(profileDetails, "profileDetails");
+        Profile profile = profileRepository.findById(safeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found with id: " + safeId));
 
-        if (profileDetails.getTitreProfessionnel() != null)
-            profile.setTitreProfessionnel(profileDetails.getTitreProfessionnel());
-        if (profileDetails.getDescription() != null)
-            profile.setDescription(profileDetails.getDescription());
-        if (profileDetails.getUrlPhoto() != null)
-            profile.setUrlPhoto(profileDetails.getUrlPhoto());
-        if (profileDetails.getExperienceAns() != null)
-            profile.setExperienceAns(profileDetails.getExperienceAns());
-        if (profileDetails.getNiveauEtudes() != null)
-            profile.setNiveauEtudes(profileDetails.getNiveauEtudes());
-        if (profileDetails.getLienLinkedin() != null)
-            profile.setLienLinkedin(profileDetails.getLienLinkedin());
-        if (profileDetails.getGithubUrl() != null)
-            profile.setGithubUrl(profileDetails.getGithubUrl());
-        if (profileDetails.getCvUrl() != null)
-            profile.setCvUrl(profileDetails.getCvUrl());
-        if (profileDetails.getPortfolioUrl() != null)
-            profile.setPortfolioUrl(profileDetails.getPortfolioUrl());
+        if (safeProfileDetails.getTitreProfessionnel() != null)
+            profile.setTitreProfessionnel(safeProfileDetails.getTitreProfessionnel());
+        if (safeProfileDetails.getDescription() != null)
+            profile.setDescription(safeProfileDetails.getDescription());
+        if (safeProfileDetails.getUrlPhoto() != null)
+            profile.setUrlPhoto(safeProfileDetails.getUrlPhoto());
+        if (safeProfileDetails.getExperienceAns() != null)
+            profile.setExperienceAns(safeProfileDetails.getExperienceAns());
+        if (safeProfileDetails.getNiveauEtudes() != null)
+            profile.setNiveauEtudes(safeProfileDetails.getNiveauEtudes());
+        if (safeProfileDetails.getLienLinkedin() != null)
+            profile.setLienLinkedin(safeProfileDetails.getLienLinkedin());
+        if (safeProfileDetails.getGithubUrl() != null)
+            profile.setGithubUrl(safeProfileDetails.getGithubUrl());
+        if (safeProfileDetails.getCvUrl() != null)
+            profile.setCvUrl(safeProfileDetails.getCvUrl());
+        if (safeProfileDetails.getPortfolioUrl() != null)
+            profile.setPortfolioUrl(safeProfileDetails.getPortfolioUrl());
 
-        return profileRepository.save(profile);
+        return profileRepository.save(requireNonNull(profile, "profile"));
     }
 
     /**
@@ -64,39 +74,41 @@ public class ProfileService {
      */
     @Transactional
     public ProfileDto.Response updateProfileByAccountId(UUID userId, ProfileDto.UpdateRequest request) {
-        User account = UserRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        UUID safeUserId = requireNonNull(userId, "userId");
+        ProfileDto.UpdateRequest safeRequest = requireNonNull(request, "request");
+        User account = userRepository.findById(safeUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + safeUserId));
 
-        Profile profile = profileRepository.findByUser_Id(userId)
+        Profile profile = profileRepository.findByUser_Id(safeUserId)
                 .orElseGet(() -> {
-                    log.info("No profile found for userId={} — creating new one", userId);
+                    log.info("No profile found for userId={} - creating new one", safeUserId);
                     Profile newProfile = new Profile();
                     newProfile.setUser(account);
                     return newProfile;
                 });
 
         // Update only non-null fields
-        if (request.getTitreProfessionnel() != null)
-            profile.setTitreProfessionnel(request.getTitreProfessionnel());
-        if (request.getDescription() != null)
-            profile.setDescription(request.getDescription());
-        if (request.getUrlPhoto() != null)
-            profile.setUrlPhoto(request.getUrlPhoto());
-        if (request.getExperienceAns() != null)
-            profile.setExperienceAns(request.getExperienceAns());
-        if (request.getNiveauEtudes() != null)
-            profile.setNiveauEtudes(request.getNiveauEtudes());
-        if (request.getLienLinkedin() != null)
-            profile.setLienLinkedin(request.getLienLinkedin());
-        if (request.getGithubUrl() != null)
-            profile.setGithubUrl(request.getGithubUrl());
-        if (request.getCvUrl() != null)
-            profile.setCvUrl(request.getCvUrl());
-        if (request.getPortfolioUrl() != null)
-            profile.setPortfolioUrl(request.getPortfolioUrl());
+        if (safeRequest.getTitreProfessionnel() != null)
+            profile.setTitreProfessionnel(safeRequest.getTitreProfessionnel());
+        if (safeRequest.getDescription() != null)
+            profile.setDescription(safeRequest.getDescription());
+        if (safeRequest.getUrlPhoto() != null)
+            profile.setUrlPhoto(safeRequest.getUrlPhoto());
+        if (safeRequest.getExperienceAns() != null)
+            profile.setExperienceAns(safeRequest.getExperienceAns());
+        if (safeRequest.getNiveauEtudes() != null)
+            profile.setNiveauEtudes(safeRequest.getNiveauEtudes());
+        if (safeRequest.getLienLinkedin() != null)
+            profile.setLienLinkedin(safeRequest.getLienLinkedin());
+        if (safeRequest.getGithubUrl() != null)
+            profile.setGithubUrl(safeRequest.getGithubUrl());
+        if (safeRequest.getCvUrl() != null)
+            profile.setCvUrl(safeRequest.getCvUrl());
+        if (safeRequest.getPortfolioUrl() != null)
+            profile.setPortfolioUrl(safeRequest.getPortfolioUrl());
 
-        Profile saved = profileRepository.save(profile);
-        log.info("Profile updated for userId={}", userId);
+        Profile saved = profileRepository.save(requireNonNull(profile, "profile"));
+        log.info("Profile updated for userId={}", safeUserId);
         return toResponse(saved, account);
     }
 
@@ -105,15 +117,16 @@ public class ProfileService {
      */
     @Transactional(readOnly = true)
     public ProfileDto.Response getProfileByAccountId(UUID userId) {
-        User account = UserRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        UUID safeUserId = requireNonNull(userId, "userId");
+        User account = userRepository.findById(safeUserId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + safeUserId));
 
-        Profile profile = profileRepository.findByUser_Id(userId)
+        Profile profile = profileRepository.findByUser_Id(safeUserId)
                 .orElseGet(() -> {
                     // Create and persist profile so response always has a valid id
                     Profile empty = new Profile();
                     empty.setUser(account);
-                    return profileRepository.save(empty);
+                return profileRepository.save(requireNonNull(empty, "profile"));
                 });
 
         return toResponse(profile, account);
@@ -153,12 +166,13 @@ public class ProfileService {
     }
 
     public Profile getProfileById(UUID id) {
-        return profileRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Profile not found with id: " + id));
+        UUID safeId = requireNonNull(id, "id");
+        return profileRepository.findById(safeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found with id: " + safeId));
     }
 
     public Optional<Profile> getProfileByUser(User account) {
-        return profileRepository.findByUser(account);
+        return profileRepository.findByUser(requireNonNull(account, "account"));
     }
 
     public List<Profile> getAllProfiles() {
@@ -166,7 +180,7 @@ public class ProfileService {
     }
 
     public void deleteProfile(UUID targetProfileId) {
-        profileRepository.deleteById(targetProfileId);
+        profileRepository.deleteById(requireNonNull(targetProfileId, "targetProfileId"));
     }
 
     /**
@@ -176,8 +190,9 @@ public class ProfileService {
     public void updateGithubStats(UUID userId, Integer repos, Integer followers, Integer following,
                                    String bio, String company, String location, String avatarUrl,
                                    String name, String aiSummary) {
-        Profile profile = profileRepository.findByUser_Id(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Profile not found for userId: " + userId));
+        UUID safeUserId = requireNonNull(userId, "userId");
+        Profile profile = profileRepository.findByUser_Id(safeUserId)
+            .orElseThrow(() -> new ResourceNotFoundException("Profile not found for userId: " + safeUserId));
 
         if (repos != null) profile.setGithubRepos(repos);
         if (followers != null) profile.setGithubFollowers(followers);
@@ -189,7 +204,7 @@ public class ProfileService {
         if (name != null) profile.setGithubName(name);
         if (aiSummary != null) profile.setAiSummary(aiSummary);
 
-        profileRepository.save(profile);
-        log.info("GitHub stats updated for userId={}", userId);
+        profileRepository.save(requireNonNull(profile, "profile"));
+        log.info("GitHub stats updated for userId={}", safeUserId);
     }
 }

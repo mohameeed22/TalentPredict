@@ -1,0 +1,48 @@
+<section class="recruiter-shell">
+  <header class="shell-hero">
+    <div class="hero-copy">
+      <p class="eyebrow">TalentPredict pipeline</p>
+      <h1>Recrutement Workspace</h1>
+      <p class="subtitle">
+        Pilotez vos candidats, surveillez les risques et preparez vos entretiens depuis une seule interface.
+      </p>
+    </div>
+
+    <button type="button" class="refresh-btn" (click)="refreshOverview()" [disabled]="loadingOverview">
+      {{ loadingOverview ? 'Actualisation...' : 'Actualiser les stats' }}
+    </button>
+  </header>
+
+  <section class="overview-grid">
+    <article class="overview-card">
+      <p class="card-label">Candidats total</p>
+      <p class="card-value">{{ totalCandidates }}</p>
+      <p class="card-meta">Pipeline actif</p>
+    </article>
+
+    <article class="overview-card warning">
+      <p class="card-label">Alertes fraude</p>
+      <p class="card-value">{{ flaggedCandidates }}</p>
+      <p class="card-meta">Dossiers a verifier</p>
+    </article>
+
+    <article class="overview-card danger">
+      <p class="card-label">Risque eleve</p>
+      <p class="card-value">{{ highRiskCandidates }}</p>
+      <p class="card-meta">Priorite immediate</p>
+    </article>
+  </section>
+
+  <nav class="shell-tabs" aria-label="Navigation recrutement">
+    @for (tab of tabs; track tab.path) {
+    <a [routerLink]="tab.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }" class="tab-link">
+      <span class="tab-title">{{ tab.label }}</span>
+      <span class="tab-desc">{{ tab.description }}</span>
+    </a>
+    }
+  </nav>
+
+  <main class="shell-content">
+    <router-outlet />
+  </main>
+</section>

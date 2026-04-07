@@ -37,6 +37,7 @@ export class RegisterComponent {
 
   loading = false;
   socialLoading = false;
+  showPassword = false;
 
   onSubmit(): void {
     if (this.registerForm.valid) {

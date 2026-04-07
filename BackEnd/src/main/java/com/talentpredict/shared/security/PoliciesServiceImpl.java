@@ -11,6 +11,7 @@ import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class PoliciesServiceImpl implements IPoliciesService {
 
     private final UserRepository userRepository;

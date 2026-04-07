@@ -29,6 +29,7 @@ export class LoginComponent implements OnInit {
 
   loading = false;
   socialLoading = false;
+  showPassword = false;
 
   ngOnInit(): void {
     // If already authenticated, redirect to appropriate dashboard

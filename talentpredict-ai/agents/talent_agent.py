@@ -28,10 +28,34 @@ def _is_ollama() -> bool:
     return "11434" in base or "ollama" in base.lower()
 
 
-def _is_openrouter_key(api_key: str) -> bool:
-    """Check if the API key is an OpenRouter key."""
-    return api_key.startswith("sk-or-")
+def _extract_linkedin_username(linkedin_url: str | None) -> str | None:
+    """Extract a LinkedIn handle from a profile URL."""
+    if not linkedin_url:
+        return None
 
+    cleaned = linkedin_url.strip()
+    if not cleaned:
+        return None
+
+    cleaned = cleaned.replace("https://", "").replace("http://", "")
+    if cleaned.startswith("www."):
+        cleaned = cleaned[4:]
+
+    if "linkedin.com/" in cleaned:
+        cleaned = cleaned.split("linkedin.com/", 1)[1]
+
+    cleaned = cleaned.split("?", 1)[0].split("#", 1)[0].strip("/")
+    if not cleaned:
+        return None
+
+    parts = [p for p in cleaned.split("/") if p]
+    if not parts:
+        return None
+
+    if parts[0].lower() in {"in", "pub"} and len(parts) > 1:
+        return parts[1]
+
+    return parts[0]
 
 def _build_user_message(
     github_username: str | None,
@@ -237,6 +261,8 @@ async def run_agent(
 ) -> dict[str, Any]:
     """Run the TalentPredict agent and return a structured analysis."""
 
+    linkedin_username = _extract_linkedin_username(linkedin_url)
+
     # Check memory cache — skip if fresh content sources are provided (CV, portfolio,
     # LinkedIn text) since those inputs may have changed since the last run.
     cache_key = github_username or "unknown"
@@ -255,10 +281,16 @@ async def run_agent(
             github_username, portfolio_url, cv_text, linkedin_url, linkedin_content
         )
         if "error" not in result:
-            await memory.set(cache_key, result)
+            await memory.set(
+                cache_key,
+                result,
+                portfolio_url=portfolio_url,
+                linkedin_username=linkedin_username,
+                summary=result.get("summary", ""),
+            )
         return result
 
-    # OpenRouter/Anthropic require an API key
+    # Anthropic requires an API key when not using Ollama.
     if not api_key:
         return {"error": "ANTHROPIC_API_KEY is not configured."}
 
@@ -266,123 +298,17 @@ async def run_agent(
         github_username, portfolio_url, cv_text, linkedin_url, linkedin_content
     )
 
-    if _is_openrouter_key(api_key):
-        result = await _run_agent_openrouter(api_key, user_message, github_username)
-    else:
-        result = await _run_agent_anthropic(api_key, user_message, github_username)
+    result = await _run_agent_anthropic(api_key, user_message, github_username)
 
     if "error" not in result:
-        await memory.set(cache_key, result)
+        await memory.set(
+            cache_key,
+            result,
+            portfolio_url=portfolio_url,
+            linkedin_username=linkedin_username,
+            summary=result.get("summary", ""),
+        )
     return result
-
-
-def _anthropic_tools_to_openai_functions(tools: list[dict]) -> list[dict]:
-    """Convert Anthropic tool definitions to OpenAI function-calling format."""
-    functions = []
-    for tool in tools:
-        functions.append({
-            "type": "function",
-            "function": {
-                "name": tool["name"],
-                "description": tool.get("description", ""),
-                "parameters": tool["input_schema"],
-            },
-        })
-    return functions
-
-
-async def _run_agent_openrouter(
-    api_key: str,
-    user_message: str,
-    github_username: str | None,
-) -> dict[str, Any]:
-    """Run the agent via OpenRouter (OpenAI-compatible API)."""
-    base_url = os.getenv("ANTHROPIC_BASE_URL", "https://openrouter.ai/api/v1")
-    model = os.getenv(
-        "ANTHROPIC_MODEL",
-        "llama3.1:8b" if _is_ollama() else "anthropic/claude-sonnet-4",
-    )
-    tools = _anthropic_tools_to_openai_functions(TOOL_DEFINITIONS)
-
-    messages: list[dict[str, Any]] = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": user_message},
-    ]
-
-    # Ollama does not require Authorization; other OpenAI-compatible hosts may
-    headers = {"Content-Type": "application/json"}
-    if api_key and not _is_ollama():
-        headers["Authorization"] = f"Bearer {api_key}"
-
-    async with httpx.AsyncClient(timeout=120) as http_client:
-        for iteration in range(MAX_ITERATIONS):
-            logger.info("Agent iteration %d (OpenRouter/Ollama)", iteration + 1)
-
-            payload = {
-                "model": model,
-                "max_tokens": 4096,
-                "messages": messages,
-                "tools": tools,
-            }
-
-            try:
-                resp = await http_client.post(
-                    f"{base_url.rstrip('/')}/chat/completions",
-                    headers=headers,
-                    json=payload,
-                )
-                resp.raise_for_status()
-                data = resp.json()
-            except httpx.HTTPStatusError as exc:
-                body = exc.response.text[:500]
-                logger.error("OpenRouter HTTP error %s: %s", exc.response.status_code, body)
-                return {"error": f"Erreur API OpenRouter ({exc.response.status_code}): {body}"}
-            except httpx.RequestError as exc:
-                logger.error("OpenRouter request error: %s", exc)
-                return {"error": f"Erreur réseau OpenRouter: {exc}"}
-
-            if "error" in data:
-                err_msg = data["error"].get("message", str(data["error"]))
-                logger.error("OpenRouter API error: %s", err_msg)
-                return {"error": f"Erreur API OpenRouter: {err_msg}"}
-
-            choice = data["choices"][0]
-            assistant_msg = choice["message"]
-            finish_reason = choice.get("finish_reason", "")
-
-            # Add assistant message to conversation
-            messages.append(assistant_msg)
-
-            tool_calls = assistant_msg.get("tool_calls")
-            if not tool_calls or finish_reason == "stop":
-                # Agent is done — extract final text
-                final_text = assistant_msg.get("content", "") or ""
-                return _parse_final_response(final_text, github_username)
-
-            # Process tool calls
-            for tc in tool_calls:
-                func = tc["function"]
-                tool_name = func["name"]
-                try:
-                    input_args = json.loads(func["arguments"])
-                except json.JSONDecodeError:
-                    input_args = {}
-
-                logger.info("Calling tool: %s", tool_name)
-                try:
-                    tool_output = await _dispatch_tool(tool_name, input_args)
-                except Exception as exc:
-                    logger.error("Tool %s failed: %s", tool_name, exc)
-                    tool_output = {"error": str(exc)}
-
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tc["id"],
-                    "content": json.dumps(tool_output, default=str),
-                })
-
-    return {"error": "Agent exceeded maximum iterations without completing analysis."}
-
 
 async def _run_agent_anthropic(
     api_key: str,

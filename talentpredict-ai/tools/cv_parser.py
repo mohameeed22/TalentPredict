@@ -17,21 +17,134 @@ logger = logging.getLogger(__name__)
 
 # Broad list of tech keywords to look for (case-insensitive matching)
 TECH_KEYWORDS: list[str] = [
+    # Languages
     "Python", "Java", "JavaScript", "TypeScript", "C#", "C\\+\\+", "C",
-    "Go", "Rust", "Ruby", "PHP", "Swift", "Kotlin", "Scala", "R",
-    "SQL", "NoSQL", "HTML", "CSS", "Sass", "LESS",
-    "React", "Angular", "Vue", "Svelte", "Next\\.js", "Nuxt",
+    "Go", "Golang", "Rust", "Ruby", "PHP", "Swift", "Kotlin", "Scala",
+    "R", "MATLAB", "Julia", "Perl", "Lua", "Haskell", "Elixir", "Erlang",
+    "Clojure", "F#", "OCaml", "Dart", "Zig", "Nim", "Groovy", "VBA",
+    "Bash", "Shell", "PowerShell", "SQL", "PL/SQL", "T-SQL", "NoSQL",
+    "HTML", "CSS", "Sass", "LESS", "COBOL", "Fortran", "Assembly",
+    "Solidity", "Vyper", "Move", "Objective-C", "ABAP", "Apex",
+
+    # Frontend Frameworks & Libraries
+    "React", "Angular", "Vue", "Svelte", "SvelteKit", "Next\\.js", "Nuxt",
+    "Gatsby", "Remix", "Astro", "SolidJS", "Qwik", "Ember\\.js", "Preact",
+    "HTMX", "Alpine\\.js", "Lit", "Web Components",
+
+    # CSS Frameworks & UI
+    "Tailwind CSS", "Bootstrap", "Material UI", "Chakra UI", "shadcn/ui",
+    "Ant Design", "Mantine", "DaisyUI", "Radix UI", "Bulma",
+    "Styled Components", "Emotion", "Framer Motion", "GSAP",
+    "Three\\.js", "D3\\.js",
+
+    # Backend Frameworks
     "Spring Boot", "Spring", "Django", "Flask", "FastAPI", "Express",
-    "Node\\.js", "Rails", "Laravel", "ASP\\.NET", ".NET", "Blazor",
-    "Flutter", "React Native", "Ionic",
-    "Docker", "Kubernetes", "AWS", "Azure", "GCP", "Terraform", "Ansible",
-    "Jenkins", "GitHub Actions", "GitLab CI", "CI/CD",
-    "PostgreSQL", "MySQL", "MongoDB", "Redis", "Elasticsearch",
-    "GraphQL", "REST", "gRPC", "Kafka", "RabbitMQ",
-    "TensorFlow", "PyTorch", "Scikit-learn", "Pandas", "NumPy",
-    "Git", "Linux", "Nginx", "Apache",
-    "Figma", "Jira", "Confluence",
-    "Microservices", "Agile", "Scrum", "DevOps",
+    "NestJS", "Fastify", "Koa", "Hapi\\.js", "Node\\.js", "Rails",
+    "Laravel", "Symfony", "CodeIgniter", "Phoenix", "Ktor", "Quarkus",
+    "Micronaut", "Gin", "Fiber", "Echo", "Actix", "Axum",
+    "ASP\\.NET", "\\.NET", "Blazor", "Strapi", "Directus", "Payload CMS",
+
+    # Mobile
+    "Flutter", "React Native", "Expo", "Ionic", "Capacitor", "Cordova",
+    "SwiftUI", "UIKit", "Jetpack Compose", "\\.NET MAUI", "Xamarin",
+
+    # Databases & Storage
+    "PostgreSQL", "MySQL", "MariaDB", "MongoDB", "Redis", "Elasticsearch",
+    "SQLite", "Cassandra", "DynamoDB", "Firestore", "Firebase",
+    "CockroachDB", "Neo4j", "InfluxDB", "TimescaleDB", "ClickHouse",
+    "Snowflake", "BigQuery", "Redshift", "Oracle DB", "SQL Server",
+    "CouchDB", "Couchbase", "FaunaDB", "PlanetScale", "Supabase",
+    "Neon", "Turso",
+
+    # ORMs & Query Builders
+    "Prisma", "TypeORM", "Sequelize", "Drizzle ORM", "SQLAlchemy",
+    "Hibernate", "GORM", "Active Record",
+
+    # DevOps & Infrastructure
+    "Docker", "Kubernetes", "Helm", "Istio", "ArgoCD", "Podman",
+    "AWS", "Azure", "GCP", "Vercel", "Netlify", "Heroku", "Render",
+    "Fly\\.io", "Cloudflare", "DigitalOcean",
+    "Terraform", "Ansible", "Pulumi", "Vagrant", "Packer",
+    "Jenkins", "GitHub Actions", "GitLab CI", "CircleCI", "Travis CI",
+    "CI/CD", "DevOps", "DevSecOps", "SRE",
+    "Prometheus", "Grafana", "Datadog", "Splunk", "New Relic",
+    "OpenTelemetry", "Sentry", "PagerDuty",
+    "Nginx", "Apache", "Caddy", "HAProxy",
+    "Linux", "Ubuntu", "Debian", "Fedora", "RHEL", "Arch Linux",
+    "Serverless", "AWS CDK", "CloudFormation",
+    "Vault", "Consul", "Nomad",
+
+    # APIs & Protocols
+    "GraphQL", "REST", "gRPC", "tRPC", "WebSockets", "MQTT",
+    "OpenAPI", "Swagger", "OAuth", "OAuth 2\\.0", "JWT", "SAML",
+    "OpenID Connect",
+
+    # Messaging & Streaming
+    "Kafka", "RabbitMQ", "NATS", "Amazon SQS", "Google Pub/Sub",
+    "Celery", "Redis Streams", "ActiveMQ", "Apache Pulsar",
+    "Amazon Kinesis",
+
+    # AI & Machine Learning
+    "TensorFlow", "PyTorch", "Scikit-learn", "Keras", "JAX",
+    "Pandas", "NumPy", "SciPy", "Matplotlib", "Seaborn", "Plotly",
+    "Machine Learning", "Deep Learning", "NLP", "Computer Vision",
+    "LLMs", "Generative AI", "RAG", "Prompt Engineering",
+    "LangChain", "LlamaIndex", "Hugging Face", "Diffusers",
+    "OpenAI API", "Anthropic API", "Ollama", "vLLM", "llama\\.cpp",
+    "LangGraph", "CrewAI", "AutoGen",
+    "MLflow", "DVC", "Weights & Biases", "Ray", "Dask",
+    "Apache Spark", "PySpark", "Apache Airflow", "Prefect", "Dagster",
+    "XGBoost", "LightGBM", "OpenCV", "spaCy", "NLTK",
+    "ONNX", "Triton",
+
+    # Vector Databases
+    "Pinecone", "Weaviate", "Qdrant", "ChromaDB", "Milvus",
+    "Vector Databases",
+
+    # Testing
+    "Jest", "Vitest", "Cypress", "Playwright", "Selenium",
+    "Pytest", "RSpec", "JUnit", "TestNG", "Mocha", "Chai",
+    "Jasmine", "Storybook", "Testing Library",
+    "TDD", "BDD",
+
+    # Build Tools & Runtimes
+    "Webpack", "Vite", "Rollup", "esbuild", "Parcel", "Turbopack",
+    "Turborepo", "Nx", "Bazel", "Gradle", "Maven", "Cargo",
+    "Bun", "Deno", "pnpm", "Yarn", "npm", "CMake",
+
+    # Version Control & Collaboration
+    "Git", "GitHub", "GitLab", "Bitbucket",
+
+    # Architecture & Patterns
+    "Microservices", "Monorepo", "Event-Driven Architecture",
+    "Domain-Driven Design", "CQRS", "Clean Architecture",
+    "Hexagonal Architecture", "API Gateway", "Service Mesh",
+    "SOLID Principles", "Design Patterns",
+
+    # Security
+    "OWASP", "Penetration Testing", "SOC 2", "Zero Trust",
+    "Cryptography", "SIEM", "Cloud Security",
+
+    # Methodology
+    "Agile", "Scrum", "Kanban", "Lean", "SAFe",
+    "Pair Programming", "Code Review", "Extreme Programming",
+
+    # Design & Product
+    "Figma", "Adobe XD", "Sketch", "Zeplin", "Miro",
+    "Design Systems", "Accessibility", "WCAG",
+
+    # Project & Analytics Tools
+    "Jira", "Confluence", "Notion", "Linear", "Asana", "Trello",
+    "Tableau", "Power BI", "Looker", "Google Analytics",
+    "Mixpanel", "Amplitude", "PostHog", "Segment",
+
+    # CMS & E-commerce
+    "WordPress", "Shopify", "Contentful", "Sanity", "Storyblok",
+    "Webflow",
+
+    # Blockchain & Web3
+    "Ethereum", "Solana", "Hardhat", "Foundry", "Ethers\\.js",
+    "Web3\\.js", "IPFS", "Smart Contracts", "Web3", "Blockchain",
 ]
 
 

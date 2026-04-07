@@ -4,14 +4,14 @@
 /* ===== CSS Custom Properties (Design Tokens) ===== */
 :root {
   /* Brand Colors */
-  --primary: #6366f1;
-  --primary-dark: #4f46e5;
-  --primary-light: #818cf8;
-  --primary-bg: rgba(99, 102, 241, 0.08);
-  --primary-border: rgba(99, 102, 241, 0.25);
+  --primary: #1d4ed8;
+  --primary-dark: #1e40af;
+  --primary-light: #3b82f6;
+  --primary-bg: rgba(29, 78, 216, 0.1);
+  --primary-border: rgba(29, 78, 216, 0.28);
 
-  --secondary: #8b5cf6;
-  --accent: #06b6d4;
+  --secondary: #0f766e;
+  --accent: #14b8a6;
 
   /* Semantic Colors */
   --success: #22c55e;
@@ -24,17 +24,17 @@
   --info-bg: rgba(59, 130, 246, 0.08);
 
   /* Neutrals */
-  --bg-body: #f8fafc;
+  --bg-body: #f3f7fc;
   --bg-card: #ffffff;
-  --bg-sidebar: #1e1b4b;
-  --bg-sidebar-hover: #312e81;
-  --bg-sidebar-active: #4338ca;
+  --bg-sidebar: #0f1f3d;
+  --bg-sidebar-hover: #16305f;
+  --bg-sidebar-active: #1d4ed8;
 
   --text-primary: #1e293b;
   --text-secondary: #64748b;
   --text-muted: #94a3b8;
   --text-white: #ffffff;
-  --text-sidebar: #c7d2fe;
+  --text-sidebar: #bfdbfe;
   --text-sidebar-active: #ffffff;
 
   --border: #e2e8f0;
@@ -81,7 +81,7 @@ html {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-body);
   color: var(--text-primary);
   line-height: 1.6;
@@ -100,6 +100,7 @@ a:hover {
 
 /* ===== Typography ===== */
 h1, h2, h3, h4, h5, h6 {
+  font-family: 'Sora', 'Manrope', 'Segoe UI', sans-serif;
   font-weight: 700;
   line-height: 1.3;
   color: var(--text-primary);

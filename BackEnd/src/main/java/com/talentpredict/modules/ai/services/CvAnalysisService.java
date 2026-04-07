@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
-import java.net.URL;
+import java.net.URI;
 import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -112,7 +112,7 @@ public class CvAnalysisService {
                 }
             } else {
                 // External URL - fetch via HTTP
-                URLConnection connection = new URL(cvUrl).openConnection();
+                URLConnection connection = URI.create(cvUrl).toURL().openConnection();
                 connection.setConnectTimeout(10_000);
                 connection.setReadTimeout(15_000);
                 connection.setRequestProperty("User-Agent", "TalentPredict-App/1.0");

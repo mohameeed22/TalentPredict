@@ -37,10 +37,12 @@ public class Ticket {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
+    @Builder.Default
     private StatutTicket statut = StatutTicket.OUVERT;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
+    @Builder.Default
     private PrioriteTicket priorite = PrioriteTicket.MOYENNE;
 
     @Column(name = "assignee", length = 200)

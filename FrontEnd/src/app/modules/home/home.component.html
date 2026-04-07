@@ -1,201 +1,258 @@
 <div class="landing">
-  <!-- Navbar -->
+  <div class="backdrop backdrop-a" aria-hidden="true"></div>
+  <div class="backdrop backdrop-b" aria-hidden="true"></div>
+  <div class="mesh" aria-hidden="true"></div>
+
   <nav class="nav">
     <div class="nav-inner">
-      <a class="nav-logo" routerLink="/">
-        <svg viewBox="0 0 32 32" fill="none" width="32" height="32">
-          <rect width="32" height="32" rx="8" fill="url(#gN)"/>
-          <path d="M10 22V12l6-4 6 4v10l-6 4-6-4z" stroke="#fff" stroke-width="2" fill="none"/>
-          <circle cx="16" cy="16" r="3" fill="#fff"/>
-          <defs><linearGradient id="gN" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>
-        </svg>
+      <a class="brand" routerLink="/" aria-label="Accueil TalentPredict">
+        <img class="brand-icon" src="favicon.ico" alt="TalentPredict logo" width="32" height="32" />
         <span>TalentPredict</span>
       </a>
-      <div class="nav-links">
-        <a routerLink="/auth/login" class="link-login">Se connecter</a>
-        <a routerLink="/auth/register" class="link-register">Commencer</a>
+
+      <div class="nav-menu">
+        <a href="#features">Fonctionnalit&eacute;s</a>
+        <a href="#workflow">Process</a>
+        <a href="#results">R&eacute;sultats</a>
+      </div>
+
+      <div class="nav-actions">
+        <a routerLink="/auth/login" class="btn-nav btn-nav-muted">Se connecter</a>
+        <a routerLink="/auth/register" class="btn-nav btn-nav-solid">D&eacute;marrer</a>
       </div>
     </div>
   </nav>
 
-  <!-- Hero -->
-  <section class="hero">
-    <div class="hero-bg">
-      <div class="orb orb-1"></div>
-      <div class="orb orb-2"></div>
-      <div class="orb orb-3"></div>
-      <div class="grid-overlay"></div>
-    </div>
+  <header class="hero">
+    <div class="hero-grid">
+      <div class="hero-copy" data-reveal>
+        <p class="hero-pill">
+          <span class="hero-pill-dot"></span>
+          IA &amp; psychologie appliqu&eacute;e &agrave; la performance RH
+        </p>
 
-    <div class="hero-inner">
-      <div class="hero-chip">
-        <span class="chip-dot"></span>
-        Intelligence RH de nouvelle g&eacute;n&eacute;ration
-      </div>
+        <h1>
+          Transformez vos d&eacute;cisions talents
+          <span>en avantage comp&eacute;titif</span>
+        </h1>
 
-      <h1>
-        Lib&eacute;rez le plein<br/>
-        <span class="accent">potentiel</span> de chaque collaborateur
-      </h1>
+        <p class="hero-text">
+          TalentPredict unifie l'&eacute;valuation PCM, l'analyse technique et les recommandations
+          de progression pour aider les managers et RH &agrave; prendre des d&eacute;cisions rapides,
+          mesurables et align&eacute;es business.
+        </p>
 
-      <p class="hero-desc">
-        TalentPredict combine le mod&egrave;le PCM, l'analyse de comp&eacute;tences techniques
-        et l'IA pour cartographier les talents, renforcer la coh&eacute;sion des &eacute;quipes
-        et acc&eacute;l&eacute;rer le d&eacute;veloppement professionnel.
-      </p>
-
-      <div class="hero-cta">
-        <a routerLink="/auth/register" class="cta-primary">
-          Cr&eacute;er un compte gratuit
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
-        <a routerLink="/auth/login" class="cta-secondary">
-          D&eacute;j&agrave; membre ? Connexion
-        </a>
-      </div>
-
-      <!-- Metrics -->
-      <div class="hero-metrics">
-        <div class="metric">
-          <strong>6</strong>
-          <span>profils PCM identifi&eacute;s</span>
+        <div class="hero-actions">
+          <a routerLink="/auth/register" class="cta cta-main">
+            Essai gratuit
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </a>
+          <a routerLink="/auth/login" class="cta cta-ghost">Acc&eacute;der &agrave; la plateforme</a>
         </div>
-        <div class="metric-sep"></div>
-        <div class="metric">
-          <strong>&lt; 15 min</strong>
-          <span>pour compl&eacute;ter le test</span>
-        </div>
-        <div class="metric-sep"></div>
-        <div class="metric">
-          <strong>360&deg;</strong>
-          <span>vue des comp&eacute;tences</span>
+
+        <div class="hero-kpis">
+          <article class="kpi-card" data-reveal>
+            <strong>+32%</strong>
+            <span>engagement moyen des &eacute;quipes</span>
+          </article>
+          <article class="kpi-card" data-reveal>
+            <strong>10 min</strong>
+            <span>pour lancer une &eacute;valuation cibl&eacute;e</span>
+          </article>
+          <article class="kpi-card" data-reveal>
+            <strong>360&deg;</strong>
+            <span>vision comp&eacute;tences et potentiel</span>
+          </article>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- Social Proof -->
-  <section class="proof">
-    <div class="proof-inner">
-      <p>Utilis&eacute; par les &eacute;quipes RH, managers et collaborateurs pour prendre de meilleures d&eacute;cisions talent.</p>
-    </div>
-  </section>
-
-  <!-- Features -->
-  <section class="features" id="features">
-    <div class="features-inner">
-      <div class="section-label">Fonctionnalit&eacute;s cl&eacute;s</div>
-      <h2 class="section-heading">Un &eacute;cosyst&egrave;me complet pour la gestion des talents</h2>
-      <p class="section-sub">De l'&eacute;valuation individuelle au pilotage collectif, chaque outil est con&ccedil;u pour g&eacute;n&eacute;rer un impact mesurable.</p>
-
-      <div class="f-grid">
-        <div class="f-card">
-          <div class="f-icon f-purple">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      <div class="hero-visual" data-reveal>
+        <div class="insight-card float-soft">
+          <div class="insight-head">
+            <div>
+              <p class="insight-label">Talent Health Monitor</p>
+              <h2>Vue ex&eacute;cutive</h2>
+            </div>
+            <span class="signal-live">LIVE</span>
           </div>
-          <h3>&Eacute;valuation PCM</h3>
-          <p>Identifiez le type de personnalit&eacute; dominant de chaque collaborateur gr&acirc;ce au Process Communication Model&reg; valid&eacute; scientifiquement.</p>
-        </div>
 
-        <div class="f-card">
-          <div class="f-icon f-blue">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          <div class="score-ring">
+            <div>
+              <strong>92</strong>
+              <span>Score global</span>
+            </div>
           </div>
-          <h3>Analyse GitHub</h3>
-          <p>Connectez vos repos pour obtenir une cartographie automatique des comp&eacute;tences techniques et de l'&eacute;volution de chaque d&eacute;veloppeur.</p>
-        </div>
 
-        <div class="f-card">
-          <div class="f-icon f-emerald">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+          <div class="bars">
+            <div class="bar-item">
+              <div class="bar-meta">
+                <span>Couverture skills</span>
+                <strong>84%</strong>
+              </div>
+              <div class="bar-track"><i class="bar-fill fill-a"></i></div>
+            </div>
+            <div class="bar-item">
+              <div class="bar-meta">
+                <span>Risque de d&eacute;part</span>
+                <strong>18%</strong>
+              </div>
+              <div class="bar-track"><i class="bar-fill fill-b"></i></div>
+            </div>
+            <div class="bar-item">
+              <div class="bar-meta">
+                <span>Progression learning</span>
+                <strong>76%</strong>
+              </div>
+              <div class="bar-track"><i class="bar-fill fill-c"></i></div>
+            </div>
           </div>
-          <h3>Parcours de formation</h3>
-          <p>Recommandations de formation adapt&eacute;es au profil, au niveau et aux objectifs de carri&egrave;re de chaque individu.</p>
-        </div>
 
-        <div class="f-card">
-          <div class="f-icon f-amber">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          <div class="activity-list">
+            <div class="activity-item">
+              <span class="dot"></span>
+              <p>Profil PCM finalis&eacute; pour Equipe Produit</p>
+            </div>
+            <div class="activity-item">
+              <span class="dot"></span>
+              <p>Recommandations de formation publi&eacute;es</p>
+            </div>
+            <div class="activity-item">
+              <span class="dot"></span>
+              <p>Analyse GitHub synchronis&eacute;e il y a 2 min</p>
+            </div>
           </div>
-          <h3>Dashboard analytique</h3>
-          <p>Tableaux de bord temps r&eacute;el avec KPIs individuels et collectifs pour piloter le d&eacute;veloppement des &eacute;quipes.</p>
-        </div>
-
-        <div class="f-card">
-          <div class="f-icon f-rose">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-          </div>
-          <h3>Administration RH</h3>
-          <p>G&eacute;rez les utilisateurs, attribuez les r&ocirc;les, suivez les &eacute;valuations et exportez les rapports d'&eacute;quipe.</p>
-        </div>
-
-        <div class="f-card">
-          <div class="f-icon f-cyan">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
-          <h3>S&eacute;curit&eacute; &amp; conformit&eacute;</h3>
-          <p>Authentification JWT, chiffrement des donn&eacute;es sensibles et architecture conforme aux normes RGPD.</p>
         </div>
       </div>
     </div>
-  </section>
+  </header>
 
-  <!-- Steps -->
-  <section class="steps">
-    <div class="steps-inner">
-      <div class="section-label">Comment &ccedil;a fonctionne</div>
-      <h2 class="section-heading">Op&eacute;rationnel en trois &eacute;tapes</h2>
-
-      <div class="steps-row">
-        <div class="step">
-          <div class="step-num">01</div>
-          <h3>Inscription</h3>
-          <p>Cr&eacute;ez votre compte en 30 secondes. Aucune carte bancaire requise, acc&egrave;s imm&eacute;diat &agrave; toutes les fonctionnalit&eacute;s.</p>
-        </div>
-        <div class="step-line"></div>
-        <div class="step">
-          <div class="step-num">02</div>
-          <h3>Diagnostic</h3>
-          <p>Passez le questionnaire PCM et connectez votre profil GitHub pour une analyse compl&egrave;te de votre potentiel.</p>
-        </div>
-        <div class="step-line"></div>
-        <div class="step">
-          <div class="step-num">03</div>
-          <h3>Action</h3>
-          <p>Consultez votre rapport d&eacute;taill&eacute;, suivez les recommandations et mesurez votre progression en temps r&eacute;el.</p>
-        </div>
+  <section class="trust" data-reveal>
+    <p>Adopt&eacute; par des &eacute;quipes RH en SaaS, conseil et industrie.</p>
+    <div class="ticker" aria-label="Secteurs utilisateurs">
+      <div class="ticker-track">
+        <span>People Ops</span>
+        <span>HR Tech</span>
+        <span>Engineering Managers</span>
+        <span>Talent Acquisition</span>
+        <span>Learning &amp; Development</span>
+        <span>People Ops</span>
+        <span>HR Tech</span>
+        <span>Engineering Managers</span>
+        <span>Talent Acquisition</span>
+        <span>Learning &amp; Development</span>
       </div>
     </div>
   </section>
 
-  <!-- CTA -->
-  <section class="bottom-cta">
-    <div class="bottom-cta-inner">
-      <div class="cta-card">
-        <div class="cta-glow"></div>
-        <h2>Pr&ecirc;t &agrave; transformer votre gestion des talents ?</h2>
-        <p>Rejoignez TalentPredict et donnez &agrave; vos &eacute;quipes les outils pour performer durablement.</p>
-        <a routerLink="/auth/register" class="cta-white">
-          D&eacute;marrer gratuitement
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
-      </div>
+  <section id="features" class="section features">
+    <div class="section-head" data-reveal>
+      <span class="section-kicker">Fonctionnalit&eacute;s premium</span>
+      <h2>Un cockpit complet pour piloter la croissance des talents</h2>
+      <p>Chaque module fournit des actions concr&egrave;tes, pas seulement des dashboards.</p>
+    </div>
+
+    <div class="feature-grid">
+      <article class="feature-card" data-reveal>
+        <h3>&Eacute;valuation PCM guid&eacute;e</h3>
+        <p>Profil psychologique clair, utilisable en management, communication et coaching.</p>
+      </article>
+      <article class="feature-card" data-reveal>
+        <h3>Analyse technique intelligente</h3>
+        <p>Lecture automatique des signaux GitHub pour objectiver les comp&eacute;tences tech.</p>
+      </article>
+      <article class="feature-card" data-reveal>
+        <h3>Scores d'alignement de poste</h3>
+        <p>Associez chaque collaborateur aux missions qui maximisent performance et motivation.</p>
+      </article>
+      <article class="feature-card" data-reveal>
+        <h3>Plans de progression cibl&eacute;s</h3>
+        <p>Recommandations de formation et objectifs personnalis&eacute;s, suivis en continu.</p>
+      </article>
+      <article class="feature-card" data-reveal>
+        <h3>Automatisation RH</h3>
+        <p>Rappels, reporting et workflows fluides pour acc&eacute;l&eacute;rer les d&eacute;cisions terrain.</p>
+      </article>
+      <article class="feature-card" data-reveal>
+        <h3>Conformit&eacute; et s&eacute;curit&eacute;</h3>
+        <p>Architecture robuste, gestion des acc&egrave;s par r&ocirc;le et bonnes pratiques RGPD.</p>
+      </article>
     </div>
   </section>
 
-  <!-- Footer -->
-  <footer class="foot">
-    <div class="foot-inner">
-      <div class="foot-brand">
-        <svg viewBox="0 0 32 32" fill="none" width="24" height="24">
-          <rect width="32" height="32" rx="8" fill="url(#gF)"/>
-          <path d="M10 22V12l6-4 6 4v10l-6 4-6-4z" stroke="#fff" stroke-width="2" fill="none"/>
-          <circle cx="16" cy="16" r="3" fill="#fff"/>
-          <defs><linearGradient id="gF" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>
+  <section id="workflow" class="section workflow">
+    <div class="section-head" data-reveal>
+      <span class="section-kicker">Mise en place rapide</span>
+      <h2>Votre &eacute;quipe op&eacute;rationnelle en trois &eacute;tapes</h2>
+    </div>
+
+    <div class="workflow-grid">
+      <article class="step-card" data-reveal>
+        <span class="step-number">01</span>
+        <h3>Onboard en quelques minutes</h3>
+        <p>Invitez vos collaborateurs et activez les r&ocirc;les sans friction.</p>
+      </article>
+      <article class="step-card" data-reveal>
+        <span class="step-number">02</span>
+        <h3>Mesurez le potentiel r&eacute;el</h3>
+        <p>Lancez PCM, comp&eacute;tences et diagnostics pour une vue fiable des forces.</p>
+      </article>
+      <article class="step-card" data-reveal>
+        <span class="step-number">03</span>
+        <h3>Activez vos plans d'action</h3>
+        <p>Pilotage continu des KPIs, progression et impact business de vos talents.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="results" class="section testimonials">
+    <div class="section-head" data-reveal>
+      <span class="section-kicker">Impact mesurable</span>
+      <h2>Ce que les &eacute;quipes constatent apr&egrave;s d&eacute;ploiement</h2>
+    </div>
+
+    <div class="testimonials-grid">
+      <article class="quote-card" data-reveal>
+        <p>
+          "En moins d'un trimestre, nous avons mieux align&eacute; nos talents avec les projets critiques."
+        </p>
+        <span>People Lead, Scale-up SaaS</span>
+      </article>
+      <article class="quote-card" data-reveal>
+        <p>
+          "Le mix PCM + data technique a chang&eacute; notre mani&egrave;re d'&eacute;valuer les potentiels internes."
+        </p>
+        <span>Responsable RH, Conseil IT</span>
+      </article>
+      <article class="quote-card" data-reveal>
+        <p>
+          "Les managers gagnent du temps et prennent des d&eacute;cisions plus solides, avec des preuves."
+        </p>
+        <span>Head of Engineering, FinTech</span>
+      </article>
+    </div>
+  </section>
+
+  <section class="final-cta" data-reveal>
+    <div class="final-cta-card">
+      <h2>Passez d'une gestion intuitive &agrave; une gestion pilot&eacute;e par la preuve</h2>
+      <p>Rejoignez TalentPredict et faites grandir vos &eacute;quipes avec pr&eacute;cision.</p>
+      <a routerLink="/auth/register" class="cta cta-main">
+        Cr&eacute;er mon espace
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+          <line x1="5" y1="12" x2="19" y2="12" />
+          <polyline points="12 5 19 12 12 19" />
         </svg>
-        <span>TalentPredict</span>
-      </div>
-      <span class="foot-copy">&copy; 2026 TalentPredict &mdash; Tous droits r&eacute;serv&eacute;s</span>
+      </a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <span class="footer-brand">TalentPredict</span>
+      <span class="footer-copy">&copy; 2026 TalentPredict - Tous droits r&eacute;serv&eacute;s</span>
     </div>
   </footer>
 </div>

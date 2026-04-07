@@ -13,6 +13,7 @@ import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.shared.exception.ResourceNotFoundException;
 
 @Service
+@SuppressWarnings("null")
 public class RecommendationService {
 
     private final RecommendationRepository recommendationRepository;

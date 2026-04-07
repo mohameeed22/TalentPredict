@@ -1,12 +1,16 @@
 package com.talentpredict.modules.auth.services;
 
+import java.util.Objects;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.talentpredict.modules.auth.entities.AuditLog;
 import com.talentpredict.modules.auth.repositories.AuditLogRepository;
 import com.talentpredict.modules.user.entities.User;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -14,6 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuditLogService {
 
     private final AuditLogRepository auditLogRepository;
+
+    private void saveAudit(AuditLog audit) {
+        auditLogRepository.save(Objects.requireNonNull(audit, "audit must not be null"));
+    }
 
     @Transactional
     public void logLogin(User user, String ipAddress, String userAgent, String deviceId) {
@@ -26,7 +34,7 @@ public class AuditLogService {
             .deviceId(deviceId)
             .details("Successful login")
             .build();
-        auditLogRepository.save(audit);
+        saveAudit(audit);
         log.info("Audit: LOGIN for user {}", user.getEmail());
     }
 
@@ -39,7 +47,7 @@ public class AuditLogService {
             .ipAddress(ipAddress)
             .details("User logout")
             .build();
-        auditLogRepository.save(audit);
+        saveAudit(audit);
         log.info("Audit: LOGOUT for user {}", user.getEmail());
     }
 
@@ -52,7 +60,7 @@ public class AuditLogService {
             .userAgent(userAgent)
             .details("Failed login: " + reason)
             .build();
-        auditLogRepository.save(audit);
+        saveAudit(audit);
         log.warn("Audit: LOGIN_FAILED for email {}", email);
     }
 
@@ -65,7 +73,7 @@ public class AuditLogService {
             .ipAddress(ipAddress)
             .details("Password changed by user")
             .build();
-        auditLogRepository.save(audit);
+        saveAudit(audit);
         log.info("Audit: PASSWORD_CHANGE for user {}", user.getEmail());
     }
 
@@ -78,7 +86,7 @@ public class AuditLogService {
             .ipAddress(ipAddress)
             .details("Password reset via email link")
             .build();
-        auditLogRepository.save(audit);
+        saveAudit(audit);
         log.info("Audit: PASSWORD_RESET for user {}", user.getEmail());
     }
 
@@ -90,7 +98,7 @@ public class AuditLogService {
             .ipAddress(ipAddress)
             .details("Account locked due to too many failed login attempts")
             .build();
-        auditLogRepository.save(audit);
+        saveAudit(audit);
         log.warn("Audit: ACCOUNT_LOCKED for email {}", email);
     }
 
@@ -103,7 +111,7 @@ public class AuditLogService {
             .ipAddress(ipAddress)
             .details("MFA enabled")
             .build();
-        auditLogRepository.save(audit);
+        saveAudit(audit);
         log.info("Audit: MFA_ENABLED for user {}", user.getEmail());
     }
 }

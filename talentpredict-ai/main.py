@@ -8,10 +8,11 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+#cros allows us to make requests from the frontend (angular) to the backend (fastapi)  
 from api.analyze_candidate_route import router as analyze_router
 from api.analysis_routes import router as analysis_router
 from api.jobs_routes import router as jobs_router
+from api.parse_cv_route import router as parse_cv_router
 from api.recruiter_routes import router as recruiter_router
 from api.test_routes import router as test_router
 from db.database import init_db
@@ -29,7 +30,7 @@ app = FastAPI(
     title="TalentPredict AI Service",
     description=(
         "AI Agent microservice that analyzes developer hard skills from "
-        "GitHub, CV, and portfolio sources using Claude."
+        "GitHub, CV, and portfolio sources using ollama ."
     ),
     version="1.0.0",
 )
@@ -40,7 +41,7 @@ cors_origins = os.getenv(
     "http://localhost:4200,http://127.0.0.1:4200,http://localhost:3000",
 )
 origins = [o.strip() for o in cors_origins.split(",") if o.strip()]
-
+# modifiy string to list
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -51,11 +52,12 @@ app.add_middleware(
 
 # Include API routes
 app.include_router(analyze_router)
+app.include_router(parse_cv_router)
 app.include_router(test_router)
 app.include_router(analysis_router)
 app.include_router(jobs_router)
 app.include_router(recruiter_router)
-
+#every router become an endpoint in the backend, for example: /api/analyze, /api/test, /api/analysis, /api/jobs, /api/ recruiter
 
 @app.on_event("startup")
 async def startup() -> None:

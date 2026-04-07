@@ -30,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/api/test")
 @RequiredArgsConstructor
 @Slf4j
+@SuppressWarnings("null")
 public class TestController {
 
     private final TalentPredictAiProxyService aiProxyService;
