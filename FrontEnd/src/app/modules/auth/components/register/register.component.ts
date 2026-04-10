@@ -53,8 +53,14 @@ export class RegisterComponent {
           this.router.navigateByUrl(redirectUrl).then(() => this.appRef.tick());
         },
         error: (error) => {
-          const msg = error?.error?.message || 'Erreur lors de l\'inscription';
-          this.notificationService.error(msg);
+          if (error.status === 409) {
+            this.notificationService.error('Un compte avec cet email existe déjà. Veuillez vous connecter.');
+          } else if (error.status === 400) {
+            this.notificationService.error('Données invalides. Vérifiez le formulaire.');
+          } else {
+            const msg = error?.error?.message || 'Erreur lors de l\'inscription. Réessayez.';
+            this.notificationService.error(msg);
+          }
           this.loading = false;
         },
         complete: () => {

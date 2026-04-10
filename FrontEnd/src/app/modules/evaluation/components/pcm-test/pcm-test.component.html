@@ -24,7 +24,7 @@
       <div class="progress-fill" [style.width.%]="progress"></div>
     </div>
     <div class="step-dots">
-      @for (step of [0,1,2,3,4,5]; track step) {
+      @for (step of [0,1,2,3,4,5,6,7,8]; track step) {
         <div class="step-dot" 
              [class.active]="step === currentStep" 
              [class.completed]="step < currentStep"

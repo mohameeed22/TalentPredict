@@ -116,6 +116,12 @@ public class User {
     @JsonIgnore
     @ToString.Exclude
     @Builder.Default
+    private List<Recommendation> recommendations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
+    @Builder.Default
     private List<CompetenceAccount> competences = new ArrayList<>();
 
     // audits

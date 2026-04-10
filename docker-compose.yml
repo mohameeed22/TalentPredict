@@ -63,6 +63,62 @@ services:
     restart: on-failure
 
   # ============================================
+  # CV Text Extraction Service (Python)
+  # Called by n8n and Backend for PDF/DOCX parsing
+  # ============================================
+  cv-extractor:
+    build:
+      context: ./talentpredict-ai
+      dockerfile: Dockerfile.cv-extractor
+    container_name: talentpredict-cv-extractor
+    environment:
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "9000:9000"
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - talentpredict-net
+
+  # ============================================
+  # n8n Workflow Engine (SQLite embedded)
+  # ============================================
+  n8n:
+    build:
+      context: ./n8n-custom
+      dockerfile: Dockerfile
+    container_name: talentpredict-n8n
+    depends_on:
+      cv-extractor:
+        condition: service_healthy
+    environment:
+      DB_TYPE: sqlite
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-MinimumSixteenCharactersKey}
+      N8N_HOST: 0.0.0.0
+      N8N_PORT: 5678
+      WEBHOOK_URL: http://localhost:5678/
+      N8N_EDITOR_BASE_URL: http://localhost:5678/
+      NODE_ENV: production
+      TZ: UTC
+      CV_EXTRACTOR_URL: http://cv-extractor:9000
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5678/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - talentpredict-net
+
+  # ============================================
   # Angular Frontend (served via nginx)
   # ============================================
   frontend:
@@ -81,7 +137,10 @@ services:
 
 volumes:
   postgres_data:
+  n8n_data:
 
 networks:
   talentpredict-net:
     driver: bridge
+
+

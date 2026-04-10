@@ -9,7 +9,8 @@ export interface PersonalityTest {
 }
 
 export interface PersonalityTestRequest {
-  responses: { [key: string]: string };
+  reponses: { [key: string]: string };
+  typeTest?: string;
 }
 
 export interface PersonalityTestResponse {

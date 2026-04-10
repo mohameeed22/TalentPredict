@@ -98,6 +98,20 @@
     </div>
   </div>
 
+  <div class="card score-pie-card">
+    <h2 class="card-title">Répartition des scores du dernier test</h2>
+    <app-pie-chart
+      [slices]="scorePieSlices"
+      [size]="190"
+      [strokeWidth]="26"
+      centerLabel="Dernier test"
+      [centerValue]="(lastTestOverallScore ?? 0) + '%'"
+    ></app-pie-chart>
+    @if (lastTestDate) {
+    <p class="last-test-date">Date: {{ lastTestDate | date: 'dd MMM yyyy, HH:mm' }}</p>
+    }
+  </div>
+
   <!-- Details Grid -->
   <div class="details-grid">
     <!-- Skills Radar -->
@@ -170,6 +184,74 @@
           <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
         </svg>
         <p>Aucune formation en cours</p>
+      </div>
+      }
+    </div>
+
+    <!-- Recent Tests -->
+    <div class="detail-card full-width">
+      <div class="detail-header">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 11l3 3L22 4" />
+          <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+        </svg>
+        <h2>Tests Récents</h2>
+      </div>
+      @if (dashboardData.testsRecents && dashboardData.testsRecents.length > 0) {
+      <div class="tests-list">
+        @for (test of dashboardData.testsRecents; track test.id) {
+        <div class="test-card">
+          <div class="test-header">
+            <div class="test-date">
+              <span class="date-label">{{ test.dateTest | date: 'dd MMM yyyy, HH:mm' }}</span>
+            </div>
+            @if (test.overallScore) {
+            <div class="test-score">
+              <span class="score-value">{{ test.overallScore }}%</span>
+              <span class="score-label">Score global</span>
+            </div>
+            }
+          </div>
+          
+          @if (test.personalityType) {
+          <div class="personality-section">
+            <span class="personality-label">Type de personnalité:</span>
+            <span class="personality-type">{{ test.personalityType }}</span>
+          </div>
+          }
+
+          @if (test.softSkillsScores && (test.softSkillsScores | keyvalue).length > 0) {
+          <div class="skills-section">
+            <span class="section-label">Scores Soft Skills:</span>
+            <div class="skills-grid">
+              @for (skill of test.softSkillsScores | keyvalue; track skill.key) {
+              <div class="skill-score">
+                <span class="skill-name">{{ skill.key }}</span>
+                <div class="score-bar">
+                  <div class="score-fill" [style.width.%]="skill.value * 10"></div>
+                </div>
+                <span class="score-num">{{ skill.value }}/10</span>
+              </div>
+              }
+            </div>
+          </div>
+          }
+
+          @if (test.summary) {
+          <div class="summary-section">
+            <p>{{ test.summary }}</p>
+          </div>
+          }
+        </div>
+        }
+      </div>
+      } @else {
+      <div class="empty-state">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 11l3 3L22 4" />
+          <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+        </svg>
+        <p>Aucun test complété</p>
       </div>
       }
     </div>

@@ -148,6 +148,17 @@
     </div>
   </div>
 
+  <div class="card score-pie-card">
+    <h2 class="card-title">Répartition des scores du dernier test {{ pieOwner ? '(' + pieOwner + ')' : '' }}</h2>
+    <app-pie-chart
+      [slices]="overviewPieSlices"
+      [size]="190"
+      [strokeWidth]="26"
+      centerLabel="Dernier test"
+      [centerValue]="(pieLastTestOverallScore ?? 0) + '%'"
+    ></app-pie-chart>
+  </div>
+
   <!-- TASK 2: Employee Table -->
   <div class="employees-section">
     <div class="section-header">
@@ -178,8 +189,7 @@
             <th>Département</th>
             <th>Formations</th>
             <th>Tests</th>
-            <th>Risque</th>
-            <th>Readiness</th>
+            <th>Type de personnalité</th>
             <th>Statut</th>
           </tr>
         </thead>
@@ -201,6 +211,7 @@
             <td>
               <span class="badge badge-purple">{{ emp.testCount }}</span>
             </td>
+            <td>{{ emp.personalityType || '—' }}</td>
             <td>
               <span class="risk-badge" [class]="getRiskClass(emp.id)">{{ getRiskLabel(emp.id) }}</span>
             </td>

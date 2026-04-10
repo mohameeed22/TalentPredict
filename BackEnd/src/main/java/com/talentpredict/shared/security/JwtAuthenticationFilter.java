@@ -75,9 +75,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             if (jwtService.validateToken(jwt, userDetails.getUsername())) {
-                // Keep the UserDetailsImpl as the authentication principal so
-                // controllers receiving @AuthenticationPrincipal UserDetailsImpl
-                // are populated correctly.
+                // Keep UserDetailsImpl as principal so getName() returns email
+                // (not the User entity toString)
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                     userDetails,
                     null,

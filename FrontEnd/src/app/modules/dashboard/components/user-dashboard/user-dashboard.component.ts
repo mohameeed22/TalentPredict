@@ -5,22 +5,19 @@ import { RouterModule } from '@angular/router';
 import { timeout } from 'rxjs/operators';
 import { DashboardService, EmployeeDashboardResponse } from '../../services/dashboard.service';
 import { AuthService } from '../../../auth/services/auth.service';
-import { SkillsRadarChartComponent } from '../skills-radar-chart/skills-radar-chart.component';
-import { BenchmarkService, CandidateProgressItem } from '../../../skill-test/services/benchmark.service';
-import { NotificationService } from '../../../../core/services/notification.service';
+import { PieChartComponent, PieChartSlice } from '../../../../shared/components/pie-chart/pie-chart.component';
 
 @Component({
   selector: 'app-user-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, SkillsRadarChartComponent],
+  imports: [CommonModule, RouterModule, PieChartComponent],
   templateUrl: './user-dashboard.component.html',
   styleUrls: ['./user-dashboard.component.scss']
 })
 export class UserDashboardComponent implements OnInit {
   private dashboardService = inject(DashboardService);
   private authService = inject(AuthService);
-  private benchmarkService = inject(BenchmarkService);
-  private notify = inject(NotificationService);
+  private readonly piePalette: string[] = ['#6366f1', '#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#14b8a6', '#f97316'];
 
   dashboardData: EmployeeDashboardResponse | null = null;
   recentSkillTests: CandidateProgressItem[] = [];
@@ -179,5 +176,48 @@ export class UserDashboardComponent implements OnInit {
 
   get scoreEvaluationMoyen(): number {
     return this.dashboardData?.scoreEvaluationMoyen ?? 0;
+  }
+
+  get lastTestOverallScore(): number | null {
+    const test = this.getLatestTest();
+    return typeof test?.overallScore === 'number' ? test.overallScore : null;
+  }
+
+  get lastTestDate(): Date | null {
+    const test = this.getLatestTest();
+    return test?.dateTest ? new Date(test.dateTest) : null;
+  }
+
+  get scorePieSlices(): PieChartSlice[] {
+    const test = this.getLatestTest();
+    const scores = test?.softSkillsScores;
+    if (!scores) {
+      return [];
+    }
+
+    const entries = Object.entries(scores)
+      .filter(([, value]) => typeof value === 'number' && value > 0)
+      .sort((a, b) => b[1] - a[1]);
+
+    return entries.map(([key, value], index) => ({
+      label: this.formatSkillLabel(key),
+      value,
+      color: this.piePalette[index % this.piePalette.length]
+    }));
+  }
+
+  private getLatestTest() {
+    const tests = this.dashboardData?.testsRecents ?? [];
+    if (!tests.length) {
+      return null;
+    }
+
+    return [...tests].sort((a, b) => new Date(b.dateTest).getTime() - new Date(a.dateTest).getTime())[0];
+  }
+
+  private formatSkillLabel(key: string): string {
+    return key
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
   }
 }

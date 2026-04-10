@@ -1,14 +1,28 @@
 package com.talentpredict.modules.dashboard.dto;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import com.talentpredict.modules.ai.dto.PredictionDto;
 import com.talentpredict.modules.formation.dto.FormationDto;
 import com.talentpredict.modules.skills.dto.SkillDto;
+
 import lombok.Data;
 
-import java.util.List;
-import java.util.UUID;
-
 public class DashboardDto {
+
+    /** Summary of one test result */
+    @Data
+    public static class TestSummaryDto {
+        private UUID id;
+        private LocalDateTime dateTest;
+        private String personalityType;
+        private Double overallScore;
+        private Map<String, Double> softSkillsScores;
+        private String summary;
+    }
 
     /** Employee dashboard response */
     @Data
@@ -26,6 +40,7 @@ public class DashboardDto {
         private Double scoreEvaluationMoyen;
         private List<SkillDto.Response> topSkills;
         private List<FormationDto.FormationResponse> formationsRecentes;
+        private List<TestSummaryDto> testsRecents;
         private PredictionDto.Response dernierePrediction;
     }
 
@@ -39,6 +54,7 @@ public class DashboardDto {
         private String department;
         private int formationCount;
         private int testCount;
+        private String personalityType;
         private boolean isActive;
         private String email;
     }

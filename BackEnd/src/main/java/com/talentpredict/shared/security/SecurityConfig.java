@@ -104,6 +104,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/skills/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/skills/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/skills/**").hasAnyRole("USER", "ADMIN")
+                        // Soft skills routes – USER or ADMIN
+                        .requestMatchers("/api/soft-skills/**").hasAnyRole("USER", "ADMIN")
                         // Personality test routes – USER or ADMIN
                         .requestMatchers(HttpMethod.GET, "/api/tests-personnalite/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/tests-personnalite/**").hasAnyRole("USER", "ADMIN")
