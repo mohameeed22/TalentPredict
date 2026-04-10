@@ -1,3 +1,8 @@
+-- Remove deprecated/unreferenced tables
+DROP TABLE IF EXISTS recommendation_items;
+DROP TABLE IF EXISTS recommendations;
+DROP TABLE IF EXISTS ai_async_jobs;
+
 -- Align users table with JPA entity fields used during auth/registration
 ALTER TABLE IF EXISTS users
     ADD COLUMN IF NOT EXISTS failed_login_attempts INTEGER NOT NULL DEFAULT 0,
@@ -51,15 +56,4 @@ CREATE TABLE IF NOT EXISTS candidate_badges (
     issued_at TIMESTAMPTZ,
     badge_svg_url VARCHAR(1000),
     CONSTRAINT uk_user_skill_badge UNIQUE (user_id, skill)
-);
-
-CREATE TABLE IF NOT EXISTS ai_async_jobs (
-    id UUID PRIMARY KEY,
-    job_type VARCHAR(50),
-    status VARCHAR(20),
-    payload TEXT,
-    result TEXT,
-    error TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    completed_at TIMESTAMPTZ
 );
