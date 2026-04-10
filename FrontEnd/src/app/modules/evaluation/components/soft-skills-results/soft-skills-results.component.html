@@ -1,0 +1,150 @@
+<div class="soft-skills-results container" *ngIf="result">
+  <div class="header">
+    <h1>Rapport d'Analyse Soft Skills</h1>
+    <p class="user-info">{{ result.userName }} ({{ result.userEmail }})</p>
+    <p class="user-info" *ngIf="result.personalityType">
+      Type de personnalite: <strong>{{ result.personalityType }}</strong>
+    </p>
+  </div>
+
+  <div class="panel overall-score-section">
+    <div class="score-card">
+      <div class="score-display" [style.color]="getScoreColor(result.overallScore)">
+        {{ result.overallScore | number: '1.1-1' }}
+        <span>/10</span>
+      </div>
+      <div class="score-info">
+        <h2>Score global</h2>
+        <p>
+          {{ result.overallScore >= 7.5 ? 'Excellent profil soft skills.' :
+             result.overallScore >= 5 ? 'Bon profil avec des axes de progression.' :
+             'Le plan de progression est prioritaire.' }}
+        </p>
+      </div>
+    </div>
+
+    <div class="sources-row">
+      <div class="source-card">
+        <div class="source-title">CV</div>
+        <div class="source-score">{{ getSourceScore('cv') | number: '1.1-1' }}</div>
+        <div class="source-weight">Poids 40%</div>
+      </div>
+      <div class="source-card">
+        <div class="source-title">GitHub</div>
+        <div class="source-score">{{ getSourceScore('github') | number: '1.1-1' }}</div>
+        <div class="source-weight">Poids 30%</div>
+      </div>
+      <div class="source-card">
+        <div class="source-title">PCM</div>
+        <div class="source-score">{{ getSourceScore('pcm') | number: '1.1-1' }}</div>
+        <div class="source-weight">Poids 30%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel skills-section">
+    <h2>Détail des Soft Skills</h2>
+    <div class="skills-grid">
+      <div *ngFor="let entry of getSkillEntries()" class="skill-card">
+        <div class="skill-header">
+          <h3>{{ getDisplaySkillName(entry.name) }}</h3>
+          <span class="skill-icon">{{ skillIcons[entry.name] || '⭐' }}</span>
+        </div>
+        <div class="skill-bar-container">
+          <div class="skill-bar-background">
+            <div
+              class="skill-bar-fill"
+              [style.width.%]="(entry.score / 10) * 100"
+              [style.backgroundColor]="getScoreColor(entry.score)">
+            </div>
+          </div>
+          <span class="skill-score">{{ entry.score | number: '1.1-1' }}/10</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel strengths-weaknesses-section">
+    <div class="strengths">
+      <h3>Vos Points Forts 💪</h3>
+      <ul class="strengths-list">
+        <li *ngFor="let strength of result.top3Strengths">{{ getDisplaySkillName(strength) }}</li>
+      </ul>
+    </div>
+    <div class="weaknesses">
+      <h3>Axes d'Amélioration 🎯</h3>
+      <ul class="weaknesses-list">
+        <li *ngFor="let weakness of result.top3Weaknesses">{{ getDisplaySkillName(weakness) }}</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="panel summary-section" *ngIf="result.summary">
+    <h2>Résumé de L'Analyse</h2>
+    <p class="summary-text">{{ result.summary }}</p>
+  </div>
+
+  <div class="panel advice-section" *ngIf="result.careerAdvice">
+    <h2>Conseils Professionnels</h2>
+    <p class="advice-text">{{ result.careerAdvice }}</p>
+  </div>
+
+  <div class="panel recommendations-section">
+    <h2>Formations Recommandées</h2>
+
+    <div class="tabs">
+      <button class="tab" [class.active]="activeTrainingTab === 'all'" (click)="setTrainingTab('all')">Toutes</button>
+      <button class="tab" [class.active]="activeTrainingTab === 'online'" (click)="setTrainingTab('online')">En ligne</button>
+      <button class="tab" [class.active]="activeTrainingTab === 'internal'" (click)="setTrainingTab('internal')">Internes</button>
+    </div>
+
+    <div class="formations-groups" *ngIf="getFormationEntries().length > 0; else noFormations">
+      <div class="formation-group" *ngFor="let entry of getFormationEntries()">
+        <h3>{{ skillIcons[entry.skill] || '📚' }} {{ getDisplaySkillName(entry.skill) }}</h3>
+
+        <div class="formation-card" *ngFor="let formation of entry.items">
+          <div class="formation-icon">{{ formation.icon }}</div>
+          <div class="formation-content">
+            <h4>{{ formation.name }}</h4>
+            <p>{{ formation.platform }}</p>
+            <div class="chips">
+              <span>{{ formation.duration }}</span>
+              <span>{{ formation.level }}</span>
+            </div>
+          </div>
+          <a *ngIf="formation.link !== '#'" [href]="formation.link" target="_blank" rel="noopener">Voir</a>
+          <span *ngIf="formation.link === '#'" class="internal-link">Interne</span>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #noFormations>
+      <div class="empty-state">Aucune formation specifique pour les axes detectes.</div>
+    </ng-template>
+  </div>
+
+  <div class="panel" *ngIf="result.personalityType">
+    <h2>Type de personnalite (PCM)</h2>
+    <div class="personality-grid">
+      <div class="personality-card" *ngFor="let p of personalityCards" [class.active]="p.key === getActivePersonalityKey()">
+        <div class="personality-icon">{{ p.icon }}</div>
+        <div class="personality-name">{{ p.label }}</div>
+        <div class="personality-desc">{{ p.desc }}</div>
+        <span class="personality-badge" *ngIf="p.key === getActivePersonalityKey()">Dominant</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button (click)="goToReevaluate()" class="btn btn-primary">
+      Réévaluer mes Soft Skills
+    </button>
+    <button (click)="goToReevaluate()" class="btn btn-secondary">
+      Retour à l'Évaluation
+    </button>
+  </div>
+</div>
+
+<div class="loading" *ngIf="!result">
+  <p>Chargement des résultats...</p>
+</div>

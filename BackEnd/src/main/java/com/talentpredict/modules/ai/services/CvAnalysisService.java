@@ -4,8 +4,12 @@ package com.talentpredict.modules.ai.services;
 
 
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.InputStream;
+import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -14,15 +18,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-
 import com.talentpredict.modules.skills.dto.SkillDto;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Service d'analyse de CV PDF.
@@ -56,7 +55,7 @@ public class CvAnalysisService {
     // Limite du texte envoyé à Claude (évite de dépasser la fenêtre de contexte)
     private static final int MAX_TEXTE_CV = 4000;
 
-    // ================================================================
+    // 3EZ2EUZIAE   K================================================================
     //  CAS 1 : CV uploadé directement (MultipartFile depuis le frontend)
     // ================================================================
 
@@ -112,7 +111,8 @@ public class CvAnalysisService {
                 }
             } else {
                 // External URL - fetch via HTTP
-                URLConnection connection = new URL(cvUrl).openConnection();
+                java.net.URI uri = java.net.URI.create(cvUrl);
+                URLConnection connection = uri.toURL().openConnection();
                 connection.setConnectTimeout(10_000);
                 connection.setReadTimeout(15_000);
                 connection.setRequestProperty("User-Agent", "TalentPredict-App/1.0");

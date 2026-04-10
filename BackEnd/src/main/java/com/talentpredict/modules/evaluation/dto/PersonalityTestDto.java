@@ -1,23 +1,27 @@
 package com.talentpredict.modules.evaluation.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
-
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import com.fasterxml.jackson.annotation.JsonAlias;
+
+import lombok.Data;
 
 public class PersonalityTestDto {
 
     @Data
     public static class PersonalityTestRequest {
 
-        @NotBlank(message = "Le type de test est requis")
-        private String typeTest;
+        private String typeTest = "PCM";
 
-        @NotNull(message = "Les réponses sont requises")
+        @JsonAlias("responses")
         private Map<String, String> reponses;
+
+        public Map<String, String> getReponses() {
+            return reponses != null ? reponses : new HashMap<>();
+        }
     }
 
     @Data

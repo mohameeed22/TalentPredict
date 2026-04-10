@@ -1,0 +1,1087 @@
+
+
+=== PAGE 1 ===
+
+Table of Contents
+Documentation Technique : Architectures Possibles
+Application d’Évaluation de Compétences avec IA
+Version: 1.0
+Date: Février 2026
+Auteur: Documentation Technique
+Projet: Application IA d’Évaluation PCM et Prédiction de Formation
+Table des Matières
+1. Vue d’Ensemble du Système
+2. Architecture Modulaire (Monolithe)
+3. Architecture Microservices
+4. Comparaison Technique Détaillée
+5. Stratégies de Déploiement
+6. Patterns et Best Practices
+7. Recommandations et Décision
+1. Vue d’Ensemble du Système
+1.1 Objectif du Système
+L’application vise à évaluer les compétences techniques et comportementales des
+collaborateurs en combinant : - Tests psychométriques PCM (Process
+Communication Model) - Analyse automatique des projets GitHub - Comparaison CV
+vs compétences réelles détectées - Recommandations de formation personnalisées
+via IA - Workflow de validation et suivi
+1.2 Modules Fonctionnels Principaux
+Module Responsabilité Complexité
+Authentication Gestion JWT, rôles, permissions Moyenne
+Evaluation PCM Passation tests, calcul scores Moyenne
+GitHub Analyzer API GitHub, parsing projets, extraction skills Élevée
+AI Recommendation Intégration OpenAI, génération
+recommandations
+Élevée
+Formation CRUD formations, inscriptions, suivi Faible
+
+=== PAGE 2 ===
+
+Module Responsabilité Complexité
+Management
+Workflow Engine Camunda, processus de validation Moyenne
+Jira Integration Création tickets automatique Faible
+Dashboard & Analytics Statistiques, graphiques, rapports Moyenne
+1.3 Stack Technique de Base
+Frontend: - Framework: Angular (dernière version LTS) - UI Library: Angular
+Material - Charts: Chart.js / D3.js - State Management: NgRx (optionnel)
+Backend: - Langage: Java 17+ - Framework: Spring Boot 3.x - ORM: Spring Data JPA
+/ Hibernate - Sécurité: Spring Security + JWT
+Base de Données: - SGBD: PostgreSQL 15+ - Schéma: par module (tables préfixées)
+Workflow: - Engine: Camunda 7.x (embedded ou standalone) - Notation: BPMN 2.0
+Infrastructure: - Conteneurisation: Docker - Orchestration: Kubernetes (AWS EKS)
+- CI/CD: GitLab CI / GitHub Actions - Registry: AWS ECR
+APIs Externes: - OpenAI API (GPT-4 ou GPT-4-turbo) - GitHub REST API v3 - Jira
+Cloud REST API v3
+2. Architecture Modulaire (Monolithe)
+2.1 Diagramme d’Architecture
+┌─────────────────────────────────────────────────────────────────┐
+│ Frontend (Angular) │
+│ ┌──────────┐ ┌──────────┐ ┌───────────┐ ┌────────────────┐ │
+│ │ Auth │ │ Tests │ │ Dashboard │ │ Formations │ │
+│ │ Module │ │ Module │ │ Module │ │ Module │ │
+│ └──────────┘ └──────────┘ └───────────┘ └────────────────┘ │
+└─────────────────────────────┬───────────────────────────────────┘
+│ HTTPS / REST API
+▼
+┌─────────────────────────────────────────────────────────────────┐
+│ API Gateway / Nginx (Reverse Proxy) │
+└─────────────────────────────┬───────────────────────────────────┘
+│
+▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Backend Spring Boot Application │
+│ ┌──────────────────────────────────────────────────────────┐ │
+│ │ Spring Security Layer │ │
+│ │ (JWT Authentication, Authorization) │ │
+│ └──────────────────────────┬───────────────────────────────┘ │
+
+=== PAGE 3 ===
+
+│ │ │
+│ ┌──────────────────────────┴───────────────────────────────┐ │
+│ │ REST Controllers Layer │ │
+│ │ ┌────────┐ ┌──────────┐ ┌────────┐ ┌─────────────────┐ │ │
+│ │ │ Auth │ │Evaluation│ │GitHub │ │ Formation │ │ │
+│ │ │ REST │ │ REST │ │ REST │ │ REST │ │ │
+│ │ └────────┘ └──────────┘ └────────┘ └─────────────────┘ │ │
+│ └──────────────────────────┬───────────────────────────────┘ │
+│ │ │
+│ ┌──────────────────────────┴───────────────────────────────┐ │
+│ │ Business Logic Layer │ │
+│ │ ┌──────────────┐ ┌──────────────┐ ┌───────────────┐ │ │
+│ │ │ Auth Service │ │ Eval Service │ │ GitHub │ │ │
+│ │ │ │ │ │ │ Analyzer │ │ │
+│ │ │ - JWT │ │ - PCM Calc │ │ Service │ │ │
+│ │ │ - Roles │ │ - Scoring │ │ │ │ │
+│ │ └──────────────┘ └──────────────┘ │ - API Client │ │ │
+│ │ │ - Parser │ │ │
+│ │ ┌──────────────┐ ┌──────────────┐ │ - Skill │ │ │
+│ │ │ AI Service │ │ Formation │ │ Extractor │ │ │
+│ │ │ │ │ Service │ └───────────────┘ │ │
+│ │ │ - OpenAI │ │ │ │ │
+│ │ │ Client │ │ - CRUD │ ┌───────────────┐ │ │
+│ │ │ - Prompt │ │ - Tracking │ │ Workflow │ │ │
+│ │ │ Builder │ │ - Progress │ │ Service │ │ │
+│ │ │ - Recommend │ └──────────────┘ │ (Camunda) │ │ │
+│ │ │ Engine │ └───────────────┘ │ │
+│ │ └──────────────┘ ┌──────────────┐ │ │
+│ │ │ Jira Service │ ┌───────────────┐ │ │
+│ │ │ │ │ Dashboard │ │ │
+│ │ │ - API Client │ │ Service │ │ │
+│ │ │ - Ticket Mgmt│ │ │ │ │
+│ │ └──────────────┘ │ - Analytics │ │ │
+│ │ │ - Reports │ │ │
+│ │ └───────────────┘ │ │
+│ └──────────────────────────┬───────────────────────────────┘ │
+│ │ │
+│ ┌──────────────────────────┴───────────────────────────────┐ │
+│ │ Data Access Layer (Repositories) │ │
+│ │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────────────┐ │ │
+│ │ │ User │ │Evaluation│ │ Skill │ │ Formation │ │ │
+│ │ │ Repo │ │ Repo │ │ Repo │ │ Repo │ │ │
+│ │ └──────────┘ └──────────┘ └──────────┘ └─────────────┘ │ │
+│ └──────────────────────────┬───────────────────────────────┘ │
+└─────────────────────────────┼───────────────────────────────────┘
+│ JDBC / JPA
+▼
+┌─────────────────────────────────────────────────────────────────┐
+│ PostgreSQL Database (Unique) │
+│ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌─────────────────┐ │
+
+=== PAGE 4 ===
+
+│ │ users │ │evaluations│ │ skills │ │ formations │ │
+│ │ roles │ │ results │ │ projects │ │ enrollments │ │
+│ │ ... │ │ answers │ │ github │ │ progress │ │
+│ └──────────┘ └──────────┘ └──────────┘ └─────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+┌──────────────┐ ┌──────────────┐
+│ OpenAI API │ │ GitHub API │ ┌──────────────┐
+│ (Externe) │ │ (Externe) │ │ Jira API │
+└──────────────┘ └──────────────┘ │ (Externe) │
+└──────────────┘
+2.2 Structure du Code Source
+skill-assessment-monolith/
+│
+├── backend/
+│ ├── src/
+│ │ ├── main/
+│ │ │ ├── java/com/company/skillassessment/
+│ │ │ │ ├── SkillAssessmentApplication.java # Entry point
+│ │ │ │ │
+│ │ │ │ ├── config/ # Configurations
+│ │ │ │ │ ├── SecurityConfig.java
+│ │ │ │ │ ├── CamundaConfig.java
+│ │ │ │ │ ├── OpenAIConfig.java
+│ │ │ │ │ └── JiraConfig.java
+│ │ │ │ │
+│ │ │ │ ├── modules/
+│ │ │ │ │ │
+│ │ │ │ │ ├── auth/ # Module Auth
+│ │ │ │ │ │ ├── controllers/
+│ │ │ │ │ │ │ └── AuthController.java
+│ │ │ │ │ │ ├── services/
+│ │ │ │ │ │ │ ├── AuthService.java
+│ │ │ │ │ │ │ ├── JwtService.java
+│ │ │ │ │ │ │ └── UserService.java
+│ │ │ │ │ │ ├── repositories/
+│ │ │ │ │ │ │ ├── UserRepository.java
+│ │ │ │ │ │ │ └── RoleRepository.java
+│ │ │ │ │ │ └── models/
+│ │ │ │ │ │ ├── User.java
+│ │ │ │ │ │ ├── Role.java
+│ │ │ │ │ │ └── Permission.java
+│ │ │ │ │ │
+│ │ │ │ │ ├── evaluation/ # Module Evaluati
+on
+│ │ │ │ │ │ ├── controllers/
+│ │ │ │ │ │ │ ├── EvaluationController.java
+│ │ │ │ │ │ │ └── TestController.java
+│ │ │ │ │ │ ├── services/
+
+=== PAGE 5 ===
+
+│ │ │ │ │ │ │ ├── EvaluationService.java
+│ │ │ │ │ │ │ ├── PCMCalculator.java
+│ │ │ │ │ │ │ └── ScoringService.java
+│ │ │ │ │ │ ├── repositories/
+│ │ │ │ │ │ │ ├── EvaluationRepository.java
+│ │ │ │ │ │ │ ├── AnswerRepository.java
+│ │ │ │ │ │ │ └── ResultRepository.java
+│ │ │ │ │ │ └── models/
+│ │ │ │ │ │ ├── Evaluation.java
+│ │ │ │ │ │ ├── Question.java
+│ │ │ │ │ │ ├── Answer.java
+│ │ │ │ │ │ └── PCMProfile.java
+│ │ │ │ │ │
+│ │ │ │ │ ├── github/ # Module GitHub
+│ │ │ │ │ │ ├── controllers/
+│ │ │ │ │ │ │ └── GithubController.java
+│ │ │ │ │ │ ├── services/
+│ │ │ │ │ │ │ ├── GithubAPIService.java
+│ │ │ │ │ │ │ ├── ProjectAnalyzer.java
+│ │ │ │ │ │ │ ├── SkillExtractor.java
+│ │ │ │ │ │ │ └── CVComparator.java
+│ │ │ │ │ │ ├── repositories/
+│ │ │ │ │ │ │ ├── ProjectRepository.java
+│ │ │ │ │ │ │ └── SkillRepository.java
+│ │ │ │ │ │ └── models/
+│ │ │ │ │ │ ├── GithubProject.java
+│ │ │ │ │ │ ├── DetectedSkill.java
+│ │ │ │ │ │ └── ComparisonResult.java
+│ │ │ │ │ │
+│ │ │ │ │ ├── ai/ # Module IA
+│ │ │ │ │ │ ├── controllers/
+│ │ │ │ │ │ │ └── RecommendationController.java
+│ │ │ │ │ │ ├── services/
+│ │ │ │ │ │ │ ├── OpenAIService.java
+│ │ │ │ │ │ │ ├── PromptBuilder.java
+│ │ │ │ │ │ │ └── RecommendationEngine.java
+│ │ │ │ │ │ └── models/
+│ │ │ │ │ │ ├── AIRequest.java
+│ │ │ │ │ │ └── AIResponse.java
+│ │ │ │ │ │
+│ │ │ │ │ ├── formation/ # Module Formatio
+n
+│ │ │ │ │ │ ├── controllers/
+│ │ │ │ │ │ │ ├── FormationController.java
+│ │ │ │ │ │ │ └── EnrollmentController.java
+│ │ │ │ │ │ ├── services/
+│ │ │ │ │ │ │ ├── FormationService.java
+│ │ │ │ │ │ │ ├── EnrollmentService.java
+│ │ │ │ │ │ │ └── ProgressTracker.java
+│ │ │ │ │ │ ├── repositories/
+
+=== PAGE 6 ===
+
+│ │ │ │ │ │ │ ├── FormationRepository.java
+│ │ │ │ │ │ │ └── EnrollmentRepository.java
+│ │ │ │ │ │ └── models/
+│ │ │ │ │ │ ├── Formation.java
+│ │ │ │ │ │ ├── Enrollment.java
+│ │ │ │ │ │ └── Progress.java
+│ │ │ │ │ │
+│ │ │ │ │ ├── workflow/ # Module Workflow
+│ │ │ │ │ │ ├── processes/
+│ │ │ │ │ │ │ └── formation-validation.bpmn
+│ │ │ │ │ │ ├── delegates/
+│ │ │ │ │ │ │ ├── NotifyUserDelegate.java
+│ │ │ │ │ │ │ └── CreateJiraTicketDelegate.java
+│ │ │ │ │ │ └── services/
+│ │ │ │ │ │ └── WorkflowService.java
+│ │ │ │ │ │
+│ │ │ │ │ ├── jira/ # Module Jira
+│ │ │ │ │ │ ├── controllers/
+│ │ │ │ │ │ │ └── JiraController.java
+│ │ │ │ │ │ ├── services/
+│ │ │ │ │ │ │ ├── JiraAPIClient.java
+│ │ │ │ │ │ │ └── TicketService.java
+│ │ │ │ │ │ └── models/
+│ │ │ │ │ │ └── JiraTicket.java
+│ │ │ │ │ │
+│ │ │ │ │ └── dashboard/ # Module Dashboar
+d
+│ │ │ │ │ ├── controllers/
+│ │ │ │ │ │ └── DashboardController.java
+│ │ │ │ │ └── services/
+│ │ │ │ │ ├── StatisticsService.java
+│ │ │ │ │ └── ReportService.java
+│ │ │ │ │
+│ │ │ │ ├── shared/ # Code partagé
+│ │ │ │ │ ├── exceptions/
+│ │ │ │ │ │ ├── GlobalExceptionHandler.java
+│ │ │ │ │ │ └── BusinessException.java
+│ │ │ │ │ ├── utils/
+│ │ │ │ │ │ ├── DateUtils.java
+│ │ │ │ │ │ └── ValidationUtils.java
+│ │ │ │ │ └── dto/
+│ │ │ │ │ └── ApiResponse.java
+│ │ │ │ │
+│ │ │ │ └── security/
+│ │ │ │ ├── JwtAuthenticationFilter.java
+│ │ │ │ └── JwtTokenProvider.java
+│ │ │ │
+│ │ │ └── resources/
+│ │ │ ├── application.yml
+│ │ │ ├── application-dev.yml
+
+=== PAGE 7 ===
+
+│ │ │ ├── application-prod.yml
+│ │ │ └── processes/
+│ │ │ └── *.bpmn
+│ │ │
+│ │ └── test/
+│ │ └── java/com/company/skillassessment/
+│ │ ├── modules/
+│ │ │ ├── auth/
+│ │ │ ├── evaluation/
+│ │ │ └── ...
+│ │ └── integration/
+│ │
+│ ├── Dockerfile
+│ └── pom.xml
+│
+├── frontend/
+│ ├── src/
+│ │ ├── app/
+│ │ │ ├── core/ # Services core
+│ │ │ ├── shared/ # Composants partagés
+│ │ │ ├── modules/
+│ │ │ │ ├── auth/
+│ │ │ │ ├── evaluation/
+│ │ │ │ ├── dashboard/
+│ │ │ │ ├── formation/
+│ │ │ │ └── admin/
+│ │ │ └── app.module.ts
+│ │ └── environments/
+│ ├── Dockerfile
+│ └── package.json
+│
+├── docker-compose.yml # Dev local
+├── .gitlab-ci.yml # CI/CD
+└── kubernetes/
+├── deployment.yaml
+├── service.yaml
+└── ingress.yaml
+2.3 Configuration Application
+application.yml (Production)
+server:
+port: 8080
+servlet:
+context-path: /api
+spring:
+application:
+name: skill-assessment-app
+
+=== PAGE 8 ===
+
+datasource:
+url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:skilldb}
+username: ${DB_USER:postgres}
+password: ${DB_PASSWORD}
+driver-class-name: org.postgresql.Driver
+hikari:
+maximum-pool-size: 20
+minimum-idle: 5
+connection-timeout: 30000
+jpa:
+hibernate:
+ddl-auto: validate
+show-sql: false
+properties:
+hibernate:
+dialect: org.hibernate.dialect.PostgreSQLDialect
+format_sql: true
+use_sql_comments: true
+flyway:
+enabled: true
+baseline-on-migrate: true
+locations: classpath:db/migration
+# JWT Configuration
+jwt:
+secret: ${JWT_SECRET}
+expiration: 86400000 # 24 heures
+# OpenAI Configuration
+openai:
+api-key: ${OPENAI_API_KEY}
+model: gpt-4-turbo
+max-tokens: 2000
+temperature: 0.7
+timeout: 30000
+# GitHub Configuration
+github:
+token: ${GITHUB_TOKEN}
+api-url: https://api.github.com
+# Jira Configuration
+jira:
+url: ${JIRA_URL}
+username: ${JIRA_USERNAME}
+api-token: ${JIRA_API_TOKEN}
+
+=== PAGE 9 ===
+
+project-key: ${JIRA_PROJECT_KEY:SKILL}
+# Camunda Configuration
+camunda:
+bpm:
+admin-user:
+id: admin
+password: ${CAMUNDA_ADMIN_PASSWORD}
+filter:
+create: All tasks
+# Logging
+logging:
+level:
+root: INFO
+com.company.skillassessment: DEBUG
+org.springframework.web: INFO
+org.hibernate.SQL: DEBUG
+pattern:
+console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+2.4 Exemple de Communication Interne
+Service d’Évaluation Orchestrant les Autres Modules
+package com.company.skillassessment.modules.evaluation.services;
+import com.company.skillassessment.modules.github.services.GithubAPISer
+vice;
+import com.company.skillassessment.modules.github.services.SkillExtract
+or;
+import com.company.skillassessment.modules.ai.services.RecommendationEn
+gine;
+import com.company.skillassessment.modules.workflow.services.WorkflowSe
+rvice;
+import com.company.skillassessment.modules.jira.services.TicketService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class EvaluationOrchestrator {
+// Injection directe des services des autres modules
+private final EvaluationService evaluationService;
+
+=== PAGE 10 ===
+
+private final GithubAPIService githubAPIService;
+private final SkillExtractor skillExtractor;
+private final RecommendationEngine recommendationEngine;
+private final WorkflowService workflowService;
+private final TicketService ticketService;
+/**
+* Processus complet d'évaluation d'un utilisateur
+* Appels synchrones entre modules dans la même JVM
+*/
+@Transactional
+public EvaluationCompleteResult processCompleteEvaluation(Long user
+Id) {
+log.info("Début du processus d'évaluation pour l'utilisateur {}
+", userId);
+// 1. Récupérer les résultats du test PCM
+PCMProfile pcmProfile = evaluationService.getPCMProfile(userId);
+log.debug("Profil PCM récupéré : {}", pcmProfile);
+// 2. Analyser les projets GitHub de l'utilisateur
+String githubUsername = getUserGithubUsername(userId);
+List<GithubProject> projects = githubAPIService.fetchUserProjec
+ts(githubUsername);
+log.debug("Projets GitHub récupérés : {} projets", projects.siz
+e());
+// 3. Extraire les compétences des projets GitHub
+List<DetectedSkill> detectedSkills = skillExtractor.extractSkil
+ls(projects);
+log.debug("Compétences détectées : {}", detectedSkills);
+// 4. Comparer avec le CV
+List<Skill> cvSkills = getUserCVSkills(userId);
+ComparisonResult comparison = compareSkills(cvSkills, detectedS
+kills);
+log.debug("Comparaison CV vs GitHub : {} concordances, {} écart
+s",
+comparison.getMatches(), comparison.getGaps());
+// 5. Générer les recommandations de formation via IA
+FormationRecommendationRequest aiRequest = FormationRecommendat
+ionRequest.builder()
+.pcmProfile(pcmProfile)
+.detectedSkills(detectedSkills)
+.skillGaps(comparison.getGaps())
+.userGoals(getUserGoals(userId))
+.build();
+
+=== PAGE 11 ===
+
+List<Formation> recommendations = recommendationEngine.generate
+Recommendations(aiRequest);
+log.debug("Recommandations générées : {} formations", recommend
+ations.size());
+// 6. Démarrer le workflow de validation (Camunda)
+String processInstanceId = workflowService.startFormationValida
+tionProcess(
+userId,
+recommendations
+);
+log.info("Workflow Camunda démarré : {}", processInstanceId);
+// 7. Créer les tickets Jira pour les formations prioritaires
+List<Formation> priorityFormations = filterPriorityFormations(r
+ecommendations);
+for (Formation formation : priorityFormations) {
+String ticketKey = ticketService.createFormationTicket(user
+Id, formation);
+log.debug("Ticket Jira créé : {}", ticketKey);
+}
+// 8. Sauvegarder les résultats complets
+EvaluationCompleteResult result = EvaluationCompleteResult.buil
+der()
+.userId(userId)
+.pcmProfile(pcmProfile)
+.githubProjects(projects)
+.detectedSkills(detectedSkills)
+.comparison(comparison)
+.recommendations(recommendations)
+.workflowProcessId(processInstanceId)
+.build();
+evaluationService.saveCompleteResult(result);
+log.info("Processus d'évaluation terminé avec succès pour l'uti
+lisateur {}", userId);
+return result;
+}
+// Méthodes utilitaires privées...
+}
+Avantages de cette Approche: - Tous les appels sont en mémoire (pas de
+sérialisation JSON, pas de latence réseau) - Transactions ACID : si une étape échoue,
+tout le processus peut être rollback - Debugging facile : stack trace complète,
+breakpoints qui fonctionnent - Performance optimale : pas d’overhead HTTP
+
+=== PAGE 12 ===
+
+2.5 Modèle de Données (Base Unique)
+-- Schema PostgreSQL simplifié pour architecture modulaire
+-- Module Auth
+CREATE TABLE users (
+id BIGSERIAL PRIMARY KEY,
+username VARCHAR(100) UNIQUE NOT NULL,
+email VARCHAR(255) UNIQUE NOT NULL,
+password_hash VARCHAR(255) NOT NULL,
+github_username VARCHAR(100),
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE roles (
+id BIGSERIAL PRIMARY KEY,
+name VARCHAR(50) UNIQUE NOT NULL
+);
+CREATE TABLE user_roles (
+user_id BIGINT REFERENCES users(id),
+role_id BIGINT REFERENCES roles(id),
+PRIMARY KEY (user_id, role_id)
+);
+-- Module Evaluation
+CREATE TABLE evaluations (
+id BIGSERIAL PRIMARY KEY,
+user_id BIGINT REFERENCES users(id),
+test_type VARCHAR(50) NOT NULL, -- PCM, TECHNICAL, etc.
+status VARCHAR(20) NOT NULL, -- PENDING, COMPLETED
+started_at TIMESTAMP,
+completed_at TIMESTAMP,
+score JSONB, -- Stockage flexible des scores
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE pcm_profiles (
+id BIGSERIAL PRIMARY KEY,
+user_id BIGINT REFERENCES users(id) UNIQUE,
+evaluation_id BIGINT REFERENCES evaluations(id),
+thinker_score INTEGER,
+persister_score INTEGER,
+harmonizer_score INTEGER,
+imaginer_score INTEGER,
+rebel_score INTEGER,
+promoter_score INTEGER,
+primary_type VARCHAR(50),
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+=== PAGE 13 ===
+
+);
+-- Module GitHub
+CREATE TABLE github_projects (
+id BIGSERIAL PRIMARY KEY,
+user_id BIGINT REFERENCES users(id),
+repo_name VARCHAR(255) NOT NULL,
+repo_url VARCHAR(500),
+description TEXT,
+language VARCHAR(50),
+stars INTEGER,
+forks INTEGER,
+last_updated TIMESTAMP,
+analyzed_at TIMESTAMP,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE detected_skills (
+id BIGSERIAL PRIMARY KEY,
+user_id BIGINT REFERENCES users(id),
+project_id BIGINT REFERENCES github_projects(id),
+skill_name VARCHAR(100) NOT NULL,
+skill_category VARCHAR(50), -- LANGUAGE, FRAMEWORK, TOOL
+confidence_score DECIMAL(3,2), -- 0.00 à 1.00
+source VARCHAR(50), -- CODE, README, CONFIG
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE skill_comparisons (
+id BIGSERIAL PRIMARY KEY,
+user_id BIGINT REFERENCES users(id),
+cv_skill VARCHAR(100),
+detected_skill VARCHAR(100),
+match_type VARCHAR(20), -- EXACT, PARTIAL, MISSING, EXTRA
+confidence DECIMAL(3,2),
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+-- Module Formation
+CREATE TABLE formations (
+id BIGSERIAL PRIMARY KEY,
+title VARCHAR(255) NOT NULL,
+description TEXT,
+category VARCHAR(100), -- SOFT_SKILL, TECHNICAL
+duration_hours INTEGER,
+level VARCHAR(20), -- BEGINNER, INTERMEDIATE, ADVANCE
+D
+provider VARCHAR(100),
+url VARCHAR(500),
+
+=== PAGE 14 ===
+
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE formation_enrollments (
+id BIGSERIAL PRIMARY KEY,
+user_id BIGINT REFERENCES users(id),
+formation_id BIGINT REFERENCES formations(id),
+status VARCHAR(20) NOT NULL, -- NOT_STARTED, IN_PROGRESS, COMPL
+ETED
+progress_percentage INTEGER DEFAULT 0,
+enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+started_at TIMESTAMP,
+completed_at TIMESTAMP,
+UNIQUE(user_id, formation_id)
+);
+CREATE TABLE formation_recommendations (
+id BIGSERIAL PRIMARY KEY,
+user_id BIGINT REFERENCES users(id),
+formation_id BIGINT REFERENCES formations(id),
+priority VARCHAR(20), -- HIGH, MEDIUM, LOW
+reason TEXT,
+ai_confidence DECIMAL(3,2),
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+-- Module Workflow (Camunda gère ses propres tables)
+-- Tables ACT_* générées automatiquement par Camunda
+-- Module Jira
+CREATE TABLE jira_tickets (
+id BIGSERIAL PRIMARY KEY,
+user_id BIGINT REFERENCES users(id),
+formation_id BIGINT REFERENCES formations(id),
+jira_key VARCHAR(50) UNIQUE NOT NULL,
+jira_url VARCHAR(500),
+status VARCHAR(50),
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+-- Index pour optimisation
+CREATE INDEX idx_users_github ON users(github_username);
+CREATE INDEX idx_evaluations_user ON evaluations(user_id);
+CREATE INDEX idx_projects_user ON github_projects(user_id);
+CREATE INDEX idx_skills_user ON detected_skills(user_id);
+CREATE INDEX idx_enrollments_user ON formation_enrollments(user_id);
+CREATE INDEX idx_recommendations_user ON formation_recommendations(user
+_id);
+
+=== PAGE 15 ===
+
+2.6 Déploiement Kubernetes
+3. Architecture Microservices
+3.1 Diagramme d’Architecture
+┌─────────────────────────────────────────────────────────────────┐
+│ Frontend (Angular) │
+│ ┌──────────┐ ┌──────────┐ ┌───────────┐ ┌────────────────┐ │
+│ │ Auth │ │ Tests │ │ Dashboard │ │ Formations │ │
+│ │ Module │ │ Module │ │ Module │ │ Module │ │
+│ └──────────┘ └──────────┘ └───────────┘ └────────────────┘ │
+└─────────────────────────────┬───────────────────────────────────┘
+│ HTTPS
+▼
+┌─────────────────────────────────────────────────────────────────┐
+│ API Gateway (Kong / Spring Cloud Gateway) │
+│ ┌──────────────────────────────────────────────────────────┐ │
+│ │ - Routing - Rate Limiting │ │
+│ │ - Authentication - Request/Response Transformation │ │
+│ │ - Load Balancing - Circuit Breaker │ │
+│ └──────────────────────────────────────────────────────────┘ │
+└─────────────────────────────┬───────────────────────────────────┘
+│
+┌─────────────────┼─────────────────┐
+│ │ │
+▼ ▼ ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│ Auth Service │ │Evaluation Service│ │ Github Analyzer │
+│ (Java/Spring) │ │ (Java/Spring) │ │ Service │
+│ │ │ │ │ (Java/Spring) │
+│ - JWT │ │ - PCM Tests │ │ │
+│ - Users │ │ - Scoring │ │ - GitHub API │
+│ - Roles │ │ - Results │ │ - Parse Repos │
+│ │ │ │ │ - Extract │
+│ Port: 8081 │ │ Port: 8082 │ │ Skills │
+│ │ │ │ │ │
+│ DB: postgres- │ │ DB: postgres- │ │ Port: 8083 │
+│ auth │ │ evaluation │ │ │
+└─────────────────┘ └─────────────────┘ │ DB: postgres- │
+│ github │
+└─────────────────┘
+│ │ │
+▼ ▼ ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│AI Recommendation│ │Formation Service│ │Workflow Service │
+│ Service │ │ (Java/Spring) │ │ (Java/Spring) │
+│ (Python/Flask) │ │ │ │ │
+│ │ │ - CRUD │ │ - Camunda │
+│ - OpenAI API │ │ - Enrollments │ │ - BPMN │
+
+=== PAGE 16 ===
+
+│ - Prompt Build │ │ - Progress │ │ - Processes │
+│ - Recommend │ │ - Tracking │ │ │
+│ Engine │ │ │ │ Port: 8085 │
+│ │ │ Port: 8084 │ │ │
+│ Port: 5000 │ │ │ │ DB: postgres- │
+│ │ │ DB: postgres- │ │ workflow │
+│ DB: postgres- │ │ formation │ └─────────────────┘
+│ ai │ └─────────────────┘
+└─────────────────┘ │
+▼
+┌─────────────────┐ ┌─────────────────┐
+│ Jira Integration│ │ Dashboard │
+│ Service │ │ Service │
+│ (Java/Spring) │ │ (Java/Spring) │
+│ │ │ │
+│ - Jira API │ │ - Analytics │
+│ - Ticket Mgmt │ │ - Reports │
+│ - Webhooks │ │ - Statistics │
+│ │ │ │
+│ Port: 8086 │ │ Port: 8087 │
+│ │ │ │
+│ DB: postgres- │ │ DB: postgres- │
+│ jira │ │ dashboard │
+└─────────────────┘ └─────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ Service Discovery (Consul / Eureka) │
+│ - Service Registration │
+│ - Health Checks │
+│ - DNS Resolution │
+└──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ Centralized Configuration (Spring Cloud Config) │
+│ - Externalized Configuration │
+│ - Environment-specific Properties │
+│ - Dynamic Refresh │
+└──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ Message Queue (RabbitMQ / Kafka) - Optional │
+│ - Async Communication │
+│ - Event-Driven Architecture │
+│ - Decoupling Services │
+└──────────────────────────────────────────────────────────────┘
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ OpenAI API │ │ GitHub API │ │ Jira API │
+
+=== PAGE 17 ===
+
+│ (Externe) │ │ (Externe) │ │ (Externe) │
+└──────────────┘ └──────────────┘ └──────────────┘
+4. Comparaison Technique Détaillée
+5. Stratégies de Déploiement
+5.1 Déploiement Modulaire
+CI/CD Pipeline (.gitlab-ci.yml)
+stages:
+- build
+- test
+- package
+- deploy
+variables:
+MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+DOCKER_IMAGE: ${ECR_URL}/skill-assessment
+# Build Backend
+build-backend:
+stage: build
+image: maven:3.8-openjdk-17
+script:
+- cd backend
+- mvn clean compile
+artifacts:
+paths:
+- backend/target/
+expire_in: 1 hour
+# Tests Backend
+test-backend:
+stage: test
+image: maven:3.8-openjdk-17
+script:
+- cd backend
+- mvn test
+- mvn verify
+coverage: '/Total.*?([0-9]{1,3})%/'
+artifacts:
+reports:
+junit: backend/target/surefire-reports/TEST-*.xml
+cobertura: backend/target/site/cobertura/coverage.xml
+
+=== PAGE 18 ===
+
+# Build Frontend
+build-frontend:
+stage: build
+image: node:18
+script:
+- cd frontend
+- npm ci
+- npm run build --prod
+artifacts:
+paths:
+- frontend/dist/
+expire_in: 1 hour
+# Package Docker Images
+package-backend:
+stage: package
+image: docker:latest
+services:
+- docker:dind
+script:
+- docker build -t ${DOCKER_IMAGE}-backend:${CI_COMMIT_SHORT_SHA} ./
+backend
+- docker push ${DOCKER_IMAGE}-backend:${CI_COMMIT_SHORT_SHA}
+- docker tag ${DOCKER_IMAGE}-backend:${CI_COMMIT_SHORT_SHA} ${DOCKE
+R_IMAGE}-backend:latest
+- docker push ${DOCKER_IMAGE}-backend:latest
+package-frontend:
+stage: package
+image: docker:latest
+services:
+- docker:dind
+script:
+- docker build -t ${DOCKER_IMAGE}-frontend:${CI_COMMIT_SHORT_SHA} .
+/frontend
+- docker push ${DOCKER_IMAGE}-frontend:${CI_COMMIT_SHORT_SHA}
+- docker tag ${DOCKER_IMAGE}-frontend:${CI_COMMIT_SHORT_SHA} ${DOCK
+ER_IMAGE}-frontend:latest
+- docker push ${DOCKER_IMAGE}-frontend:latest
+# Deploy to K8s
+deploy-production:
+stage: deploy
+image: bitnami/kubectl:latest
+script:
+- kubectl set image deployment/skill-assessment-backend
+backend=${DOCKER_IMAGE}-backend:${CI_COMMIT_SHORT_SHA}
+-n production
+- kubectl set image deployment/skill-assessment-frontend
+frontend=${DOCKER_IMAGE}-frontend:${CI_COMMIT_SHORT_SHA}
+
+=== PAGE 19 ===
+
+-n production
+- kubectl rollout status deployment/skill-assessment-backend -n pro
+duction
+- kubectl rollout status deployment/skill-assessment-frontend -n pr
+oduction
+only:
+- main
+Temps de Déploiement: - Build: ~5 minutes - Tests: ~3 minutes - Package: ~3
+minutes - Deploy: ~2 minutes - Total: ~13 minutes
+- docker build -t ${ECR_URL}/auth-service:${CI_COMMIT_SHORT_SHA}
+./services/auth-service
+- docker push ${ECR_URL}/auth-service:${CI_COMMIT_SHORT_SHA}
+deploy-auth:
+stage: deploy
+script:
+- kubectl set image deployment/auth-service
+auth=${ECR_URL}/auth-service:${CI_COMMIT_SHORT_SHA}
+-n production
+# Répéter pour tous les services...
+# evaluation-service, github-analyzer-service, ai-recommendation-servic
+e,
+# formation-service, workflow-service, jira-integration-service, dashbo
+ard-service
+Temps de Déploiement (parallélisé): - Build all services: ~8 minutes (parallel) -
+Tests all services: ~6 minutes (parallel) - Package all services: ~10 minutes (parallel)
+- Deploy all services: ~5 minutes (sequential) - Total: ~29 minutes
+│ - Jira │ └───────────────────┘
+└────────────────────────┘
+6. Patterns et Best Practices
+6.1 Patterns pour Architecture Modulaire
+1. Clean Architecture / Hexagonal
+┌─────────────────────────────────────────────────┐
+│ Controllers │ ← API Layer
+│ (REST Endpoints) │
+└──────────────────┬──────────────────────────────┘
+│
+┌──────────────────▼──────────────────────────────┐
+│ Business Services │ ← Business Logic
+│ (Orchestration, Domain Logic) │
+
+=== PAGE 20 ===
+
+└──────────────────┬──────────────────────────────┘
+│
+┌──────────────────▼──────────────────────────────┐
+│ Repositories │ ← Data Access
+│ (Data Persistence) │
+└──────────────────┬──────────────────────────────┘
+│
+┌──────────────────▼──────────────────────────────┐
+│ Database │
+└─────────────────────────────────────────────────┘
+2. Repository Pattern
+// Interface repository
+public interface UserRepository extends JpaRepository<User, Long> {
+Optional<User> findByUsername(String username);
+Optional<User> findByEmail(String email);
+List<User> findByRoleName(String roleName);
+}
+// Service utilisant le repository
+@Service
+@RequiredArgsConstructor
+public class UserService {
+private final UserRepository userRepository;
+public User createUser(UserDto userDto) {
+User user = mapToEntity(userDto);
+return userRepository.save(user);
+}
+}
+3. Service Layer Pattern
+// Service avec logique métier
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class EvaluationService {
+private final EvaluationRepository evaluationRepository;
+private final PCMCalculator pcmCalculator;
+private final EmailService emailService;
+public Evaluation completeEvaluation(Long evaluationId) {
+Evaluation evaluation = evaluationRepository.findById(evaluatio
+nId)
+.orElseThrow(() -> new NotFoundException("Evaluation not fo
+und"));
+
+=== PAGE 21 ===
+
+// Calcul du score PCM
+PCMProfile profile = pcmCalculator.calculate(evaluation.getAnsw
+ers());
+evaluation.setPcmProfile(profile);
+evaluation.setStatus(EvaluationStatus.COMPLETED);
+// Sauvegarde
+Evaluation saved = evaluationRepository.save(evaluation);
+// Notification asynchrone
+emailService.sendEvaluationCompleteEmail(saved.getUser());
+return saved;
+}
+}
+// Consumer (dans formation-service)
+@Service
+public class EvaluationEventConsumer {
+@RabbitListener(queues = "formation.evaluation.queue")
+public void handleEvaluationCompleted(EvaluationCompletedEvent even
+t) {
+log.info("Received evaluation completed event: {}", event);
+// Trigger formation recommendation based on score
+recommendationService.generateRecommendations(event.getUserId
+());
+}
+}
+3. Caching
+// Spring Cache
+@Service
+@CacheConfig(cacheNames = "formations")
+public class FormationService {
+@Cacheable(key = "#id")
+public Formation getFormation(Long id) {
+return formationRepository.findById(id)
+.orElseThrow(() -> new NotFoundException("Formation not fou
+nd"));
+}
+@CacheEvict(key = "#formation.id")
+public Formation updateFormation(Formation formation) {
+return formationRepository.save(formation);
+}
+
+=== PAGE 22 ===
+
+@Cacheable(key = "'all'")
+public List<Formation> getAllFormations() {
+return formationRepository.findAll();
+}
+}
+// Configuration Redis
+@Configuration
+@EnableCaching
+public class CacheConfig {
+@Bean
+public RedisCacheManager cacheManager(RedisConnectionFactory connec
+tionFactory) {
+RedisCacheConfiguration config = RedisCacheConfiguration.defaul
+tCacheConfig()
+.entryTtl(Duration.ofMinutes(10))
+.serializeValuesWith(RedisSerializationContext.Serializatio
+nPair
+.fromSerializer(new GenericJackson2JsonRedisSerializer
+()));
+return RedisCacheManager.builder(connectionFactory)
+.cacheDefaults(config)
+.build();
+}
+}
+7. Recommandations et Décision
+7.1 Analyse Contexte Projet
+Contexte: - Équipe: 7 développeurs - Timeline: 4 mois (16 semaines) - Budget
+AWS: 600-800€/mois - Complexité: Élevée (OpenAI, GitHub API, Camunda, Jira) -
+Expertise équipe: Supposée moyenne en microservices
+7.2 Recommandation Finale
+⭐ ARCHITECTURE MODULAIRE (MONOLITHE) - FORTEMENT
+RECOMMANDÉE
+Justification:
+
+=== PAGE 23 ===
+
+1. Contrainte de Temps (4 mois) - Setup infrastructure modulaire: 1-2 semaines -
+Setup infrastructure microservices: 3-4 semaines - Gain de temps: 2-3 semaines
+critiques
+2. Taille de l’Équipe (7 développeurs) - Modulaire: 1-2 devs par module = optimal
+- Microservices: besoin de 10-12 devs minimum - Équipe actuelle parfaite pour
+modulaire
+3. Complexité Technique - Déjà complexe avec IA, workflow, APIs externes -
+Ajouter complexité microservices = risque d’échec - Focalisation sur la valeur
+métier, pas sur l’infrastructure
+4. Budget - Modulaire: ~600-800€/mois - Microservices: ~1200-1500€/mois -
+Économie de 400-700€/mois
+5. MVP et Itérations - Besoin de livrer rapidement - Modifications fréquentes
+probables - Agilité maximale avec modulaire
+7.3 Plan de Mise en Œuvre Recommandé
+Sprint 0 (Semaine 1-2): Setup - ✅ Repository Git avec structure modulaire - ✅
+Docker Compose pour dev local - ✅ CI/CD Pipeline basique - ✅ Environnement K8s
+de dev
+Sprint 1 (Semaine 3-7): Core Features - ✅ Module Auth + JWT - ✅ Module
+Evaluation + Tests PCM - ✅ Intégration OpenAI basique - ✅ Base de données +
+migrations
+Sprint 2 (Semaine 8-12): Advanced Features - ✅ Module GitHub Analyzer - ✅
+Module Formation + Recommandations IA - ✅ Workflow Camunda - ✅ Intégration
+Jira - ✅ Dashboards
+Sprint 3 (Semaine 13-16): Polish & Deploy - ✅ Tests complets (Unit, Integration,
+E2E) - ✅ Optimisations performance - ✅ Documentation - ✅ Déploiement
+production
+7.4 Évolution Future (Optional)
+Si besoin de scaler dans 6-12 mois:
+Signaux pour migrer vers microservices: 1. ✅ >10,000 utilisateurs actifs
+quotidiens 2. ✅ Module GitHub Analyzer ralentit toute l’app 3. ✅ Besoin de scaler
+l’IA indépendamment 4. ✅ Équipe a grandi à 12-15+ développeurs 5. ✅ Budget
+infrastructure doublé
+Plan de migration (Strangler Fig): 1. Mois 1-2: Extraire github-analyzer-service 2.
+Mois 3-4: Extraire ai-recommendation-service 3. Mois 5-6: Évaluer si continuer ou
+rester hybride
+
+=== PAGE 24 ===
+
+7.5 Décision Matrix
+Critère Modulaire Microservices Poids
+────────────────────────────────────────────────────────────
+Temps disponible 10/10 3/10 ×5
+Taille équipe 9/10 4/10 ×5
+Complexité gérable 8/10 5/10 ×4
+Budget conforme 10/10 6/10 ×3
+Performance requise 9/10 7/10 ×2
+Scalabilité future 5/10 10/10 ×1
+────────────────────────────────────────────────────────────
+Score Pondéré 171/200 105/200
+(85.5%) (52.5%)
+DÉCISION: ARCHITECTURE MODULAIRE
+8. Annexes
+8.1 Checklist de Démarrage
+Avant de Commencer: - [ ] Environnement de dev configuré (Java 17, Node 18,
+Docker) - [ ] Accès AWS EKS configuré - [ ] Credentials OpenAI API - [ ] Token
+GitHub API - [ ] Accès Jira API - [ ] Repository Git initialisé - [ ] Base de données
+PostgreSQL de dev
+Semaine 1: - [ ] Structure projet créée - [ ] Docker Compose fonctionnel - [ ] Pipeline
+CI/CD basique - [ ] Documentation architecture - [ ] Conventions de code définies
+8.2 Ressources et Documentation
+Frameworks et Outils: - Spring Boot: https://spring.io/projects/spring-boot -
+Angular: https://angular.io/ - Camunda: https://camunda.com/ - OpenAI API:
+https://platform.openai.com/docs - GitHub API: https://docs.github.com/en/rest
+Best Practices: - Clean Architecture: https://blog.cleancoder.com/ - Spring Best
+Practices: https://docs.spring.io/spring-boot/docs/current/reference/html/ -
+Angular Style Guide: https://angular.io/guide/styleguide
+8.3 Contacts et Support
+Product Owner: [À définir]
+Tech Lead: [À définir]
+DevOps Lead: [À définir]
+Document préparé par: Équipe Technique
+Date: Février 2026
+
+=== PAGE 25 ===
+
+Version: 1.0
+Statut: Recommandation Finale - Architecture Modulaire Approuvée

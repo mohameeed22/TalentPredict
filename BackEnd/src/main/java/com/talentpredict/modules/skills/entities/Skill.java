@@ -41,9 +41,11 @@ public class Skill {
     private String source; // CV, GITHUB, PYTHON_AI, PCM
 
     @Column(name = "date_evaluation")
+    @Builder.Default
     private LocalDateTime dateEvaluation = LocalDateTime.now();
 
     @Column(name = "validee")
+    @Builder.Default
     private Boolean validee = false;
 
     // relationships

@@ -1,140 +1,129 @@
 <div class="pcm-intro-page">
-  <!-- Hero Section -->
-  <section class="hero-section">
-    <div class="hero-content">
-      <div class="hero-badge">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-        </svg>
-        <span>Process Communication Model</span>
-      </div>
-      <h1 class="hero-title">
-        Découvrez votre <span class="gradient-text">profil de personnalité</span>
-      </h1>
-      <p class="hero-description">
-        Le modèle PCM identifie six types de personnalité présents en chacun de nous. 
-        Comprenez vos forces, votre mode de communication préféré et vos sources de motivation 
-        grâce à notre test scientifiquement validé.
+
+  <div class="intro-container">
+
+    <div class="intro-header">
+      <h1>Évaluation Soft Skills</h1>
+      <p class="subtitle">
+        Analyse complète via votre CV, profil GitHub et auto-évaluation PCM
       </p>
-      <div class="hero-actions">
-        <a routerLink="/evaluation/test" class="btn-start">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-          </svg>
-          Commencer le test
-        </a>
-        <a href="#types" class="btn-learn">
-          En savoir plus
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M7 13l5 5 5-5M7 6l5 5 5-5"/>
-          </svg>
-        </a>
-      </div>
-      <div class="hero-stats">
-        <div class="stat">
-          <span class="stat-number">12</span>
-          <span class="stat-label">Questions</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat">
-          <span class="stat-number">5</span>
-          <span class="stat-label">Minutes</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat">
-          <span class="stat-number">6</span>
-          <span class="stat-label">Types de profil</span>
-        </div>
-      </div>
     </div>
-    <div class="hero-visual">
-      <div class="visual-ring ring-outer"></div>
-      <div class="visual-ring ring-middle"></div>
-      <div class="visual-ring ring-inner"></div>
-      <div class="visual-center">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-          <circle cx="12" cy="7" r="4"/>
-        </svg>
-      </div>
-    </div>
-  </section>
 
-  <!-- How It Works -->
-  <section class="how-section">
-    <h2 class="section-title">Comment ça fonctionne ?</h2>
-    <div class="steps-grid">
-      <div class="step-card">
-        <div class="step-number">01</div>
-        <div class="step-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-          </svg>
-        </div>
-        <h3>Répondez au questionnaire</h3>
-        <p>12 questions simples évaluant vos préférences comportementales et votre style de communication.</p>
+    <!-- STEP INDICATOR -->
+    <div class="steps-indicator">
+      <div class="step active">
+        <span class="step-num">1</span>
+        <span class="step-label">Profil</span>
       </div>
-      <div class="step-card">
-        <div class="step-number">02</div>
-        <div class="step-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-            <line x1="12" y1="22.08" x2="12" y2="12"/>
-          </svg>
-        </div>
-        <h3>Analyse intelligente</h3>
-        <p>Notre algorithme analyse vos réponses et identifie votre profil dominant parmi les six types PCM.</p>
+      <div class="step-line"></div>
+      <div class="step">
+        <span class="step-num">2</span>
+        <span class="step-label">Test PCM</span>
       </div>
-      <div class="step-card">
-        <div class="step-number">03</div>
-        <div class="step-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-          </svg>
-        </div>
-        <h3>Résultats détaillés</h3>
-        <p>Obtenez un rapport complet avec vos forces, axes d'amélioration et recommandations personnalisées.</p>
+      <div class="step-line"></div>
+      <div class="step">
+        <span class="step-num">3</span>
+        <span class="step-label">Résultats</span>
       </div>
     </div>
-  </section>
 
-  <!-- Personality Types -->
-  <section class="types-section" id="types">
-    <h2 class="section-title">Les 6 types de personnalité PCM</h2>
-    <p class="section-subtitle">
-      Chaque personne possède les six types en proportions différentes. Découvrez celui qui vous correspond le plus.
-    </p>
-    <div class="types-grid">
-      @for (type of personalityTypes; track type.name) {
-        <div class="type-card" [style.--type-color]="type.color">
-          <div class="type-icon">{{ type.icon }}</div>
-          <h3 class="type-name">{{ type.name }}</h3>
-          <p class="type-description">{{ type.description }}</p>
-          <div class="type-traits">
-            @for (trait of type.traits; track trait) {
-              <span class="trait-tag">{{ trait }}</span>
-            }
+    <form [formGroup]="profileForm" (ngSubmit)="startTest()">
+
+      <!-- PERSONAL INFO -->
+      <div class="form-section">
+        <h3>Informations personnelles</h3>
+        <div class="form-group">
+          <label for="fullName">Nom complet *</label>
+          <input id="fullName" name="fullName" type="text" formControlName="fullName" placeholder="Ex: Sarah Johnson">
+        </div>
+        <div class="form-group">
+          <label for="email">Email *</label>
+          <input id="email" name="email" type="email" formControlName="email" placeholder="sarah@example.com">
+        </div>
+      </div>
+
+      <!-- GITHUB -->
+      <div class="form-section">
+        <h3>
+          <span class="github-icon">🐙</span>
+          Profil GitHub
+          <span class="optional-badge">Optionnel</span>
+        </h3>
+        <p class="section-hint">
+          Permet d'analyser vos soft skills techniques via votre activité GitHub
+        </p>
+        <div class="form-group">
+          <label for="githubUsername">Nom d'utilisateur GitHub</label>
+          <div class="input-with-prefix">
+            <span class="prefix">github.com/</span>
+            <input
+              id="githubUsername"
+              name="githubUsername"
+              type="text"
+              formControlName="githubUsername"
+              placeholder="votre-username">
           </div>
         </div>
-      }
-    </div>
-  </section>
+      </div>
 
-  <!-- CTA Section -->
-  <section class="cta-section">
-    <div class="cta-card">
-      <h2>Prêt à découvrir votre profil ?</h2>
-      <p>Le test est gratuit, confidentiel et ne prend que quelques minutes.</p>
-      <a routerLink="/evaluation/test" class="btn-start btn-lg">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polygon points="5 3 19 12 5 21 5 3"/>
-        </svg>
-        Passer le test maintenant
-      </a>
-    </div>
-  </section>
-</div>
+      <!-- CV UPLOAD -->
+      <div class="form-section">
+        <h3>
+          <span class="cv-icon">📄</span>
+          Curriculum Vitae
+          <span class="optional-badge">Optionnel</span>
+        </h3>
+        <p class="section-hint">
+          Permet d'extraire vos soft skills depuis votre expérience professionnelle
+        </p>
+        <div class="upload-zone" (click)="cvInput.click()">
+          <input
+            #cvInput
+            id="cvFile"
+            name="cvFile"
+            type="file"
+            accept=".pdf,.txt,text/plain"
+            (change)="onFileSelected($event)"
+            style="display: none">
+          <div *ngIf="!selectedFile" class="upload-placeholder">
+            <span class="upload-icon">⬆️</span>
+            <p>Cliquez pour uploader votre CV (PDF ou TXT)</p>
+            <small>Max 5MB</small>
+          </div>
+          <div *ngIf="selectedFile" class="file-selected">
+            <span>✅ {{ selectedFile.name }}</span>
+            <button type="button" (click)="clearSelectedFile($event)">
+              ✕
+            </button>
+          </div>
+        </div>
+        <p *ngIf="isExtracting" class="section-hint">Extraction du texte du CV en cours...</p>
+        <p *ngIf="selectedFile && extractedCvText && !isExtracting" class="section-hint">
+          Texte CV extrait ({{ extractedCvText.length }} caractères).
+        </p>
+        <p *ngIf="fileError" class="error-text">{{ fileError }}</p>
+        <p *ngIf="extractionError" class="error-text">{{ extractionError }}</p>
+      </div>
+
+      <!-- WHAT'S NEXT INFO BOX -->
+      <div class="info-box">
+        <h4>Ce qui va se passer</h4>
+        <ul>
+          <li *ngIf="hasGithub()">🐙 Analyse de votre profil GitHub</li>
+          <li *ngIf="selectedFile">📄 Extraction des compétences depuis votre CV</li>
+          <li>📋 Test PCM en 12 questions (≈ 5 minutes)</li>
+          <li>🤖 Analyse IA et fusion des 3 sources</li>
+          <li>📊 Rapport détaillé avec recommandations de formation</li>
+        </ul>
+      </div>
+
+      <button
+        type="submit"
+        class="btn-start"
+        [disabled]="profileForm.invalid">
+        Commencer le test PCM →
+      </button>
+
+    </form>
+  </div>
+  

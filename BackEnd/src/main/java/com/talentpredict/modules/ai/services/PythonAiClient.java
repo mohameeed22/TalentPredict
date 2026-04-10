@@ -63,7 +63,7 @@ public class PythonAiClient {
             return List.of();
         }
 
-        String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
+        String url = UriComponentsBuilder.fromUriString(baseUrl)
             .path("/analyze-candidate")
             .build()
             .toUriString();

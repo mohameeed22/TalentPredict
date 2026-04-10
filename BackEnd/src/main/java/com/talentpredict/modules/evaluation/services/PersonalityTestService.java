@@ -8,15 +8,17 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
-import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.modules.ai.services.OpenAIService;
 import com.talentpredict.modules.auth.services.AuthServiceImpl;
 import com.talentpredict.modules.evaluation.dto.PersonalityTestDto;
 import com.talentpredict.modules.evaluation.entities.PersonalityTest;
 import com.talentpredict.modules.evaluation.repositories.PersonalityTestRepository;
+import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.shared.exception.ResourceNotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -33,14 +35,19 @@ public class PersonalityTestService {
     @Transactional
     public PersonalityTestDto.PersonalityTestResponse createTest(UUID accountId, PersonalityTestDto.PersonalityTestRequest request) {
         User user = authServiceImpl.getUserById(accountId);
-        
+
+        if (request.getReponses() == null || request.getReponses().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Les réponses au test ne peuvent pas être vides");
+        }
+
         PersonalityTest test = new PersonalityTest();
         test.setUser(user);
         test.setTypeTest(request.getTypeTest());
         test.setReponses(request.getReponses());
         
         // Generate AI analysis
-        String reponsesStr = request.getReponses().toString();
+        String reponsesStr = request.getReponses() != null ? request.getReponses().toString() : "{}";
         String analyseLlm = openAIService.analyserTestPersonnalite(request.getTypeTest(), reponsesStr);
         test.setAnalyseLlm(analyseLlm);
         
@@ -81,6 +88,7 @@ public class PersonalityTestService {
     }
     
     private Integer calculateScore(java.util.Map<String, String> reponses) {
+        if (reponses == null || reponses.isEmpty()) return 0;
         return Math.min(100, reponses.size() * 10);
     }
     

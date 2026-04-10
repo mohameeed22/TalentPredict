@@ -3,6 +3,16 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
+// Test summary (matches DashboardDto.TestSummaryDto)
+export interface TestSummary {
+  id: string;
+  dateTest: Date;
+  personalityType?: string;
+  overallScore?: number;
+  softSkillsScores?: { [key: string]: number };
+  summary?: string;
+}
+
 // Employee dashboard response (matches DashboardDto.Response)
 export interface EmployeeDashboardResponse {
   userId: string;
@@ -18,6 +28,7 @@ export interface EmployeeDashboardResponse {
   scoreEvaluationMoyen: number;
   topSkills: any[];
   formationsRecentes: any[];
+  testsRecents: TestSummary[];
   dernierePrediction: any;
 }
 
@@ -39,6 +50,7 @@ export interface EmployeeSummary {
   email: string;
   formationCount: number;
   testCount: number;
+  personalityType?: string;
   active: boolean;
 }
 

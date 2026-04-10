@@ -95,6 +95,7 @@ public class Profile {
     @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     @ToString.Exclude
+    @Builder.Default
     private List<PCMResult> pcmResults = new ArrayList<>();
 
     // Audits

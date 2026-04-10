@@ -1,87 +1,38 @@
-version: '3.8'
-
 services:
   # ============================================
-  # PostgreSQL Database
+  # n8n Workflow Automation ONLY
   # ============================================
-  postgres:
-    image: postgres:16-alpine
-    container_name: talentpredict-db
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: talentpredict-n8n
     environment:
-      POSTGRES_DB: talentpredict
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: "11111111"
+      # n8n uses SQLite by default (embedded in volume)
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-MinimumSixteenCharactersKey}
+      # n8n Web interface configuration
+      N8N_HOST: 0.0.0.0
+      N8N_PORT: 5678
+      # URL configuration for webhook access
+      WEBHOOK_URL: http://localhost:5678/
+      N8N_EDITOR_BASE_URL: http://localhost:5678/
+      # Logging
+      NODE_ENV: production
+      TZ: UTC
     ports:
-      - "5432:5432"
+      - "5678:5678"  # n8n Web UI + Webhooks
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - n8n_data:/home/node/.n8n
+    restart: on-failure
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d talentpredict"]
+      test: ["CMD", "curl", "-f", "http://localhost:5678/health"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - talentpredict-net
-
-  # ============================================
-  # Spring Boot Backend
-  # ============================================
-  backend:
-    build:
-      context: ./BackEnd
-      dockerfile: Dockerfile
-    container_name: talentpredict-backend
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/talentpredict
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: "11111111"
-    ports:
-      - "8081:8081"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    networks:
-      - talentpredict-net
-    restart: on-failure
-
-  # ============================================
-  # Python AI Service
-  # ============================================
-  ai-service:
-    build:
-      context: ./talentpredict-ai
-      dockerfile: Dockerfile
-    container_name: talentpredict-ai
-    environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
-      CORS_ORIGINS: "http://localhost:4200,http://localhost:80,http://frontend:80"
-    ports:
-      - "8000:8000"
-    networks:
-      - talentpredict-net
-    restart: on-failure
-
-  # ============================================
-  # Angular Frontend (served via nginx)
-  # ============================================
-  frontend:
-    build:
-      context: ./FrontEnd
-      dockerfile: Dockerfile
-    container_name: talentpredict-frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-      - ai-service
-    networks:
-      - talentpredict-net
-    restart: on-failure
 
 volumes:
-  postgres_data:
+  n8n_data:
 
 networks:
   talentpredict-net:
     driver: bridge
+
+

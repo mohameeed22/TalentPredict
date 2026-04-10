@@ -103,6 +103,8 @@
              To re-enable: uncomment the dependencies below and remove
              spring.autoconfigure.exclude in application.properties.
              Planned workflows: Formation approval, Employee onboarding.
+        -->
+        <!--
         <dependency>
             <groupId>org.camunda.bpm.springboot</groupId>
             <artifactId>camunda-bpm-spring-boot-starter-rest</artifactId>
@@ -113,8 +115,10 @@
             <artifactId>camunda-bpm-spring-boot-starter-webapp</artifactId>
             <version>7.20.0</version>
         </dependency>
+        -->
 
-        H2 used by Camunda - also disabled
+        <!-- H2 Database (disabled - using PostgreSQL) -->
+        <!--
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
@@ -123,12 +127,14 @@
         -->
 
         <!-- DevTools (rechargement auto en dev) -->
-        <!--        <dependency>-->
-        <!--            <groupId>org.springframework.boot</groupId>-->
-        <!--            <artifactId>spring-boot-devtools</artifactId>-->
-        <!--            <scope>runtime</scope>-->
-        <!--            <optional>true</optional>-->
-        <!--        </dependency>-->
+        <!--
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+        -->
 
         <!-- Test -->
         <dependency>

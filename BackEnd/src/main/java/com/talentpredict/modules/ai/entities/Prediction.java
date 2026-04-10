@@ -41,9 +41,11 @@ public class Prediction {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
+    @Builder.Default
     private StatutPrediction statut = StatutPrediction.EN_ANALYSE;
 
     @Column(name = "date_prediction", nullable = false)
+    @Builder.Default
     private LocalDateTime datePrediction = LocalDateTime.now();
 
     // relationships
@@ -56,6 +58,7 @@ public class Prediction {
     @OneToMany(mappedBy = "prediction", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     @ToString.Exclude
+    @Builder.Default
     private List<Formation> formationsProposees = new ArrayList<>();
 
     // enums

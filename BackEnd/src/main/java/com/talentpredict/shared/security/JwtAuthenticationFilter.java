@@ -64,14 +64,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             if (jwtService.validateToken(jwt, userDetails.getUsername())) {
-                // Extract User from UserDetailsImpl
-                Object principal = userDetails;
-                if (userDetails instanceof UserDetailsImpl) {
-                    principal = ((UserDetailsImpl) userDetails).getUser();
-                }
-
+                // Keep UserDetailsImpl as principal so getName() returns email
+                // (not the User entity toString)
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    principal,
+                    userDetails,
                     null,
                     userDetails.getAuthorities()
                 );

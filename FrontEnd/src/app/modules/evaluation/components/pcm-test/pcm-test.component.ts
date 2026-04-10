@@ -4,7 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { EvaluationService } from '../../services/evaluation.service';
 import { AuthService } from '../../../auth/services/auth.service';
+import { SoftSkillsService } from '../../services/soft-skills.service';
 import { PersonalityTestRequest } from '../../models/evaluation.model';
+import { SoftSkillsAnalysisRequest } from '../../models/soft-skills.model';
 import { QuestionCardComponent } from '../question-card/question-card.component';
 
 interface PCMQuestion {
@@ -23,15 +25,19 @@ interface PCMQuestion {
 export class PcmTestComponent implements OnInit {
   private evaluationService = inject(EvaluationService);
   private authService = inject(AuthService);
+  private softSkillsService = inject(SoftSkillsService);
   private router = inject(Router);
 
   currentStep = 0;
-  totalSteps = 6;
-  responses: { [key: string]: string } = {};
+  totalSteps = 9; // 18 questions, 2 per step = 9 steps
+  responses: { [key: string]: string } = {}; // For PCM endpoint (personality test)
+  answers: { [key: string]: number } = {};   // For soft skills endpoint (0-10 scale)
   loading = false;
   error: string | null = null;
 
+  // All 18 questions: 12 PCM personality + 6 soft skills (Ownership + Leadership)
   questions: PCMQuestion[] = [
+    // PCM Personality Questions (q1-q12)
     {
       id: 'q1',
       question: 'Je suis à l\'aise pour exprimer mes émotions et comprendre celles des autres',
@@ -91,14 +97,48 @@ export class PcmTestComponent implements OnInit {
       id: 'q12',
       question: 'J\'aime travailler de manière autonome et calme',
       category: 'Rêveur'
+    },
+
+    // SOFT SKILLS QUESTIONS — MISSING SECTIONS (q13-q18)
+    {
+      id: 'q13',
+      question: 'Je prends des initiatives sans attendre qu\'on me le demande',
+      category: 'Ownership'
+    },
+    {
+      id: 'q14',
+      question: 'J\'assume la responsabilité de mes erreurs',
+      category: 'Ownership'
+    },
+    {
+      id: 'q15',
+      question: 'Je vais au bout de mes projets sans supervision',
+      category: 'Ownership'
+    },
+    {
+      id: 'q16',
+      question: 'Je prends naturellement des décisions dans les groupes',
+      category: 'Leadership'
+    },
+    {
+      id: 'q17',
+      question: 'Je motive et inspire mes collègues',
+      category: 'Leadership'
+    },
+    {
+      id: 'q18',
+      question: 'J\'ai une vision claire de mes objectifs professionnels',
+      category: 'Leadership'
     }
   ];
 
   ngOnInit(): void {
-    // Initialize responses with empty strings
+    // Initialize both responses (for PCM endpoint) and answers (for soft skills endpoint)
     this.questions.forEach(q => {
-      this.responses[q.id] = '';
+      this.responses[q.id] = ''; // String for PCM endpoint
+      this.answers[q.id] = 5;     // Number 0-10 for soft skills (default 5)
     });
+    console.log('[PcmTest] ngOnInit: Initialized 18 questions and answers');
   }
 
   get currentQuestions(): PCMQuestion[] {
@@ -112,11 +152,19 @@ export class PcmTestComponent implements OnInit {
   }
 
   get canProceed(): boolean {
-    return this.currentQuestions.every(q => this.responses[q.id] !== '');
+    // Both responses and answers must be filled for current questions
+    return this.currentQuestions.every(q => 
+      this.responses[q.id] !== '' && this.answers[q.id] !== undefined
+    );
   }
 
   onAnswerChange(questionId: string, answer: string): void {
+    console.log(`[PcmTest] Answer changed: ${questionId} = ${answer}`);
     this.responses[questionId] = answer;
+    // Convert string answer to numeric scale (1-5 → 0-10)
+    // If answer was "1" (disagree), map to 0-3; if "5" (agree), map to 8-10
+    const numAnswer = parseInt(answer) || 5;
+    this.answers[questionId] = Math.round((numAnswer - 1) * 2.5); // 1→0, 3→5, 5→10
   }
 
   nextStep(): void {
@@ -138,36 +186,121 @@ export class PcmTestComponent implements OnInit {
     }
   }
 
+  private buildReponses(): Record<string, string> {
+    const reponses: Record<string, string> = {};
+    this.questions.forEach((q, idx) => {
+      const answer = this.responses[q.id];
+      reponses[`q${idx + 1}`] = answer ? answer.toString() : '5';
+    });
+    return reponses;
+  }
+
   submitTest(): void {
     if (!this.canProceed) {
-      this.error = 'Please answer all questions before submitting';
+      this.error = 'Veuillez répondre à toutes les questions avant de soumettre.';
       return;
     }
 
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser?.id) {
-      this.error = 'User not authenticated';
+      this.error = 'Utilisateur non authentifié.';
       return;
     }
 
     this.loading = true;
     this.error = null;
 
+    console.log('[PcmTest] Submitting test with 18 answers');
+
+    // Build reponses map for PCM endpoint (q1, q2, ... q18)
+    const reponses = this.buildReponses();
+
     const request: PersonalityTestRequest = {
-      responses: this.responses
+      reponses,
+      typeTest: 'PCM'
     };
 
+    // Step 1: Submit to PCM endpoint
     this.evaluationService.submitTest(currentUser.id, request).subscribe({
-      next: (response) => {
-        this.loading = false;
-        // Navigate to results page
-        this.router.navigate(['/evaluation/results', response.id]);
+      next: (pcmResponse) => {
+        console.log('[PcmTest] PCM test submitted, now launching soft skills analysis');
+        
+        // Step 2: Launch soft skills analysis with ALL 18 answers
+        this.launchSoftSkillsAnalysis(pcmResponse);
       },
       error: (err) => {
+        console.error('[PcmTest] PCM submission failed:', err);
         this.loading = false;
-        this.error = 'Failed to submit test. Please try again.';
-        console.error('Error submitting test:', err);
+        if (err.status === 400) {
+          this.error = err?.error?.message || 'Les réponses sont invalides.';
+        } else if (err.status === 401) {
+          this.error = 'Session expirée. Veuillez vous reconnecter.';
+        } else {
+          this.error = 'Impossible de soumettre le test. Veuillez réessayer.';
+        }
       }
     });
+  }
+
+  private launchSoftSkillsAnalysis(pcmResult: any): void {
+    const profileDataStr = sessionStorage.getItem('softSkillsProfile');
+    const profileData = profileDataStr ? JSON.parse(profileDataStr) : {};
+
+    console.log('[PcmTest] launchSoftSkillsAnalysis: profile data =', profileData);
+
+    // Build soft skills request with ALL 18 answers explicitly
+    const softSkillsRequest: SoftSkillsAnalysisRequest = {
+      fullName:       profileData.fullName       || '',
+      email:          profileData.email          || '',
+      githubUsername: this.normalizeGithubUsername(profileData.githubUsername || ''),
+      cvText:         profileData.cvText         || '',
+      // Send each answer individually — NEVER use defaults
+      q1:  this.answers['q1']  ?? 5,
+      q2:  this.answers['q2']  ?? 5,
+      q3:  this.answers['q3']  ?? 5,
+      q4:  this.answers['q4']  ?? 5,
+      q5:  this.answers['q5']  ?? 5,
+      q6:  this.answers['q6']  ?? 5,
+      q7:  this.answers['q7']  ?? 5,
+      q8:  this.answers['q8']  ?? 5,
+      q9:  this.answers['q9']  ?? 5,
+      q10: this.answers['q10'] ?? 5,
+      q11: this.answers['q11'] ?? 5,
+      q12: this.answers['q12'] ?? 5,
+      q13: this.answers['q13'] ?? 5,
+      q14: this.answers['q14'] ?? 5,
+      q15: this.answers['q15'] ?? 5,
+      q16: this.answers['q16'] ?? 5,
+      q17: this.answers['q17'] ?? 5,
+      q18: this.answers['q18'] ?? 5,
+    };
+
+    console.log('[PcmTest] Calling softSkillsService.analyze with:', softSkillsRequest);
+
+    // Submit to soft skills analysis
+    this.softSkillsService.analyze(softSkillsRequest).subscribe({
+      next: (result) => {
+        console.log('[PcmTest] Soft skills analysis complete. Result:', result);
+        this.loading = false;
+        sessionStorage.setItem('softSkillsResult', JSON.stringify(result));
+        this.router.navigate(['/evaluation/results'],
+          { state: { result } });
+      },
+      error: (err) => {
+        console.error('[PcmTest] Soft skills error:', err);
+        this.loading = false;
+        this.router.navigate(['/evaluation/results'],
+          { state: { softSkillsError: true } });
+      }
+    });
+  }
+
+  private normalizeGithubUsername(input: string): string {
+    const raw = (input || '').trim();
+    if (!raw) return '';
+
+    // Accept full URLs like https://github.com/user and reduce them to user.
+    const cleaned = raw.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '');
+    return cleaned.split('/')[0].replace(/^@/, '').trim();
   }
 }
