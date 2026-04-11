@@ -11,7 +11,7 @@ ALTER TABLE IF EXISTS users
     ADD COLUMN IF NOT EXISTS phone_number VARCHAR(30);
 
 -- Ensure refresh token lookup index exists without failing if already present
-CREATE INDEX IF NOT EXISTS idx_user_id ON refresh_tokens (user_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens (user_id);
 
 -- Assessment: profile skill test snapshot + public slug
 ALTER TABLE profiles

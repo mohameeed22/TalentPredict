@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { forkJoin, of, catchError } from 'rxjs';
+import { forkJoin, of, catchError, Subscription, finalize } from 'rxjs';
 import { TestStateService, McqQuestion } from '../../services/test-state.service';
 import { TestApiService } from '../../services/test-api.service';
 import { BenchmarkService } from '../../services/benchmark.service';
@@ -77,6 +77,9 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
   codeError = '';
   codeHintsUsed = 0;
   randomCodeSkill = '';
+  private submitSub: Subscription | null = null;
+  private submitWatchdogHandle: ReturnType<typeof setTimeout> | null = null;
+  private readonly submitHardTimeoutMs = 60_000;
 
   result: QuizResultViewModel | null = null;
   submitting = false;
@@ -100,6 +103,9 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopTimerLoop();
+    this.clearSubmitWatchdog();
+    this.submitSub?.unsubscribe();
+    this.submitSub = null;
   }
 
   get currentQuestion(): McqQuestion | null {
@@ -324,6 +330,28 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
     return `${m}:${s}`;
   }
 
+  private clearSubmitWatchdog(): void {
+    if (this.submitWatchdogHandle) {
+      clearTimeout(this.submitWatchdogHandle);
+      this.submitWatchdogHandle = null;
+    }
+  }
+
+  private startSubmitWatchdog(): void {
+    this.clearSubmitWatchdog();
+    this.submitWatchdogHandle = setTimeout(() => {
+      if (!this.submitting) {
+        return;
+      }
+
+      this.submitSub?.unsubscribe();
+      this.submitSub = null;
+      this.submitting = false;
+      this.startTimerLoop();
+      this.notify.error('Evaluation bloquee ou trop lente. Reessayez dans quelques instants.');
+    }, this.submitHardTimeoutMs);
+  }
+
   private loadRandomCodeChallenge(): void {
     const userId = this.state.candidateId();
     if (!userId) {
@@ -362,6 +390,10 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
       },
       error: err => {
         this.codeLoading = false;
+        if (err?.name === 'TimeoutError') {
+          this.codeError = 'Generation du code challenge trop lente. Reessayez dans quelques instants.';
+          return;
+        }
         this.codeError = err?.error?.message ?? 'Generation du code challenge indisponible pour le moment.';
       }
     });
@@ -567,15 +599,27 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
 
     this.submitting = true;
     this.stopTimerLoop();
+    this.startSubmitWatchdog();
+    this.submitSub?.unsubscribe();
 
-    forkJoin({ mcq: mcq$, code: code$ }).subscribe({
+    this.submitSub = forkJoin({ mcq: mcq$, code: code$ }).pipe(
+      finalize(() => {
+        this.clearSubmitWatchdog();
+      })
+    ).subscribe({
       next: ({ mcq, code }) => {
+        this.submitSub = null;
         this.submitting = false;
         this.result = this.composeProfessionalResult(mcq, code);
       },
       error: err => {
+        this.submitSub = null;
         this.submitting = false;
         this.startTimerLoop();
+        if (err?.name === 'TimeoutError') {
+          this.notify.error('Evaluation trop lente. Reessayez ou soumettez plus tard.');
+          return;
+        }
         this.notify.error(err?.error?.message ?? 'Évaluation échouée.');
       }
     });

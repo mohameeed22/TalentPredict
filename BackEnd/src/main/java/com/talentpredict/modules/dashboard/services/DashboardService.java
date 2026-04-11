@@ -15,6 +15,7 @@ import com.talentpredict.modules.ai.entities.Prediction;
 import com.talentpredict.modules.ai.repositories.PredictionRepository;
 import com.talentpredict.modules.ai.services.PredictionService;
 import com.talentpredict.modules.ai.services.SoftSkillsService;
+import com.talentpredict.modules.assessment.repositories.CandidateTestResultRepository;
 import com.talentpredict.modules.auth.services.AuthServiceImpl;
 import com.talentpredict.modules.dashboard.dto.DashboardDto;
 import com.talentpredict.modules.evaluation.repositories.PersonalityTestRepository;
@@ -51,7 +52,7 @@ public class DashboardService {
     // Direct repos for admin overview aggregation
     private final UserRepository userRepository;
     private final PersonalityTestRepository personalityTestRepository;
-        private final CandidateTestResultRepository candidateTestResultRepository;
+    private final CandidateTestResultRepository candidateTestResultRepository;
     private final FormationRepository formationRepository;
     private final PredictionRepository predictionRepository;
     private final SkillRepository skillRepository;

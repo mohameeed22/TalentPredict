@@ -17,7 +17,6 @@ import com.talentpredict.modules.ai.dto.SoftSkillsProgressDto;
 import com.talentpredict.modules.ai.dto.SoftSkillsResultDto;
 import com.talentpredict.modules.ai.entities.Prediction;
 import com.talentpredict.modules.ai.repositories.PredictionRepository;
-import com.talentpredict.modules.ai.repositories.RecommendationItemRepository;
 import com.talentpredict.modules.skills.entities.Skill;
 import com.talentpredict.modules.skills.repositories.SkillRepository;
 import com.talentpredict.modules.user.entities.User;
@@ -35,7 +34,6 @@ public class SoftSkillsService {
     private final N8nSoftSkillsService n8nService;
     private final PredictionRepository predictionRepository;
     private final SkillRepository skillRepository;
-    private final RecommendationItemRepository recommendationItemRepository;
     private final UserRepository userRepository;
 
     public SoftSkillsResultDto analyze(SoftSkillsAnalysisRequestDto request, UUID userId) {

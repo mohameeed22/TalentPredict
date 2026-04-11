@@ -50,6 +50,40 @@ export const routes: Routes = [
       { path: 'github', loadComponent: () => import('./modules/skills/components/github-analyzer/github-analyzer.component').then(m => m.GithubAnalyzerComponent) }
     ]
   },
+  {
+    path: 'skill-test',
+    canActivate: [authGuard],
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./modules/skill-test/components/skill-test-launcher/skill-test-launcher.component').then(
+            m => m.SkillTestLauncherComponent
+          )
+      },
+      {
+        path: 'quiz',
+        loadComponent: () =>
+          import('./modules/skill-test/components/skill-test-quiz/skill-test-quiz.component').then(
+            m => m.SkillTestQuizComponent
+          )
+      },
+      {
+        path: 'progress',
+        loadComponent: () =>
+          import('./modules/skill-test/components/skill-progress/skill-progress.component').then(
+            m => m.SkillProgressComponent
+          )
+      },
+      {
+        path: 'code-challenge',
+        loadComponent: () =>
+          import('./modules/skill-test/components/skill-code-challenge/skill-code-challenge.component').then(
+            m => m.SkillCodeChallengeComponent
+          )
+      }
+    ]
+  },
   { path: 'formations', canActivate: [authGuard], loadComponent: () => import('./modules/formation/components/formation-list/formation-list.component').then(m => m.FormationListComponent) },
   { path: 'jira', canActivate: [authGuard, roleGuard(['ADMIN'])], loadComponent: () => import('./modules/jira/components/jira-tickets/jira-tickets.component').then(m => m.JiraTicketsComponent) },
   { path: '**', redirectTo: '/' }

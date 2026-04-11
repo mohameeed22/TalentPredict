@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.talentpredict.modules.ai.entities.Prediction;
+import com.talentpredict.modules.ai.entities.Recommendation;
 import com.talentpredict.modules.evaluation.entities.CompetenceAccount;
 import com.talentpredict.modules.evaluation.entities.PersonalityTest;
 import com.talentpredict.modules.formation.entities.Formation;

@@ -1,12 +1,16 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class TestApiService {
   private http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}`;
+  // Keep UI responsive when AI/model calls take too long.
+  private readonly generateTimeoutMs = 30_000;
+  private readonly evaluateTimeoutMs = 45_000;
+  private readonly codeTimeoutMs = 45_000;
 
   private normalizeCodeChallengeLevel(level?: string, difficulty?: string): string {
     const raw = (level ?? difficulty ?? 'EXPERT').toString().trim();
@@ -20,11 +24,15 @@ export class TestApiService {
     skill_scores?: Record<string, number>;
     question_count?: number;
   }): Observable<unknown> {
-    return this.http.post(`${this.base}/test/generate`, body);
+    return this.http.post(`${this.base}/test/generate`, body).pipe(
+      timeout({ first: this.generateTimeoutMs })
+    );
   }
 
   evaluateTest(body: unknown): Observable<unknown> {
-    return this.http.post(`${this.base}/test/evaluate`, body);
+    return this.http.post(`${this.base}/test/evaluate`, body).pipe(
+      timeout({ first: this.evaluateTimeoutMs })
+    );
   }
 
   generateCodeChallenge(body: {
@@ -44,10 +52,14 @@ export class TestApiService {
       console.info('[TestApiService] POST /api/test/code-challenge/generate payload', payload);
     }
 
-    return this.http.post(`${this.base}/test/code-challenge/generate`, payload);
+    return this.http.post(`${this.base}/test/code-challenge/generate`, payload).pipe(
+      timeout({ first: this.codeTimeoutMs })
+    );
   }
 
   evaluateCodeChallenge(body: unknown): Observable<unknown> {
-    return this.http.post(`${this.base}/test/code-challenge/evaluate`, body);
+    return this.http.post(`${this.base}/test/code-challenge/evaluate`, body).pipe(
+      timeout({ first: this.codeTimeoutMs })
+    );
   }
 }

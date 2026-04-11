@@ -8,7 +8,7 @@ import { PieChartComponent, PieChartSlice } from '../../../../shared/components/
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, PieChartComponent],
+  imports: [CommonModule, FormsModule, RouterModule, PieChartComponent],
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.scss']
 })
@@ -19,6 +19,8 @@ export class AdminDashboardComponent implements OnInit {
   overview: AdminOverviewResponse | null = null;
   loading = true;
   error: string | null = null;
+  lastSync = '-';
+  searchTerm = '';
   pieOwner = '';
   pieLastTestOverallScore: number | null = null;
   pieSoftSkillsScores: { [key: string]: number } = {};
@@ -40,6 +42,7 @@ export class AdminDashboardComponent implements OnInit {
     this.dashboardService.getAdminOverview().subscribe({
       next: (data) => {
         this.overview = data;
+        this.lastSync = new Date().toLocaleString();
         this.loadLastTestDistribution();
         this.loading = false;
       },
@@ -105,6 +108,23 @@ export class AdminDashboardComponent implements OnInit {
   getRiskClass(userId: string): string {
     const risk = this.getRiskLevel(userId);
     return `risk-${risk}`;
+  }
+
+  private getRiskLevel(userId: string): 'low' | 'medium' | 'high' {
+    const employee = this.employees.find((emp) => emp.id === userId);
+    if (!employee || !employee.active) {
+      return 'low';
+    }
+
+    if (employee.testCount === 0 && employee.formationCount === 0) {
+      return 'high';
+    }
+
+    if (employee.testCount === 0 || employee.formationCount === 0) {
+      return 'medium';
+    }
+
+    return 'low';
   }
 
   getReadinessLabel(emp: EmployeeSummary): string {

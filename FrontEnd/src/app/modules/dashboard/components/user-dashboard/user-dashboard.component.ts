@@ -5,18 +5,23 @@ import { RouterModule } from '@angular/router';
 import { timeout } from 'rxjs/operators';
 import { DashboardService, EmployeeDashboardResponse } from '../../services/dashboard.service';
 import { AuthService } from '../../../auth/services/auth.service';
+import { NotificationService } from '../../../../core/services/notification.service';
+import { BenchmarkService, CandidateProgressItem } from '../../../skill-test/services/benchmark.service';
 import { PieChartComponent, PieChartSlice } from '../../../../shared/components/pie-chart/pie-chart.component';
+import { SkillsRadarChartComponent } from '../skills-radar-chart/skills-radar-chart.component';
 
 @Component({
   selector: 'app-user-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, PieChartComponent],
+  imports: [CommonModule, RouterModule, PieChartComponent, SkillsRadarChartComponent],
   templateUrl: './user-dashboard.component.html',
   styleUrls: ['./user-dashboard.component.scss']
 })
 export class UserDashboardComponent implements OnInit {
   private dashboardService = inject(DashboardService);
   private authService = inject(AuthService);
+  private benchmarkService = inject(BenchmarkService);
+  private notify = inject(NotificationService);
   private readonly piePalette: string[] = ['#6366f1', '#0ea5e9', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#14b8a6', '#f97316'];
 
   dashboardData: EmployeeDashboardResponse | null = null;
@@ -46,7 +51,7 @@ export class UserDashboardComponent implements OnInit {
       });
 
       this.benchmarkService.progress(userId).subscribe({
-        next: (rows) => {
+        next: (rows: CandidateProgressItem[]) => {
           this.recentSkillTests = [...rows]
             .sort((a, b) => new Date(b.taken_at).getTime() - new Date(a.taken_at).getTime())
             .slice(0, 6);
@@ -71,10 +76,10 @@ export class UserDashboardComponent implements OnInit {
 
     this.exportingPdf = true;
     this.benchmarkService.downloadReportResponse(String(user.id)).subscribe({
-      next: response => {
+      next: (response: HttpResponse<Blob>) => {
         void this.handleReportResponse(response);
       },
-      error: error => {
+      error: (error: unknown) => {
         void this.handleReportError(error);
       }
     });
