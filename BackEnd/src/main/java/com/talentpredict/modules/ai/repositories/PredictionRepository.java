@@ -20,4 +20,7 @@ public interface PredictionRepository extends JpaRepository<Prediction, UUID> {
     
     // Find all predictions for a user entity ordered by date
     List<Prediction> findByUserOrderByDatePredictionDesc(User user);
+
+    // Batch load predictions for multiple users ordered by latest first per user
+    List<Prediction> findByUserIdInOrderByDatePredictionDesc(List<UUID> userIds);
 }

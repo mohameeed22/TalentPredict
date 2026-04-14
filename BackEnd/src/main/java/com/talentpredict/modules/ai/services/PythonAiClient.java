@@ -34,8 +34,8 @@ public class PythonAiClient {
     @Value("${talentpredict.ai.base-url:}")
     private String baseUrl;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper;
+    private final RestTemplate restTemplate;
 
     /**
      * Extract GitHub username from profile URL (e.g. https://github.com/foo -> foo).

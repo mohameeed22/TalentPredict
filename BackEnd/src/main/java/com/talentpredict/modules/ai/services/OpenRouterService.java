@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.talentpredict.modules.skills.dto.SkillDto;
 import com.talentpredict.modules.skills.entities.Skill;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -29,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Service
 @Slf4j
+@RequiredArgsConstructor
 @SuppressWarnings("null")
 public class OpenRouterService {
 
@@ -41,11 +43,18 @@ public class OpenRouterService {
     @Value("${openrouter.model:anthropic/claude-sonnet-4-5}")
     private String model;
 
-    private final RestTemplate restTemplate = new RestTemplate();
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Value("${openrouter.max-retries:2}")
+    private int maxRetries;
+
+    @Value("${openrouter.backoff-base-ms:800}")
+    private long backoffBaseMs;
+
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
 
     private void backoff(int attempt) {
-        long delayMillis = 2000L * attempt;
+        long base = Math.max(100L, backoffBaseMs);
+        long delayMillis = Math.min(5000L, base * attempt);
         LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(delayMillis));
     }
 
@@ -54,8 +63,8 @@ public class OpenRouterService {
     // ================================================================
 
     public String executePrompt(String prompt) {
-        int maxRetries = 3;
-        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+        int attempts = Math.max(1, maxRetries);
+        for (int attempt = 1; attempt <= attempts; attempt++) {
             try {
                 // 1. Headers HTTP requis par OpenRouter
                 HttpHeaders headers = new HttpHeaders();
@@ -81,12 +90,20 @@ public class OpenRouterService {
 
                 // Check for error in response body (Ollama CUDA errors)
                 String responseBody = response.getBody();
+                if (responseBody == null || responseBody.isBlank()) {
+                    log.warn("LLM returned empty body (attempt {}/{})", attempt, attempts);
+                    if (attempt < attempts) {
+                        backoff(attempt);
+                        continue;
+                    }
+                    return null;
+                }
                 if (responseBody != null && responseBody.contains("\"error\"")) {
                     JsonNode errorCheck = objectMapper.readTree(responseBody);
                     if (errorCheck.has("error")) {
-                        String errMsg = errorCheck.path("error").path("message").asText("");
-                        log.warn("LLM returned error (attempt {}/{}): {}", attempt, maxRetries, errMsg);
-                        if (attempt < maxRetries) {
+                        String errMsg = errorCheck.path("error").path("message").asText("unknown error");
+                        log.warn("LLM returned error (attempt {}/{}): {}", attempt, attempts, errMsg);
+                        if (attempt < attempts) {
                             backoff(attempt);
                             continue;
                         }
@@ -106,13 +123,13 @@ public class OpenRouterService {
                 return content;
 
             } catch (java.io.IOException | RuntimeException e) {
-                log.error("Erreur appel LLM (attempt {}/{}): {}", attempt, maxRetries, e.getMessage());
-                if (attempt < maxRetries) {
+                log.error("Erreur appel LLM (attempt {}/{}): {}", attempt, attempts, e.getMessage());
+                if (attempt < attempts) {
                     backoff(attempt);
                 }
             }
         }
-        log.error("LLM: echec apres {} tentatives", maxRetries);
+        log.error("LLM: echec apres {} tentatives", attempts);
         return null;
     }
 

@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.talentpredict.modules.ai.entities.Prediction;
+import com.talentpredict.modules.ai.repositories.PredictionRepository;
 import com.talentpredict.modules.assessment.entities.CandidateTestResult;
 import com.talentpredict.modules.assessment.repositories.CandidateTestResultRepository;
 import com.talentpredict.modules.assessment.services.ReportGeneratorService;
@@ -43,6 +45,7 @@ public class CandidateAssessmentController {
     private final ProfileRepository profileRepository;
     private final UserRepository userRepository;
     private final ReportGeneratorService reportGeneratorService;
+    private final PredictionRepository predictionRepository;
     private final ObjectMapper objectMapper;
 
     @GetMapping("/{userId}/progress")
@@ -79,7 +82,8 @@ public class CandidateAssessmentController {
         Profile p = profileRepository.findByUser_Id(userId).orElse(null);
         List<Skill> skills = readSkillsSafely(userId);
         List<CandidateTestResult> hist = readHistorySafely(userId);
-        byte[] pdf = reportGeneratorService.buildPdfReport(u, p, skills, hist);
+        Prediction latestPrediction = readLatestPredictionSafely(u);
+        byte[] pdf = reportGeneratorService.buildPdfReport(u, p, skills, hist, latestPrediction);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=report.pdf")
                 .contentType(MediaType.APPLICATION_PDF)
@@ -101,6 +105,15 @@ public class CandidateAssessmentController {
         } catch (RuntimeException ex) {
             log.warn("Unable to fetch test history for report generation. userId={}", userId, ex);
             return List.of();
+        }
+    }
+
+    private Prediction readLatestPredictionSafely(User user) {
+        try {
+            return predictionRepository.findTopByUserOrderByDatePredictionDesc(user).orElse(null);
+        } catch (RuntimeException ex) {
+            log.warn("Unable to fetch latest prediction for report generation. userId={}", user.getId(), ex);
+            return null;
         }
     }
 

@@ -3,6 +3,7 @@ package com.talentpredict.modules.user.services;
 import com.talentpredict.modules.user.dto.UserDto;
 import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.modules.user.repositories.UserRepository;
+import com.talentpredict.shared.exception.BadRequestException;
 import com.talentpredict.shared.exception.ResourceNotFoundException;
 import com.talentpredict.shared.exception.UnauthorizedException;
 import com.talentpredict.shared.security.interfaces.IPoliciesService;
@@ -89,6 +90,23 @@ public class UserServiceImpl implements IUserService {
 
         if(request.getProfilePictureUrl() != null) {
             user.setProfilePictureUrl(request.getProfilePictureUrl());
+        }
+
+        boolean hasAdminOnlyChanges = request.getRole() != null || request.getIsActive() != null;
+        if (hasAdminOnlyChanges && !User.Role.ADMIN.equals(currentUser.getRole())) {
+            throw new UnauthorizedException("Only admins can update role or active state");
+        }
+
+        if (request.getIsActive() != null) {
+            user.setIsActive(request.getIsActive());
+        }
+
+        if (request.getRole() != null) {
+            try {
+                user.setRole(User.Role.valueOf(request.getRole().trim().toUpperCase()));
+            } catch (IllegalArgumentException ex) {
+                throw new BadRequestException("Invalid role: " + request.getRole());
+            }
         }
 
         // save & return

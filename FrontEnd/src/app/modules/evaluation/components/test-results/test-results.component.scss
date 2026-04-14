@@ -4,7 +4,6 @@
   max-width: 900px;
   margin: 0 auto;
   padding: 2rem 1.5rem;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
 /* ──────────────────────────────────────── */
@@ -129,19 +128,20 @@
 .results-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 2rem;
   margin-bottom: 2rem;
   background: white;
-  padding: 2rem;
+  padding: 1.5rem;
   border-radius: 16px;
+  border: 1px solid #e2e8f0;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 
   .header-left {
     flex: 1;
 
     h1 {
-      font-size: 2rem;
+      font-size: 1.9rem;
       font-weight: 800;
       color: #0f172a;
       margin: 0 0 0.5rem;
@@ -159,6 +159,7 @@
       gap: 0.75rem;
       flex-wrap: wrap;
     }
+
   }
 }
 
@@ -166,10 +167,8 @@
   display: inline-block;
   padding: 0.4rem 0.75rem;
   background: #f1f5f9;
-  border-radius: 8px;
+  border-radius: 999px;
   font-size: 0.8rem;
-  color: #64748b;
-  font-weight: 500;
 }
 
 /* Score Circle */
@@ -246,11 +245,165 @@
   }
 }
 
-.score-pie-card {
-  app-pie-chart {
+.tech-summary-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1.2rem;
+}
+
+.tech-card-header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.tech-summary-item {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 0.8rem 0.9rem;
+
+  .tech-summary-label {
     display: block;
-    width: 100%;
+    color: #64748b;
+    font-size: 0.8rem;
   }
+
+  .tech-summary-value {
+    font-size: 1.25rem;
+    color: #0f172a;
+    font-weight: 800;
+  }
+}
+
+.sub-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 1rem 0 0.8rem;
+}
+
+.inline-state {
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.9rem;
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.85rem;
+
+  &.error {
+    border-color: #fca5a5;
+    background: #fff1f2;
+    color: #b91c1c;
+  }
+}
+
+.tech-skill-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.tech-skill-row {
+  padding: 0.8rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.tech-skill-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.5rem;
+
+  .tech-skill-name {
+    color: #0f172a;
+    font-weight: 600;
+  }
+
+  .tech-skill-level {
+    color: #2563eb;
+    font-size: 0.83rem;
+    font-weight: 700;
+  }
+}
+
+.tech-progress-track {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.tech-progress-fill {
+  height: 100%;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+}
+
+.tech-tests-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.tech-test-item {
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 0.8rem 0.9rem;
+}
+
+.tech-test-top {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.tech-test-score {
+  color: #0f172a;
+}
+
+.tech-test-date {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.test-status {
+  margin-left: auto;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+
+  &.pass {
+    background: rgba(22, 163, 74, 0.16);
+    color: #15803d;
+  }
+
+  &.fail {
+    background: rgba(217, 119, 6, 0.16);
+    color: #b45309;
+  }
+}
+
+.tech-test-skills {
+  margin-top: 0.6rem;
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.skill-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  background: #e0e7ff;
+  color: #3730a3;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 /* ──────────────────────────────────────── */
@@ -272,50 +425,40 @@
 }
 
 .personality-card {
-  position: relative;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   background: #f8fafc;
   padding: 0.9rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
 
-  .personality-icon {
-    font-size: 1.6rem;
-    margin-bottom: 0.35rem;
-  }
+.personality-icon {
+  font-size: 1.6rem;
+  margin-bottom: 0.35rem;
+}
 
-  .personality-name {
-    font-weight: 700;
-    color: #0f172a;
-    margin-bottom: 0.3rem;
-  }
+.personality-name {
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.3rem;
+}
 
-  .personality-desc {
-    color: #64748b;
-    font-size: 0.83rem;
-    line-height: 1.35;
-    padding-right: 3.5rem;
-  }
+.personality-desc {
+  color: #64748b;
+  font-size: 0.83rem;
+  line-height: 1.35;
+}
 
-  .personality-badge {
-    position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: #1d4ed8;
-    background: #dbeafe;
-    border: 1px solid #93c5fd;
-    border-radius: 999px;
-    padding: 0.15rem 0.45rem;
-  }
+.personality-badge {
+  display: inline-block;
+  margin-top: 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #1d4ed8;
+}
 
-  &.active {
-    border-color: #60a5fa;
-    background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%);
-    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.15);
-    transform: translateY(-1px);
-  }
+.personality-card.active {
+  border-color: #60a5fa;
+  background: #eff6ff;
 }
 
 /* ──────────────────────────────────────── */
@@ -520,8 +663,9 @@
 
 .actions-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
-  margin-top: 2rem;
+  margin-top: 1.6rem;
   justify-content: center;
 
   @media (max-width: 768px) {
@@ -530,7 +674,9 @@
 }
 
 .btn-primary,
-.btn-secondary {
+.btn-secondary,
+.btn-retake,
+.btn-export-prominent {
   padding: 0.875rem 1.75rem;
   font-size: 0.95rem;
   font-weight: 600;
@@ -549,6 +695,13 @@
   &:active {
     transform: translateY(0);
   }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
 }
 
 .btn-primary {
@@ -558,6 +711,23 @@
 
   &:hover {
     box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+  }
+}
+
+.btn-export-prominent {
+  width: 100%;
+  justify-content: center;
+  background: linear-gradient(130deg, #0f766e, #0ea5e9);
+  color: white;
+}
+
+.btn-retake {
+  background: #ecfeff;
+  color: #0f766e;
+  border: 1px solid #99f6e4;
+
+  &:hover {
+    background: #d5fbf7;
   }
 }
 
@@ -630,6 +800,25 @@
 
   .sources-row {
     grid-template-columns: 1fr;
+  }
+
+  .tech-summary-row {
+    grid-template-columns: 1fr;
+  }
+
+  .tech-skill-meta,
+  .tech-test-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tech-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .test-status {
+    margin-left: 0;
   }
 
   .skill-row {

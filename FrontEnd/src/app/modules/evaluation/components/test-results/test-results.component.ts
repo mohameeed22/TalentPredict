@@ -1,10 +1,15 @@
 import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { SoftSkillsService } from '../../services/soft-skills.service';
 import { PieChartComponent, PieChartSlice } from '../../../../shared/components/pie-chart/pie-chart.component';
+import { AuthService } from '../../../auth/services/auth.service';
+import { NotificationService } from '../../../../core/services/notification.service';
+import { SkillsService } from '../../../skills/services/skills.service';
+import { SkillResponse, TypeSkill } from '../../../skills/models/skill.model';
+import { BenchmarkService, CandidateProgressItem } from '../../../skill-test/services/benchmark.service';
 
 @Component({
   selector: 'app-test-results',
@@ -17,12 +22,25 @@ export class TestResultsComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private softSkillsService = inject(SoftSkillsService);
   private cdr = inject(ChangeDetectorRef);
+  private authService = inject(AuthService);
+  private skillsService = inject(SkillsService);
+  private benchmarkService = inject(BenchmarkService);
+  private notify = inject(NotificationService);
 
   result: any = null;
   loading = true;
   errorType: 'none' | 'no-data' | 'server' | 'timeout' = 'none';
   errorMessage = '';
+  techSkills: SkillResponse[] = [];
+  recentTechTests: CandidateProgressItem[] = [];
+  loadingTechSkills = false;
+  loadingTechTests = false;
+  techSkillsError = '';
+  techTestsError = '';
+  exportingPdf = false;
   private sub?: Subscription;
+  private techSkillsSub?: Subscription;
+  private techTestsSub?: Subscription;
   private timeoutId?: any;
 
   readonly skillIcons: Record<string, string> = {
@@ -91,14 +109,23 @@ export class TestResultsComponent implements OnInit, OnDestroy {
     }
 
     if (state?.['result']) {
-      this.result = this.normalize(state['result']);
-      this.loading = false;
-      console.log('[TestResults] Constructor: Got result from router state');
+      const normalized = this.normalize(state['result']);
+      if (this.isLikelyInvalidAnalysis(normalized)) {
+        this.result = null;
+        this.loading = false;
+        this.errorType = 'no-data';
+        console.warn('[TestResults] Constructor: Ignoring invalid analysis payload from router state');
+      } else {
+        this.result = normalized;
+        this.loading = false;
+        console.log('[TestResults] Constructor: Got result from router state');
+      }
     }
   }
 
   ngOnInit(): void {
     console.log('[TestResults] ngOnInit: loading =', this.loading);
+    this.loadTechnicalResults();
     this.cdr.detectChanges();
 
     if (this.result) {
@@ -113,14 +140,14 @@ export class TestResultsComponent implements OnInit, OnDestroy {
         const cached = this.normalize(JSON.parse(stored));
         // Use cache only if personality type is already present.
         // Otherwise refresh from backend to avoid stale incomplete results.
-        if (cached?.personalityType) {
+        if (cached?.personalityType && !this.isLikelyInvalidAnalysis(cached)) {
           this.result = cached;
           this.loading = false;
           this.cdr.detectChanges();
           console.log('[TestResults] ngOnInit: Got result from sessionStorage');
           return;
         }
-        console.log('[TestResults] ngOnInit: Cached result missing personalityType, refreshing from API');
+        console.log('[TestResults] ngOnInit: Cached result is incomplete/invalid, refreshing from API');
       } catch (e) {
         console.error('[TestResults] ngOnInit: Failed to parse sessionStorage:', e);
         sessionStorage.removeItem('softSkillsResult');
@@ -152,6 +179,15 @@ export class TestResultsComponent implements OnInit, OnDestroy {
           return;
         }
         this.result = this.normalize(data);
+        if (this.isLikelyInvalidAnalysis(this.result)) {
+          console.warn('[TestResults] ngOnInit: Backend returned invalid/fallback analysis, showing no-data state');
+          this.result = null;
+          this.loading = false;
+          this.errorType = 'no-data';
+          sessionStorage.removeItem('softSkillsResult');
+          this.cdr.detectChanges();
+          return;
+        }
         this.loading = false;
         this.errorType = 'none';
         console.log('[TestResults] ngOnInit: Normalized result:', this.result);
@@ -173,7 +209,58 @@ export class TestResultsComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.cdr.detectChanges();
     this.sub?.unsubscribe();
+    this.techSkillsSub?.unsubscribe();
+    this.techTestsSub?.unsubscribe();
     clearTimeout(this.timeoutId);
+  }
+
+  private loadTechnicalResults(): void {
+    const user = this.authService.getCurrentUser();
+    if (!user?.id) {
+      this.loadingTechSkills = false;
+      this.loadingTechTests = false;
+      this.techSkillsError = 'Utilisateur non authentifie.';
+      this.techTestsError = 'Utilisateur non authentifie.';
+      return;
+    }
+
+    const userId = String(user.id);
+
+    this.loadingTechSkills = true;
+    this.techSkillsError = '';
+    this.techSkillsSub?.unsubscribe();
+    this.techSkillsSub = this.skillsService.getUserSkills(userId).subscribe({
+      next: (skills) => {
+        this.techSkills = [...skills]
+          .filter((skill) => skill.type === TypeSkill.TECH || String(skill.type) === 'TECH')
+          .sort((a, b) => (b.niveau ?? 0) - (a.niveau ?? 0));
+        this.loadingTechSkills = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.loadingTechSkills = false;
+        this.techSkillsError = err?.error?.message ?? 'Impossible de charger les competences techniques.';
+        this.cdr.detectChanges();
+      }
+    });
+
+    this.loadingTechTests = true;
+    this.techTestsError = '';
+    this.techTestsSub?.unsubscribe();
+    this.techTestsSub = this.benchmarkService.progress(userId).subscribe({
+      next: (rows) => {
+        this.recentTechTests = [...rows]
+          .sort((a, b) => new Date(b.taken_at).getTime() - new Date(a.taken_at).getTime())
+          .slice(0, 6);
+        this.loadingTechTests = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.loadingTechTests = false;
+        this.techTestsError = err?.error?.message ?? 'Impossible de charger les resultats techniques recents.';
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   // Normalize handles both snake_case and camelCase from backend
@@ -317,6 +404,112 @@ export class TestResultsComponent implements OnInit, OnDestroy {
     return this.skillIcons[key] || '⭐';
   }
 
+  get softSkillCount(): number {
+    return Object.keys(this.result?.mergedSoftSkills || {}).length;
+  }
+
+  get techSkillCount(): number {
+    return this.techSkills.length;
+  }
+
+  get latestTechTestScore(): number | null {
+    if (!this.recentTechTests.length) {
+      return null;
+    }
+    return this.toNumber(this.recentTechTests[0].overall_score);
+  }
+
+  getTechLevelPercent(level: number | null | undefined): number {
+    const safe = this.toNumber(level);
+    return Math.max(0, Math.min(100, Math.round((safe / 5) * 100)));
+  }
+
+  techTestSkillEntries(item: CandidateProgressItem): Array<{ skill: string; score: number }> {
+    if (!item.skill_scores || typeof item.skill_scores !== 'object') {
+      return [];
+    }
+
+    return Object.entries(item.skill_scores)
+      .map(([skill, value]) => ({
+        skill,
+        score: this.toNumber(value)
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 4);
+  }
+
+  exportResultPdf(): void {
+    const user = this.authService.getCurrentUser();
+    if (!user?.id || this.exportingPdf) {
+      return;
+    }
+
+    this.exportingPdf = true;
+    this.benchmarkService.downloadReportResponse(String(user.id)).subscribe({
+      next: (response: HttpResponse<Blob>) => {
+        void this.handleReportResponse(response);
+      },
+      error: (error: unknown) => {
+        void this.handleReportError(error);
+      }
+    });
+  }
+
+  private async handleReportResponse(response: HttpResponse<Blob>): Promise<void> {
+    try {
+      const fallbackName = `talentpredict-report-${new Date().toISOString().slice(0, 10)}.pdf`;
+      const fileName = this.benchmarkService.resolveReportFileName(response, fallbackName);
+      const payload = response.body;
+
+      if (!payload || payload.size === 0) {
+        this.notify.error('Le rapport genere est vide. Reessayez dans quelques instants.');
+        return;
+      }
+
+      if (!this.benchmarkService.isPdfResponse(response, fileName)) {
+        const message = await this.benchmarkService.extractBlobMessage(
+          payload,
+          'Impossible de telecharger le rapport PDF.'
+        );
+        this.notify.error(message);
+        return;
+      }
+
+      this.downloadBlob(payload, fileName);
+      this.notify.success('Rapport PDF telecharge.');
+    } finally {
+      this.exportingPdf = false;
+    }
+  }
+
+  private async handleReportError(error: unknown): Promise<void> {
+    this.exportingPdf = false;
+    const message = await this.benchmarkService.extractErrorMessage(
+      error,
+      'Impossible de telecharger le rapport PDF.'
+    );
+    this.notify.error(message);
+  }
+
+  private downloadBlob(blob: Blob, fileName: string): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const url = window.URL.createObjectURL(blob);
+    const anchor = window.document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.style.display = 'none';
+    window.document.body.appendChild(anchor);
+    anchor.click();
+
+    window.setTimeout(() => {
+      window.URL.revokeObjectURL(url);
+      anchor.remove();
+    }, 1000);
+  }
+
   getActivePersonalityKey(): string {
     return this.normalizePersonality(this.result?.personalityType || '');
   }
@@ -357,6 +550,10 @@ export class TestResultsComponent implements OnInit, OnDestroy {
     this.router.navigate(['/evaluation']);
   }
 
+  retakeTechSkills(): void {
+    this.router.navigate(['/skill-test']);
+  }
+
   retry(): void {
     console.log('[TestResults] retry: Resetting state and reloading');
     sessionStorage.removeItem('softSkillsResult');
@@ -365,5 +562,30 @@ export class TestResultsComponent implements OnInit, OnDestroy {
     this.errorType = 'none';
     this.cdr.detectChanges();
     this.ngOnInit();
+  }
+
+  private isLikelyInvalidAnalysis(result: any): boolean {
+    if (!result) return true;
+
+    const overallZero = Number(result.overallScore ?? 0) <= 0;
+
+    const merged = result.mergedSoftSkills || {};
+    const mergedValues = Object.values(merged) as number[];
+    const mergedZero = mergedValues.length === 0 || mergedValues.every((value) => Number(value ?? 0) <= 0);
+
+    const cv = Number(result?.sourceData?.cv?.overall_score ?? 0);
+    const github = Number(result?.sourceData?.github?.overall_score ?? 0);
+    const pcm = Number(result?.sourceData?.pcm?.overall_score ?? 0);
+    const sourceZero = cv <= 0 && github <= 0 && pcm <= 0;
+
+    const summaryBlank = !String(result.summary || '').trim();
+    const strengthsEmpty = !Array.isArray(result.top3Strengths) || result.top3Strengths.length === 0;
+
+    return overallZero && mergedZero && sourceZero && summaryBlank && strengthsEmpty;
+  }
+
+  private toNumber(value: unknown): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 }

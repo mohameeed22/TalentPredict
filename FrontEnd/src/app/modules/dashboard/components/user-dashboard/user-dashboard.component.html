@@ -112,6 +112,72 @@
     }
   </div>
 
+  <div class="detail-card prediction-card">
+    <div class="detail-header prediction-header">
+      <div class="prediction-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v4" />
+          <path d="M12 18v4" />
+          <path d="M4.93 4.93l2.83 2.83" />
+          <path d="M16.24 16.24l2.83 2.83" />
+          <path d="M2 12h4" />
+          <path d="M18 12h4" />
+          <path d="M4.93 19.07l2.83-2.83" />
+          <path d="M16.24 7.76l2.83-2.83" />
+        </svg>
+        <h2>Prediction IA</h2>
+      </div>
+
+      <button
+        type="button"
+        class="btn-action btn-secondary-action"
+        [disabled]="generatingPrediction"
+        (click)="generatePrediction()">
+        {{ generatingPrediction ? 'Generation...' : (lastPrediction ? 'Regenerer' : 'Generer') }}
+      </button>
+    </div>
+
+    @if (predictionLoading) {
+      <div class="empty-state">
+        <p>Chargement de la prediction IA...</p>
+      </div>
+    } @else if (predictionError) {
+      <div class="prediction-error">
+        <p>{{ predictionError }}</p>
+      </div>
+    } @else if (lastPrediction) {
+      <div class="prediction-meta">
+        <span class="status-badge status-complete">{{ lastPrediction.statut }}</span>
+        @if (predictionScorePercent !== null) {
+          <span class="prediction-score">Confiance: <strong>{{ predictionScorePercent }}%</strong></span>
+        }
+        @if (predictionDate) {
+          <span class="prediction-date">{{ predictionDate | date: 'dd MMM yyyy, HH:mm' }}</span>
+        }
+      </div>
+
+      <p class="prediction-analysis">{{ lastPrediction.analyse }}</p>
+
+      @if (lastPrediction.recommandationSoft) {
+        <div class="prediction-block">
+          <h3>Recommendation soft skills</h3>
+          <p>{{ lastPrediction.recommandationSoft }}</p>
+        </div>
+      }
+
+      @if (lastPrediction.recommandationTech) {
+        <div class="prediction-block">
+          <h3>Recommendation techniques</h3>
+          <p>{{ lastPrediction.recommandationTech }}</p>
+        </div>
+      }
+    } @else {
+      <div class="empty-state">
+        <p>Aucune prediction IA disponible pour le moment.</p>
+      </div>
+    }
+  </div>
+
   <!-- Details Grid -->
   <div class="details-grid">
     <!-- Skills Radar -->

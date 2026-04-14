@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.talentpredict.modules.assessment.entities.CandidateTestResult;
@@ -40,7 +41,7 @@ public class BenchmarkService {
                     if (scores.has(skill)) {
                         pool.add(scores.get(skill).asInt());
                     }
-                } catch (Exception e) {
+                } catch (JsonProcessingException e) {
                     log.trace("skip row: {}", e.getMessage());
                 }
             }
@@ -52,7 +53,7 @@ public class BenchmarkService {
                         mine = scores.get(skill).asInt();
                         break;
                     }
-                } catch (Exception e) {
+                } catch (JsonProcessingException e) {
                     log.trace("skip mine: {}", e.getMessage());
                 }
             }

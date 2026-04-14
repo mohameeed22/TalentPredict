@@ -43,6 +43,16 @@ interface QuizResultViewModel {
   totalDurationSeconds: number;
 }
 
+interface McqSubmittedAnswer {
+  question_id: string;
+  skill: string;
+  selected: string;
+  correct: string;
+  confidence: string;
+  time_spent_seconds: number;
+  difficulty: string;
+}
+
 @Component({
   selector: 'app-skill-test-quiz',
   standalone: true,
@@ -79,7 +89,7 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
   randomCodeSkill = '';
   private submitSub: Subscription | null = null;
   private submitWatchdogHandle: ReturnType<typeof setTimeout> | null = null;
-  private readonly submitHardTimeoutMs = 60_000;
+  private readonly submitHardTimeoutMs = 30_000;
 
   result: QuizResultViewModel | null = null;
   submitting = false;
@@ -498,6 +508,56 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
     return 'Profil global coherent entre analyse initiale et resultats du test.';
   }
 
+  private buildLocalFallbackMcqEvaluation(payloadAnswers: McqSubmittedAnswer[], elapsedSeconds: number): Record<string, unknown> {
+    const bySkill = new Map<string, { total: number; correct: number }>();
+    let correctCount = 0;
+    let confidenceAligned = 0;
+
+    for (const answer of payloadAnswers) {
+      const selected = String(answer.selected ?? '').toUpperCase();
+      const expected = String(answer.correct ?? '').toUpperCase();
+      const isCorrect = !!selected && selected === expected;
+
+      if (isCorrect) {
+        correctCount += 1;
+      }
+
+      const confidence = String(answer.confidence ?? 'medium').toLowerCase();
+      if ((isCorrect && confidence !== 'low') || (!isCorrect && confidence === 'low')) {
+        confidenceAligned += 1;
+      }
+
+      const skill = String(answer.skill ?? 'General').trim() || 'General';
+      const prev = bySkill.get(skill) ?? { total: 0, correct: 0 };
+      prev.total += 1;
+      if (isCorrect) {
+        prev.correct += 1;
+      }
+      bySkill.set(skill, prev);
+    }
+
+    const total = Math.max(1, payloadAnswers.length);
+    const realScore = Math.round((correctCount / total) * 100);
+    const confidenceAccuracy = Math.round((confidenceAligned / total) * 100);
+
+    const expectedDuration = Math.max(60, this.questions.length * 70);
+    const speedRatio = expectedDuration / Math.max(1, elapsedSeconds);
+    const speedScore = Math.max(30, Math.min(100, Math.round(speedRatio * 100)));
+
+    const skillScores: Record<string, number> = {};
+    for (const [skill, stats] of bySkill.entries()) {
+      skillScores[skill] = Math.round((stats.correct / Math.max(1, stats.total)) * 100);
+    }
+
+    return {
+      real_score: realScore,
+      confidence_accuracy: confidenceAccuracy,
+      speed_score: speedScore,
+      skill_scores: skillScores,
+      summary: 'Resultat calcule localement (fallback) car le moteur d evaluation est indisponible ou trop lent.'
+    };
+  }
+
   private composeProfessionalResult(mcqRaw: any, codeRaw: any): QuizResultViewModel {
     const mcq = mcqRaw?.data ?? mcqRaw ?? {};
     const code = codeRaw?.data ?? codeRaw ?? null;
@@ -564,7 +624,7 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
     }
 
     const elapsed = Math.max(1, Math.round((Date.now() - this.startedAt) / 1000));
-    const payloadAnswers = this.questions.map(q => ({
+    const payloadAnswers: McqSubmittedAnswer[] = this.questions.map(q => ({
       question_id: q.id,
       skill: q.skill,
       selected: (this.answers[q.id] ?? 'A').toUpperCase(),
@@ -578,13 +638,23 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
       test_id: testId,
       candidate_id: userId,
       answers: payloadAnswers
-    });
+    }).pipe(
+      catchError(err => {
+        this.notify.warning(
+          err?.name === 'TimeoutError'
+            ? 'Evaluation QCM trop lente. Un score local provisoire est affiche.'
+            : 'Evaluation QCM indisponible. Un score local provisoire est affiche.'
+        );
+        return of(this.buildLocalFallbackMcqEvaluation(payloadAnswers, elapsed));
+      })
+    );
 
     const code$ = this.codeChallenge
       ? this.testApi.evaluateCodeChallenge({
           challenge_id: this.codeChallenge.challenge_id,
           skill: this.codeChallenge.skill ?? this.randomCodeSkill,
           submitted_code: this.codeSubmission,
+          candidate_id: userId,
           hints_used: this.codeHintsUsed,
           time_spent_seconds: Math.max(1, Math.round((Date.now() - this.codeStartedAt) / 1000)),
           description: this.codeChallenge.description ?? '',
@@ -605,6 +675,10 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
     this.submitSub = forkJoin({ mcq: mcq$, code: code$ }).pipe(
       finalize(() => {
         this.clearSubmitWatchdog();
+        if (this.submitting && !this.result) {
+          this.submitting = false;
+          this.startTimerLoop();
+        }
       })
     ).subscribe({
       next: ({ mcq, code }) => {

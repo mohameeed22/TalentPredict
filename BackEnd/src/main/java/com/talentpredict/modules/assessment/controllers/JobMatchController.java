@@ -20,7 +20,9 @@ import com.talentpredict.modules.assessment.repositories.JobMatchRepository;
 import com.talentpredict.modules.assessment.services.TalentPredictAiProxyService;
 import com.talentpredict.modules.skills.entities.Skill;
 import com.talentpredict.modules.skills.repositories.SkillRepository;
+import com.talentpredict.modules.user.entities.Profile;
 import com.talentpredict.modules.user.entities.User;
+import com.talentpredict.modules.user.repositories.ProfileRepository;
 import com.talentpredict.modules.user.repositories.UserRepository;
 import com.talentpredict.shared.security.UserDetailsImpl;
 
@@ -35,6 +37,7 @@ public class JobMatchController {
     private final TalentPredictAiProxyService aiProxyService;
     private final SkillRepository skillRepository;
     private final UserRepository userRepository;
+    private final ProfileRepository profileRepository;
     private final JobMatchRepository jobMatchRepository;
 
     @PostMapping("/match")
@@ -50,6 +53,9 @@ public class JobMatchController {
             }
         }
 
+        Profile profile = profileRepository.findByUser_Id(cid).orElse(null);
+        Integer totalExperienceYears = profile != null ? profile.getExperienceAns() : null;
+
         List<Skill> skills = skillRepository.findByUserId(cid);
         List<Map<String, Object>> candidateSkills = skills.stream()
                 .map(s -> {
@@ -59,6 +65,16 @@ public class JobMatchController {
                     int n = levelValue == null ? 1 : levelValue;
                     m.put("score", Math.min(100, n * 20));
                     m.put("niveau", n);
+                    m.put("level", toLevelLabel(n));
+                    if (s.getSource() != null && !s.getSource().isBlank()) {
+                        m.put("source", s.getSource());
+                    }
+                    if (s.getDescription() != null && !s.getDescription().isBlank()) {
+                        m.put("evidence", s.getDescription());
+                    }
+                    if (totalExperienceYears != null) {
+                        m.put("years_estimate", estimateSkillYears(totalExperienceYears, n));
+                    }
                     return m;
                 })
                 .collect(Collectors.toList());
@@ -73,6 +89,24 @@ public class JobMatchController {
         }
         payload.put("candidate_skills", candidateSkills);
 
+        Map<String, Object> candidateContext = new HashMap<>();
+        if (totalExperienceYears != null) {
+            candidateContext.put("total_experience_years", totalExperienceYears);
+        }
+        if (profile != null) {
+            Map<String, Object> githubSignals = new HashMap<>();
+            if (profile.getGithubRepos() != null) githubSignals.put("repos", profile.getGithubRepos());
+            if (profile.getGithubFollowers() != null) githubSignals.put("followers", profile.getGithubFollowers());
+            if (profile.getGithubFollowing() != null) githubSignals.put("following", profile.getGithubFollowing());
+            if (!githubSignals.isEmpty()) {
+                candidateContext.put("github_signals", githubSignals);
+            }
+            if (profile.getAiSummary() != null && !profile.getAiSummary().isBlank()) {
+                candidateContext.put("candidate_summary", profile.getAiSummary());
+            }
+        }
+        payload.put("candidate_context", candidateContext);
+
         JsonNode result = aiProxyService.postJson("/api/jobs/match", payload);
 
         User userRef = userRepository.getReferenceById(cid);
@@ -86,5 +120,30 @@ public class JobMatchController {
         jobMatchRepository.save(jm);
 
         return ResponseEntity.ok(result);
+    }
+
+    private static String toLevelLabel(int level) {
+        return switch (level) {
+            case 1 -> "Beginner";
+            case 2 -> "Intermediate";
+            case 3 -> "Advanced";
+            case 4 -> "Expert";
+            default -> "Expert";
+        };
+    }
+
+    private static int estimateSkillYears(int totalExperienceYears, int level) {
+        if (totalExperienceYears <= 0) {
+            return 0;
+        }
+        double ratio = switch (level) {
+            case 1 -> 0.30;
+            case 2 -> 0.50;
+            case 3 -> 0.70;
+            case 4 -> 0.85;
+            default -> 1.00;
+        };
+        int estimated = (int) Math.round(totalExperienceYears * ratio);
+        return Math.max(1, estimated);
     }
 }

@@ -19,6 +19,9 @@ public class AiWebClientConfig {
     public WebClient talentPredictAiWebClient(
             @Value("${talentpredict.ai.base-url:http://localhost:8000}") String baseUrl) {
         String base = (baseUrl == null || baseUrl.isBlank()) ? "http://localhost:8000" : baseUrl.trim();
+        if (base.endsWith("/api")) {
+            base = base.substring(0, base.length() - 4);
+        }
         HttpClient httpClient = HttpClient.create()
                 .responseTimeout(Duration.ofSeconds(90))
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10_000);

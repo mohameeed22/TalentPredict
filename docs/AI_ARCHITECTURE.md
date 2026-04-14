@@ -389,7 +389,7 @@ ANTHROPIC_MODEL=anthropic/claude-sonnet-4
 
 # ── Option C: Ollama (local, no API key) ────────────────────
 ANTHROPIC_BASE_URL=http://localhost:11434/v1
-ANTHROPIC_MODEL=llama3.1:8b
+ANTHROPIC_MODEL=llama3.2
 
 # ── Common ───────────────────────────────────────────────────
 GITHUB_TOKEN=ghp_...                  # optional, raises rate limit to 5000/hr

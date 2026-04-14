@@ -67,6 +67,20 @@
           <span class="tag tag-green">⭐ {{ profile.experienceAns }} ans d'expérience</span>
           }
         </div>
+        <div class="hero-metrics">
+          <div class="metric-card">
+            <span class="metric-label">Niveau d'etudes</span>
+            <strong>{{ profile.niveauEtudes || 'Non renseigne' }}</strong>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">GitHub</span>
+            <strong>{{ profile.githubRepos ?? 0 }} repos</strong>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">CV</span>
+            <strong>{{ profile.cvUrl ? 'Ajoute' : 'Absent' }}</strong>
+          </div>
+        </div>
         <div class="social-links">
           @if (profile.lienLinkedin) {
           <a [href]="profile.lienLinkedin" target="_blank" class="social-link linkedin">
@@ -111,42 +125,6 @@
     <!-- Profile Completeness Score -->
     <app-profile-completeness [profile]="profile" />
 
-    <!-- Job match -->
-    <div class="edit-card job-match-card">
-      <div class="card-header">
-        <h3>Correspondance avec une offre</h3>
-      </div>
-      <p class="hint">Collez l’URL de l’annonce ou le texte de l’offre d’emploi.</p>
-      <input class="jm-input" type="url" [(ngModel)]="jobUrl" placeholder="https://..." />
-      <textarea class="jm-textarea" rows="5" [(ngModel)]="jobText" placeholder="Description…"></textarea>
-      <button type="button" class="btn-save" (click)="runJobMatch()" [disabled]="jobMatchLoading">
-        {{ jobMatchLoading ? 'Analyse…' : 'Analyser la correspondance' }}
-      </button>
-      @if (jobMatchResult) {
-      <div class="jm-result">
-        <p class="jm-overall">Match global : <strong>{{ jobMatchResult.overall_match }}%</strong></p>
-        <div class="jm-bars">
-          @for (row of jobMatchResult.skill_breakdown; track row.skill) {
-          <div class="jm-row">
-            <span>{{ row.skill }} @if (row.required) { <small>(requis)</small> }</span>
-            <div class="bar-track">
-              <div
-                class="bar-fill"
-                [class]="barClass(row.match)"
-                [style.width.%]="row.candidate_score"
-              ></div>
-            </div>
-            <span class="jm-tag">{{ row.match }}</span>
-          </div>
-          }
-        </div>
-        @if (jobMatchResult.ai_recommendation) {
-        <p class="jm-ai">{{ jobMatchResult.ai_recommendation }}</p>
-        }
-      </div>
-      }
-    </div>
-
     <!-- Editable Form -->
     <div class="edit-card">
       <div class="card-header">
@@ -155,6 +133,10 @@
           <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
         </svg>
         <h3>Modifier mon profil</h3>
+      </div>
+
+      <div class="form-intro">
+        <p>Completez votre profil pour obtenir de meilleures analyses IA et une presentation plus claire de votre parcours.</p>
       </div>
 
       <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
@@ -185,6 +167,8 @@
             </div>
           </div>
         </div>
+
+        <p class="form-section-title">Profil public</p>
 
         <!-- Photo de profil -->
         <div class="form-group">
@@ -222,6 +206,7 @@
           <label for="description">Bio / Description</label>
           <textarea id="description" formControlName="description" rows="4"
             placeholder="Décrivez votre parcours, vos ambitions..."></textarea>
+          <span class="field-hint">Astuce: indiquez vos forces, vos technos cles et le type de poste recherche.</span>
         </div>
 
         <div class="form-row">
@@ -235,6 +220,8 @@
               placeholder="Ex: Master, Licence, Baccalauréat" />
           </div>
         </div>
+
+        <p class="form-section-title">Liens et presence en ligne</p>
 
         <div class="form-group">
           <label for="lienLinkedin">
@@ -270,6 +257,8 @@
           <input id="portfolioUrl" type="url" formControlName="portfolioUrl" placeholder="https://monportfolio.dev" />
         </div>
 
+        <p class="form-section-title">Documents</p>
+
         <!-- CV Upload -->
         <div class="form-group">
           <label>📄 CV (PDF)</label>
@@ -302,6 +291,9 @@
         </div>
 
         <div class="form-actions">
+          <button type="button" class="btn-reset" (click)="resetForm()" [disabled]="saving">
+            Reinitialiser
+          </button>
           <button type="submit" class="btn-save" [disabled]="saving">
             @if (saving) {
             <div class="btn-spinner"></div>
@@ -319,6 +311,7 @@
             🧠 Voir mes compétences
           </button>
         </div>
+        <p class="form-save-hint">Vos modifications sont appliquees apres la sauvegarde.</p>
       </form>
     </div>
 

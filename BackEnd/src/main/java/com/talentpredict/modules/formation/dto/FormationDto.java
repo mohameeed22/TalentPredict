@@ -1,10 +1,11 @@
 package com.talentpredict.modules.formation.dto;
 
-import com.talentpredict.modules.formation.entities.Formation;
-import lombok.Data;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
+
+import com.talentpredict.modules.formation.entities.Formation;
+
+import lombok.Data;
 
 public class FormationDto {
     @Data
@@ -16,6 +17,22 @@ public class FormationDto {
         private String fournisseur;
         private String url;
         private LocalDateTime dateDebut;
+    }
+
+    @Data
+    public static class ReviewNotesRequest {
+        private String reviewNote;
+        private String nextAction;
+        private String reviewedBy;
+    }
+
+    @Data
+    public static class MiniTestSubmissionRequest {
+        private Integer score;
+        private Integer correctAnswers;
+        private Integer totalQuestions;
+        private Integer passingScore;
+        private String notes;
     }
 
     @Data
@@ -32,5 +49,15 @@ public class FormationDto {
         private LocalDateTime dateDebut;
         private LocalDateTime dateFin;
         private Integer progression;
+        private String reviewNote;
+        private String nextAction;
+        private String reviewedBy;
+        private LocalDateTime reviewedAt;
+        private Integer miniTestScore;
+        private Boolean miniTestPassed;
+        private LocalDateTime miniTestTakenAt;
+        private String miniTestNotes;
+        private String certificateUrl;
+        private LocalDateTime certificateUploadedAt;
     }
 }

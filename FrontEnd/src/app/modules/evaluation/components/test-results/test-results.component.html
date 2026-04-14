@@ -49,7 +49,7 @@
     <!-- Header -->
     <div class="results-header">
       <div class="header-left">
-        <h1>Rapport Soft Skills</h1>
+        <h1>Rapport Soft & Tech Skills</h1>
         <p class="candidate-name">{{ result.userName }}</p>
         <p class="candidate-name" *ngIf="result.personalityType">
           Type de personnalité: <strong>{{ result.personalityType }}</strong>
@@ -59,21 +59,33 @@
           <span class="badge">🐙 GitHub · 30%</span>
           <span class="badge">🧠 PCM · 30%</span>
         </div>
+        <div class="weight-badges">
+          <span class="badge">Soft skills: {{ softSkillCount }}</span>
+          <span class="badge">Tech skills: {{ techSkillCount }}</span>
+          <span class="badge" *ngIf="latestTechTestScore !== null">Dernier test tech: {{ latestTechTestScore }}%</span>
+        </div>
       </div>
-      <div class="score-circle">
-        <svg viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="40" fill="none"
-            stroke="#e0e0e0" stroke-width="8"/>
-          <circle cx="50" cy="50" r="40" fill="none"
-            [attr.stroke]="getScoreColor(result.overallScore)"
-            stroke-width="8" stroke-linecap="round"
-            stroke-dasharray="251.2"
-            [style.stroke-dashoffset]="251.2 - (result.overallScore / 10 * 251.2)"
-            transform="rotate(-90 50 50)"/>
-        </svg>
-        <div class="score-text">
-          <span class="score-val">{{ result.overallScore }}</span>
-          <span class="score-max">/10</span>
+      <div class="header-aside">
+        <div class="score-circle">
+          <svg viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="40" fill="none"
+              stroke="#e0e0e0" stroke-width="8"/>
+            <circle cx="50" cy="50" r="40" fill="none"
+              [attr.stroke]="getScoreColor(result.overallScore)"
+              stroke-width="8" stroke-linecap="round"
+              stroke-dasharray="251.2"
+              [style.stroke-dashoffset]="251.2 - (result.overallScore / 10 * 251.2)"
+              transform="rotate(-90 50 50)"/>
+          </svg>
+          <div class="score-text">
+            <span class="score-val">{{ result.overallScore }}</span>
+            <span class="score-max">/10</span>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <button class="btn-export-prominent" type="button" (click)="exportResultPdf()" [disabled]="exportingPdf">
+            {{ exportingPdf ? 'Export PDF en cours...' : '📄 Exporter le rapport complet Soft + Tech' }}
+          </button>
         </div>
       </div>
     </div>
@@ -139,6 +151,81 @@
       ></app-pie-chart>
     </div>
 
+    <!-- Technical Skills & Recent Technical Tests -->
+    <div class="card">
+      <div class="tech-card-header">
+        <h2 class="card-title">Résultats techniques</h2>
+        <button class="btn-retake" type="button" (click)="retakeTechSkills()">
+          🧪 Refaire le test technique
+        </button>
+      </div>
+
+      <div class="tech-summary-row">
+        <div class="tech-summary-item">
+          <span class="tech-summary-label">Compétences techniques</span>
+          <strong class="tech-summary-value">{{ techSkillCount }}</strong>
+        </div>
+        <div class="tech-summary-item">
+          <span class="tech-summary-label">Dernier score test tech</span>
+          <strong class="tech-summary-value">{{ latestTechTestScore !== null ? (latestTechTestScore + '%') : 'N/A' }}</strong>
+        </div>
+      </div>
+
+      <h3 class="sub-section-title">Compétences techniques détectées</h3>
+
+      <div *ngIf="loadingTechSkills" class="inline-state">
+        Chargement des compétences techniques...
+      </div>
+      <div *ngIf="!loadingTechSkills && techSkillsError" class="inline-state error">
+        {{ techSkillsError }}
+      </div>
+      <div *ngIf="!loadingTechSkills && !techSkillsError && techSkills.length === 0" class="inline-state">
+        Aucune compétence technique enregistrée pour le moment.
+      </div>
+
+      <div *ngIf="!loadingTechSkills && !techSkillsError && techSkills.length > 0" class="tech-skill-list">
+        <div *ngFor="let skill of techSkills | slice:0:10" class="tech-skill-row">
+          <div class="tech-skill-meta">
+            <span class="tech-skill-name">{{ skill.nom }}</span>
+            <span class="tech-skill-level">Niveau {{ skill.niveau }}/5</span>
+          </div>
+          <div class="tech-progress-track">
+            <div class="tech-progress-fill" [style.width.%]="getTechLevelPercent(skill.niveau)"></div>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="sub-section-title">Derniers résultats de tests techniques</h3>
+
+      <div *ngIf="loadingTechTests" class="inline-state">
+        Chargement des résultats de tests techniques...
+      </div>
+      <div *ngIf="!loadingTechTests && techTestsError" class="inline-state error">
+        {{ techTestsError }}
+      </div>
+      <div *ngIf="!loadingTechTests && !techTestsError && recentTechTests.length === 0" class="inline-state">
+        Aucun résultat de test technique pour le moment.
+      </div>
+
+      <div *ngIf="!loadingTechTests && !techTestsError && recentTechTests.length > 0" class="tech-tests-list">
+        <div *ngFor="let test of recentTechTests" class="tech-test-item">
+          <div class="tech-test-top">
+            <strong class="tech-test-score">{{ test.overall_score }}%</strong>
+            <span class="tech-test-date">{{ test.taken_at | date: 'dd/MM/yyyy HH:mm' }}</span>
+            <span class="test-status" [class.pass]="test.passed" [class.fail]="!test.passed">
+              {{ test.passed ? 'Valide' : 'A renforcer' }}
+            </span>
+          </div>
+
+          <div class="tech-test-skills" *ngIf="techTestSkillEntries(test).length > 0">
+            <span class="skill-chip" *ngFor="let entry of techTestSkillEntries(test)">
+              {{ entry.skill }} {{ entry.score }}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Strengths & Weaknesses -->
     <div class="card fw-card">
       <div class="fw-col strengths">
@@ -199,7 +286,7 @@
       <button class="btn-secondary" (click)="startEvaluation()">
         🔄 Nouvelle évaluation
       </button>
-      <button class="btn-primary" routerLink="/dashboard">
+      <button class="btn-secondary" routerLink="/dashboard">
         📊 Dashboard
       </button>
     </div>

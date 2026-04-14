@@ -9,6 +9,7 @@ import { NotificationService } from '../../../../core/services/notification.serv
 import { BenchmarkService, CandidateProgressItem } from '../../../skill-test/services/benchmark.service';
 import { PieChartComponent, PieChartSlice } from '../../../../shared/components/pie-chart/pie-chart.component';
 import { SkillsRadarChartComponent } from '../skills-radar-chart/skills-radar-chart.component';
+import { PredictionResponse } from '../../models/prediction.model';
 
 @Component({
   selector: 'app-user-dashboard',
@@ -30,6 +31,10 @@ export class UserDashboardComponent implements OnInit {
   error: string | null = null;
   loadingSkillTests = true;
   exportingPdf = false;
+  predictionLoading = false;
+  generatingPrediction = false;
+  predictionError: string | null = null;
+  lastPrediction: PredictionResponse | null = null;
 
   ngOnInit(): void {
     const currentUser = this.authService.getCurrentUser();
@@ -41,6 +46,7 @@ export class UserDashboardComponent implements OnInit {
       ).subscribe({
         next: (data) => {
           this.dashboardData = data;
+          this.lastPrediction = data.dernierePrediction ?? null;
           this.loading = false;
         },
         error: (err) => {
@@ -61,11 +67,37 @@ export class UserDashboardComponent implements OnInit {
           this.loadingSkillTests = false;
         }
       });
+
+      this.loadLatestPrediction(userId);
     } else {
       this.error = 'Utilisateur non authentifié.';
       this.loading = false;
       this.loadingSkillTests = false;
     }
+  }
+
+  generatePrediction(): void {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser?.id || this.generatingPrediction) {
+      return;
+    }
+
+    this.generatingPrediction = true;
+    this.predictionError = null;
+
+    this.dashboardService.generatePrediction(String(currentUser.id)).subscribe({
+      next: (prediction) => {
+        this.lastPrediction = prediction;
+        this.generatingPrediction = false;
+        this.notify.success('Prediction IA generee avec succes.');
+      },
+      error: (err) => {
+        this.generatingPrediction = false;
+        this.predictionError = 'Impossible de generer la prediction IA pour le moment.';
+        console.error('Error generating prediction:', err);
+        this.notify.error('Generation de prediction impossible.');
+      }
+    });
   }
 
   exportSkillReport(): void {
@@ -209,6 +241,41 @@ export class UserDashboardComponent implements OnInit {
       value,
       color: this.piePalette[index % this.piePalette.length]
     }));
+  }
+
+  get predictionScorePercent(): number | null {
+    if (typeof this.lastPrediction?.scoreConfiance !== 'number') {
+      return null;
+    }
+    return Math.round(this.lastPrediction.scoreConfiance * 100);
+  }
+
+  get predictionDate(): Date | null {
+    if (!this.lastPrediction?.datePrediction) {
+      return null;
+    }
+    return new Date(this.lastPrediction.datePrediction);
+  }
+
+  private loadLatestPrediction(userId: string): void {
+    this.predictionLoading = true;
+    this.predictionError = null;
+
+    this.dashboardService.getLatestPrediction(userId).subscribe({
+      next: (prediction) => {
+        this.lastPrediction = prediction;
+        this.predictionLoading = false;
+      },
+      error: (err) => {
+        this.predictionLoading = false;
+        if (err?.status === 204 || err?.status === 404) {
+          this.lastPrediction = null;
+          return;
+        }
+        this.predictionError = 'Impossible de charger la derniere prediction IA.';
+        console.error('Error loading latest prediction:', err);
+      }
+    });
   }
 
   private getLatestTest() {

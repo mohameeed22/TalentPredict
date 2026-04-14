@@ -39,6 +39,13 @@ public class SoftSkillsService {
     public SoftSkillsResultDto analyze(SoftSkillsAnalysisRequestDto request, UUID userId) {
         log.info("Starting soft skills analysis for userId={}", userId);
         SoftSkillsResultDto result = n8nService.analyze(request);
+        if (isLikelyN8nFallback(result)) {
+            log.warn("n8n returned an invalid/fallback payload for userId={}", userId);
+            throw new ResponseStatusException(
+                HttpStatus.BAD_GATEWAY,
+                "Soft skills analysis failed in n8n. Please retry."
+            );
+        }
         persist(result, userId);
         return result;
     }
@@ -51,10 +58,14 @@ public class SoftSkillsService {
     public SoftSkillsResultDto getLastAnalysis(UUID userId) {
         try {
             User user = findUser(userId);
-            return predictionRepository
-                .findTopByUserOrderByDatePredictionDesc(user)
-                .map(this::toResultDto)
-                .orElse(null);
+            List<Prediction> predictions = predictionRepository.findByUserOrderByDatePredictionDesc(user);
+            for (Prediction prediction : predictions) {
+                SoftSkillsResultDto dto = toResultDto(prediction);
+                if (!isLikelyPersistedFallback(dto)) {
+                    return dto;
+                }
+            }
+            return null;
         } catch (Exception e) {
             log.error("Error in getLastAnalysis userId={}: {}", userId, e.getMessage());
             return null;
@@ -100,7 +111,11 @@ public class SoftSkillsService {
             User user = findUser(userId);
             String analyseText = buildAnalyseText(result);
             String recoText = buildRecoText(result);
-            Double scoreConfiance = result.getOverallScore() != null ? Math.round(result.getOverallScore() / 10.0 * 100.0) / 100.0 : 0.7;
+            Double normalizedOnTen = result.getOverallScore();
+            if (normalizedOnTen != null && normalizedOnTen > 10.0) {
+                normalizedOnTen = normalizedOnTen / 10.0;
+            }
+            Double scoreConfiance = normalizedOnTen != null ? Math.round((normalizedOnTen / 10.0) * 100.0) / 100.0 : 0.7;
             Prediction prediction = Prediction.builder()
                 .user(user)
                 .analyse(analyseText)
@@ -109,15 +124,15 @@ public class SoftSkillsService {
                 .statut(Prediction.StatutPrediction.COMPLETEE)
                 .build();
             predictionRepository.save(prediction);
-            saveSkills(result, user, prediction);
-            saveRecommendationItems(result, prediction);
+            saveSkills(result, user);
+            saveRecommendationItems(result);
             log.info("Persisted analysis for userId={}", userId);
         } catch (Exception e) {
             log.error("Error persisting for userId={}: {}", userId, e.getMessage(), e);
         }
     }
 
-    private void saveSkills(SoftSkillsResultDto result, User user, Prediction prediction) {
+    private void saveSkills(SoftSkillsResultDto result, User user) {
         if (result.getMergedSoftSkills() == null) return;
         result.getMergedSoftSkills().forEach((skillName, score) -> {
             try {
@@ -134,7 +149,7 @@ public class SoftSkillsService {
         });
     }
 
-    private void saveRecommendationItems(SoftSkillsResultDto result, Prediction prediction) {
+    private void saveRecommendationItems(SoftSkillsResultDto result) {
         if (result.getTrainingRecommendations() == null) return;
         result.getTrainingRecommendations().forEach((skillName, formation) -> {
             try {
@@ -248,7 +263,11 @@ public class SoftSkillsService {
             String[] kv = line.substring(2).split(": ", 2);
             if (kv.length != 2) continue;
             try {
-                skills.put(kv[0].trim(), Double.parseDouble(kv[1].replace("/10", "").trim()));
+                String rawScore = kv[1].trim();
+                if (rawScore.endsWith("/10")) {
+                    rawScore = rawScore.substring(0, rawScore.length() - 3).trim();
+                }
+                skills.put(kv[0].trim(), Double.valueOf(rawScore));
             } catch (NumberFormatException ignored) {}
         }
         return skills.isEmpty() ? null : skills;
@@ -262,6 +281,76 @@ public class SoftSkillsService {
             if (kv.length == 2) map.put(kv[0].trim(), kv[1].trim());
         }
         return map.isEmpty() ? null : map;
+    }
+
+    private boolean isLikelyN8nFallback(SoftSkillsResultDto result) {
+        if (result == null) return true;
+        if (Boolean.TRUE.equals(result.getParseError())) return true;
+        return hasNoUsableAnalysisData(result);
+    }
+
+    private boolean isLikelyPersistedFallback(SoftSkillsResultDto result) {
+        return hasNoUsableAnalysisData(result);
+    }
+
+    private boolean hasNoUsableAnalysisData(SoftSkillsResultDto result) {
+        if (result == null) return true;
+
+        boolean overallZero = result.getOverallScore() == null || Math.abs(result.getOverallScore()) < 0.001;
+        boolean mergedZero = isAllZeroScores(result.getMergedSoftSkills());
+        boolean sourceZero = isAllZeroSourceScores(result.getSourceData());
+        boolean noSummary = result.getSummary() == null || result.getSummary().isBlank();
+
+        boolean noStrengths = (result.getTop3Strengths() == null || result.getTop3Strengths().isEmpty())
+            && (result.getKeyStrengths() == null || result.getKeyStrengths().isEmpty());
+
+        return overallZero && mergedZero && sourceZero && noSummary && noStrengths;
+    }
+
+    private boolean isAllZeroScores(Map<String, Double> scores) {
+        if (scores == null || scores.isEmpty()) return true;
+        for (Double value : scores.values()) {
+            if (value != null && Math.abs(value) > 0.001) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isAllZeroSourceScores(Map<String, Object> sourceData) {
+        if (sourceData == null || sourceData.isEmpty()) return true;
+
+        for (String key : new String[]{"cv", "github", "pcm"}) {
+            Object nested = sourceData.get(key);
+            if (nested instanceof Map<?, ?> nestedMap) {
+                Object nestedScore = nestedMap.get("overall_score");
+                if (toDoubleSafe(nestedScore) > 0.001) {
+                    return false;
+                }
+            }
+
+            Object direct = sourceData.get(key + "_score");
+            if (toDoubleSafe(direct) > 0.001) {
+                return false;
+            }
+        }
+
+        for (Object value : sourceData.values()) {
+            if (!(value instanceof Map<?, ?>) && toDoubleSafe(value) > 0.001) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private double toDoubleSafe(Object value) {
+        if (value == null) return 0;
+        try {
+            return Double.parseDouble(value.toString());
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
     }
 
     private User findUser(UUID userId) {

@@ -1,0 +1,462 @@
+<section class="career-hub">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Career Intelligence</p>
+      <h1>CV + LinkedIn + AI Interview Coach</h1>
+      <p class="subtitle">
+        Improve your CV and LinkedIn profile with actionable edits, practice role-specific interviews,
+        and discover worldwide opportunities.
+      </p>
+    </div>
+  </header>
+
+  <nav class="tabs" aria-label="Career tabs">
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'profile'" (click)="setTab('profile')">
+      CV + LinkedIn Improvement
+    </button>
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'interview'" (click)="setTab('interview')">
+      AI Interview
+    </button>
+    <button type="button" class="tab-btn" [class.active]="activeTab === 'opportunities'" (click)="setTab('opportunities')">
+      Opportunities + Job Match
+    </button>
+  </nav>
+
+  <section class="context-card">
+    <h2>Candidate Context</h2>
+    <div class="form-grid">
+      <label>
+        <span>Target role</span>
+        <input [(ngModel)]="targetRole" placeholder="Backend Engineer" />
+      </label>
+      <label>
+        <span>Level</span>
+        <select [(ngModel)]="level">
+          <option value="BEGINNER">Beginner</option>
+          <option value="INTERMEDIATE">Intermediate</option>
+          <option value="ADVANCED">Advanced</option>
+          <option value="EXPERT">Expert</option>
+        </select>
+      </label>
+      <label>
+        <span>Location</span>
+        <input [(ngModel)]="location" placeholder="Remote" />
+      </label>
+    </div>
+
+    <label class="description-field">
+      <span>Job description context (optional, used by both tabs)</span>
+      <textarea
+        rows="4"
+        [(ngModel)]="jobDescription"
+        placeholder="Paste a job description for deeper interview adaptation and matching."
+      ></textarea>
+    </label>
+  </section>
+
+  <section *ngIf="activeTab === 'profile'" class="panel">
+    <div class="panel-header">
+      <h2>CV and LinkedIn Improvement Assistant</h2>
+      <p>Use your LinkedIn URL and CV text to generate AI summary upgrades plus actionable edits.</p>
+    </div>
+
+    <div class="form-grid">
+      <label>
+        <span>Current headline</span>
+        <input [(ngModel)]="currentHeadline" placeholder="Backend Engineer | Java | Microservices" />
+      </label>
+
+      <label>
+        <span>Current skills (comma-separated)</span>
+        <input [(ngModel)]="currentSkillsInput" placeholder="Java, Spring Boot, Docker, SQL" />
+      </label>
+    </div>
+
+    <label class="description-field">
+      <span>Current summary</span>
+      <textarea
+        rows="5"
+        [(ngModel)]="currentSummary"
+        placeholder="Paste your current CV summary or LinkedIn About section."
+      ></textarea>
+    </label>
+
+    <label class="description-field">
+      <span>LinkedIn profile URL (optional)</span>
+      <input
+        type="url"
+        [(ngModel)]="linkedinUrl"
+        placeholder="Auto-filled from your profile (or paste https://www.linkedin.com/in/your-name)"
+      />
+    </label>
+
+    <label class="description-field">
+      <span>CV file URL (optional)</span>
+      <input
+        type="url"
+        [(ngModel)]="cvUrl"
+        placeholder="Auto-filled after CV upload (example: https://.../uploads/cvs/your-cv.pdf)"
+      />
+    </label>
+
+    <label class="description-field">
+      <span>CV excerpt (optional)</span>
+      <textarea
+        rows="5"
+        [(ngModel)]="cvText"
+        placeholder="Paste key CV bullets. If Current summary is empty, AI will generate one from CV text or CV URL."
+      ></textarea>
+    </label>
+
+    <div class="actions">
+      <button type="button" class="primary-btn" (click)="generateProfileImprovement()" [disabled]="profileLoading">
+        {{ profileLoading ? 'Generating AI summary and edits...' : 'Generate AI Summary + Actionable Edits' }}
+      </button>
+    </div>
+
+    <p class="error" *ngIf="profileError">{{ profileError }}</p>
+
+    <div class="improvement-grid" *ngIf="profileImprovement as result">
+      <article class="improvement-card">
+        <h3>Headline</h3>
+        <p class="label">Current</p>
+        <p class="copy">{{ result.headline.current || 'Not provided' }}</p>
+        <p class="label">Improved</p>
+        <p class="copy highlighted">{{ result.headline.improved }}</p>
+
+        <div *ngIf="result.headline.actionable_edits.length">
+          <h4>Actionable edits</h4>
+          <ul class="edit-list">
+            <li *ngFor="let edit of result.headline.actionable_edits">
+              <strong>{{ edit.action }}</strong>
+              <p *ngIf="edit.before"><span class="label-inline">Before:</span> {{ edit.before }}</p>
+              <p *ngIf="edit.after"><span class="label-inline">After:</span> {{ edit.after }}</p>
+              <p *ngIf="edit.why"><span class="label-inline">Why:</span> {{ edit.why }}</p>
+            </li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="improvement-card">
+        <h3>Summary</h3>
+        <p class="label">Current</p>
+        <p class="copy">{{ result.summary.current || 'Not provided' }}</p>
+        <p class="label">Improved</p>
+        <p class="copy highlighted">{{ result.summary.improved }}</p>
+
+        <div *ngIf="result.summary.actionable_edits.length">
+          <h4>Actionable edits</h4>
+          <ul class="edit-list">
+            <li *ngFor="let edit of result.summary.actionable_edits">
+              <strong>{{ edit.action }}</strong>
+              <p *ngIf="edit.before"><span class="label-inline">Before:</span> {{ edit.before }}</p>
+              <p *ngIf="edit.after"><span class="label-inline">After:</span> {{ edit.after }}</p>
+              <p *ngIf="edit.why"><span class="label-inline">Why:</span> {{ edit.why }}</p>
+            </li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="improvement-card">
+        <h3>Skills Alignment</h3>
+
+        <div *ngIf="result.skills.prioritized_for_role.length">
+          <p class="label">Prioritized for role</p>
+          <div class="tag-list">
+            <span class="tag" *ngFor="let skill of result.skills.prioritized_for_role">{{ skill }}</span>
+          </div>
+        </div>
+
+        <div *ngIf="result.skills.add.length">
+          <p class="label">Suggested to add</p>
+          <div class="tag-list">
+            <span class="tag add" *ngFor="let skill of result.skills.add">{{ skill }}</span>
+          </div>
+        </div>
+
+        <div *ngIf="result.skills.deprioritize.length">
+          <p class="label">Deprioritize</p>
+          <div class="tag-list">
+            <span class="tag warn" *ngFor="let skill of result.skills.deprioritize">{{ skill }}</span>
+          </div>
+        </div>
+
+        <div *ngIf="result.skills.actionable_edits.length">
+          <h4>Actionable edits</h4>
+          <ul class="edit-list">
+            <li *ngFor="let edit of result.skills.actionable_edits">
+              <strong>{{ edit.action }}</strong>
+              <p *ngIf="edit.before"><span class="label-inline">Before:</span> {{ edit.before }}</p>
+              <p *ngIf="edit.after"><span class="label-inline">After:</span> {{ edit.after }}</p>
+              <p *ngIf="edit.why"><span class="label-inline">Why:</span> {{ edit.why }}</p>
+            </li>
+          </ul>
+        </div>
+      </article>
+
+      <article class="improvement-card">
+        <h3>Role Alignment</h3>
+        <p class="score-line">
+          Alignment score:
+          <span class="decision" [ngClass]="roleAlignmentClass()">{{ result.role_alignment.score }} / 100</span>
+        </p>
+
+        <div *ngIf="result.role_alignment.strengths.length">
+          <h4>Strengths</h4>
+          <ul>
+            <li *ngFor="let item of result.role_alignment.strengths">{{ item }}</li>
+          </ul>
+        </div>
+
+        <div *ngIf="result.role_alignment.gaps.length">
+          <h4>Gaps</h4>
+          <ul>
+            <li *ngFor="let item of result.role_alignment.gaps">{{ item }}</li>
+          </ul>
+        </div>
+
+        <div *ngIf="result.role_alignment.actionable_edits.length">
+          <h4>Actionable edits</h4>
+          <ul class="edit-list">
+            <li *ngFor="let edit of result.role_alignment.actionable_edits">
+              <strong>{{ edit.action }}</strong>
+              <p *ngIf="edit.before"><span class="label-inline">Before:</span> {{ edit.before }}</p>
+              <p *ngIf="edit.after"><span class="label-inline">After:</span> {{ edit.after }}</p>
+              <p *ngIf="edit.why"><span class="label-inline">Why:</span> {{ edit.why }}</p>
+            </li>
+          </ul>
+        </div>
+
+        <div *ngIf="result.next_steps.length">
+          <h4>Next steps</h4>
+          <ul>
+            <li *ngFor="let step of result.next_steps">{{ step }}</li>
+          </ul>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section *ngIf="activeTab === 'interview'" class="panel">
+    <div class="panel-header">
+      <h2>Fully AI-Generated Interview</h2>
+      <p>Generate dynamic interview questions and evaluate each answer with AI feedback.</p>
+    </div>
+
+    <div class="form-grid">
+      <label>
+        <span>Interview type</span>
+        <select [(ngModel)]="interviewType">
+          <option value="mixed">Mixed</option>
+          <option value="technical">Technical</option>
+          <option value="behavioral">Behavioral</option>
+          <option value="system-design">System design</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Question count</span>
+        <input type="number" min="4" max="15" [(ngModel)]="questionCount" />
+      </label>
+
+      <label>
+        <span>Focus skills (comma-separated)</span>
+        <input [(ngModel)]="focusSkillsInput" placeholder="Spring Boot, Docker, SQL" />
+      </label>
+
+      <label>
+        <span>Strong skills (comma-separated)</span>
+        <input [(ngModel)]="strongSkillsInput" placeholder="Java, API design" />
+      </label>
+
+      <label>
+        <span>Weak skills (comma-separated)</span>
+        <input [(ngModel)]="weakSkillsInput" placeholder="Kubernetes, observability" />
+      </label>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="primary-btn" (click)="generateInterview()" [disabled]="interviewLoading">
+        {{ interviewLoading ? 'Generating AI interview...' : 'Generate Interview Session' }}
+      </button>
+    </div>
+
+    <p class="error" *ngIf="interviewError">{{ interviewError }}</p>
+
+    <div class="session-grid" *ngIf="interviewSession as session">
+      <article class="session-card">
+        <h3>{{ session.session_title }}</h3>
+        <p class="meta">
+          <strong>Role:</strong> {{ session.role }} | <strong>Level:</strong> {{ session.level }} |
+          <strong>Type:</strong> {{ session.interview_type }}
+        </p>
+        <p>{{ session.opening_pitch }}</p>
+
+        <h4>Question Set</h4>
+        <ul class="question-list">
+          <li
+            *ngFor="let q of session.questions; let i = index"
+            [class.selected]="i === selectedQuestionIndex"
+            (click)="selectQuestion(i)"
+          >
+            <div class="question-title">{{ q.id }} - {{ q.question }}</div>
+            <div class="question-meta">{{ q.category }} | {{ q.difficulty }}</div>
+          </li>
+        </ul>
+      </article>
+
+      <article class="answer-card" *ngIf="selectedQuestion as question">
+        <h3>Answer Evaluation</h3>
+        <p class="current-question"><strong>{{ question.id }}:</strong> {{ question.question }}</p>
+
+        <div class="ideal-block" *ngIf="question.ideal_answer_points.length">
+          <h4>Ideal answer points</h4>
+          <ul>
+            <li *ngFor="let point of question.ideal_answer_points">{{ point }}</li>
+          </ul>
+        </div>
+
+        <label>
+          <span>Your answer</span>
+          <textarea rows="8" [(ngModel)]="answerText" placeholder="Write your interview answer..."></textarea>
+        </label>
+
+        <div class="actions">
+          <button type="button" class="primary-btn" (click)="evaluateCurrentAnswer()" [disabled]="answerEvaluating">
+            {{ answerEvaluating ? 'Evaluating with AI...' : 'Evaluate Answer' }}
+          </button>
+        </div>
+
+        <p class="error" *ngIf="answerError">{{ answerError }}</p>
+
+        <div class="evaluation" *ngIf="answerEvaluation as eval">
+          <div class="decision" [ngClass]="decisionClass()">
+            Score: {{ eval.score }} / 100 - {{ eval.decision | uppercase }}
+          </div>
+          <p>{{ eval.feedback }}</p>
+
+          <div *ngIf="eval.strengths.length">
+            <h4>Strengths</h4>
+            <ul>
+              <li *ngFor="let item of eval.strengths">{{ item }}</li>
+            </ul>
+          </div>
+
+          <div *ngIf="eval.gaps.length">
+            <h4>Gaps</h4>
+            <ul>
+              <li *ngFor="let item of eval.gaps">{{ item }}</li>
+            </ul>
+          </div>
+
+          <div *ngIf="eval.improved_answer">
+            <h4>Improved answer</h4>
+            <p>{{ eval.improved_answer }}</p>
+          </div>
+
+          <div *ngIf="eval.follow_up_question">
+            <h4>Follow-up question</h4>
+            <p>{{ eval.follow_up_question }}</p>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section *ngIf="activeTab === 'opportunities'" class="panel">
+    <div class="panel-header">
+      <h2>Worldwide Opportunity Discovery</h2>
+      <p>Discover jobs/freelance opportunities across global platforms and run match analysis from description.</p>
+    </div>
+
+    <div class="opportunity-controls">
+      <label class="remote-toggle">
+        <input type="checkbox" [(ngModel)]="remoteOnly" />
+        <span>Remote only</span>
+      </label>
+
+      <label>
+        <span>Max results</span>
+        <input type="number" min="6" max="80" [(ngModel)]="maxResults" />
+      </label>
+    </div>
+
+    <div class="platform-grid">
+      <label class="platform-item" *ngFor="let platform of platformOptions">
+        <input type="checkbox" [(ngModel)]="platformEnabled[platform.key]" />
+        <span>{{ platform.label }}</span>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="primary-btn" (click)="discoverOpportunities()" [disabled]="opportunitiesLoading">
+        {{ opportunitiesLoading ? 'Discovering globally...' : 'Discover Opportunities' }}
+      </button>
+    </div>
+
+    <p class="error" *ngIf="opportunitiesError">{{ opportunitiesError }}</p>
+
+    <div class="results-summary" *ngIf="opportunitiesResponse as response">
+      <p>
+        <strong>{{ response.total_found }}</strong> opportunities found for
+        <strong>{{ response.query.search_query }}</strong>
+      </p>
+    </div>
+
+    <div class="opportunity-list" *ngIf="opportunities.length">
+      <article class="opportunity-card" *ngFor="let item of opportunities">
+        <div class="card-top">
+          <h3>{{ item.title }}</h3>
+          <span class="score">Match {{ item.match_score }}%</span>
+        </div>
+        <p class="meta">{{ item.platform | titlecase }} | {{ item.company || 'Unknown company' }} | {{ item.location }}</p>
+        <p class="snippet">{{ item.snippet }}</p>
+
+        <div class="tag-list" *ngIf="item.matched_skills.length">
+          <span class="tag" *ngFor="let skill of item.matched_skills">{{ skill }}</span>
+        </div>
+
+        <div class="card-actions">
+          <a class="ghost-btn" [href]="item.url" target="_blank" rel="noopener">Open Platform</a>
+          <button type="button" class="ghost-btn" (click)="runMatchForOpportunity(item)">Match This Job</button>
+        </div>
+      </article>
+    </div>
+
+    <section class="match-box">
+      <h3>Job Match From URL or Description</h3>
+      <label>
+        <span>Job URL (optional)</span>
+        <input [(ngModel)]="matchJobUrl" placeholder="https://..." />
+      </label>
+
+      <label>
+        <span>Job description</span>
+        <textarea
+          rows="6"
+          [(ngModel)]="matchJobDescription"
+          placeholder="Paste a complete job description to evaluate your profile fit."
+        ></textarea>
+      </label>
+
+      <div class="actions">
+        <button type="button" class="primary-btn" (click)="runJobDescriptionMatch()" [disabled]="matchLoading">
+          {{ matchLoading ? 'Matching...' : 'Run Job Match' }}
+        </button>
+      </div>
+
+      <p class="error" *ngIf="matchError">{{ matchError }}</p>
+
+      <div class="match-result" *ngIf="matchResult">
+        <p class="headline" *ngIf="matchScoreValue() !== null">Overall match: {{ matchScoreValue() }}%</p>
+
+        <div *ngIf="recommendations().length">
+          <h4>Recommendations</h4>
+          <ul>
+            <li *ngFor="let recommendation of recommendations()">{{ recommendation }}</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </section>
+</section>

@@ -6,15 +6,16 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import org.springframework.http.HttpHeaders;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.talentpredict.modules.assessment.repositories.CandidateBadgeRepository;
@@ -25,7 +26,6 @@ import com.talentpredict.modules.user.entities.Profile;
 import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.modules.user.repositories.ProfileRepository;
 
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -60,7 +60,7 @@ public class PublicProfileController {
         out.put("skills", skills.stream()
                 .map(s -> Map.of(
                         "name", s.getNom(),
-                        "level", s.getNiveau() != null ? s.getNiveau() : 0))
+                "level", s.getNiveau() != null ? s.getNiveau() : Integer.valueOf(0)))
                 .collect(Collectors.toList()));
         return ResponseEntity.ok(out);
     }
@@ -82,7 +82,7 @@ public class PublicProfileController {
                     if (n.has(skill)) {
                         score = n.get(skill).asInt();
                     }
-                } catch (Exception ignored) {
+                } catch (JsonProcessingException ignored) {
                     score = 0;
                 }
             }

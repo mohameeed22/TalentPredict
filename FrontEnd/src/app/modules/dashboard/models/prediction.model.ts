@@ -1,17 +1,14 @@
-export interface Prediction {
-  id: number;
-  userId: number;
-  dateGeneration: Date;
-  analyse: string;
-  recommendations: string[];
-  formationsRecommandees: string[];
-}
+export type PredictionStatus = 'EN_ANALYSE' | 'COMPLETEE' | 'VALIDEE' | 'APPLIQUEE';
 
 export interface PredictionResponse {
-  id: number;
-  userId: number;
-  dateGeneration: Date;
+  id: string;
+  datePrediction: string;
   analyse: string;
-  recommendations: string[];
-  formationsRecommandees: string[];
+  recommandationSoft?: string;
+  recommandationTech?: string;
+  scoreConfiance?: number;
+  statut: PredictionStatus;
+  formationsProposees?: Array<Record<string, unknown>>;
 }
+
+export type Prediction = PredictionResponse;

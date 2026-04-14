@@ -1,6 +1,9 @@
 package com.talentpredict.modules.skills.services;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -78,6 +81,49 @@ public class SkillService {
     @Transactional
     public void supprimerSkillsParUser(UUID userId) {
         skillRepository.deleteByUserId(userId);
+    }
+
+    @Transactional
+    public int remplacerSkillsParUser(UUID userId, List<SkillDto.CreateRequest> createRequests) {
+        skillRepository.deleteByUserId(userId);
+
+        if (createRequests == null || createRequests.isEmpty()) {
+            return 0;
+        }
+
+        User user = authServiceImpl.getUserById(userId);
+        Map<String, Skill> deduplicated = new LinkedHashMap<>();
+
+        for (SkillDto.CreateRequest req : createRequests) {
+            if (req == null || req.getNom() == null || req.getNom().isBlank() || req.getType() == null) {
+                continue;
+            }
+
+            String normalizedName = req.getNom().trim();
+            int level = req.getNiveau() == null ? 1 : Math.max(1, Math.min(5, req.getNiveau()));
+            String key = normalizedName.toLowerCase() + "::" + req.getType().name();
+
+            Skill existing = deduplicated.get(key);
+            if (existing != null && existing.getNiveau() >= level) {
+                continue;
+            }
+
+            Skill skill = new Skill();
+            skill.setUser(user);
+            skill.setNom(normalizedName);
+            skill.setType(req.getType());
+            skill.setNiveau(level);
+            skill.setDescription(req.getDescription());
+            skill.setSource(req.getSource());
+            skill.setValidee(false);
+            deduplicated.put(key, skill);
+        }
+
+        if (deduplicated.isEmpty()) {
+            return 0;
+        }
+
+        return skillRepository.saveAll(new ArrayList<>(deduplicated.values())).size();
     }
     
     private SkillDto.Response convertToResponse(Skill skill) {

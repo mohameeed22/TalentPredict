@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { PredictionResponse } from '../models/prediction.model';
 
 // Test summary (matches DashboardDto.TestSummaryDto)
 export interface TestSummary {
@@ -29,7 +30,7 @@ export interface EmployeeDashboardResponse {
   topSkills: any[];
   formationsRecentes: any[];
   testsRecents: TestSummary[];
-  dernierePrediction: any;
+  dernierePrediction: PredictionResponse | null;
 }
 
 // Admin overview response (matches DashboardDto.AdminOverviewDto)
@@ -60,6 +61,7 @@ export interface EmployeeSummary {
 export class DashboardService {
   private http = inject(HttpClient);
   private dashboardUrl = `${environment.apiUrl}/dashboard`;
+  private predictionsUrl = `${environment.apiUrl}/predictions`;
 
   /**
    * TASK 2: Employee dashboard — GET /api/dashboard/users/{userId}
@@ -73,5 +75,26 @@ export class DashboardService {
    */
   getAdminOverview(): Observable<AdminOverviewResponse> {
     return this.http.get<AdminOverviewResponse>(`${this.dashboardUrl}/admin/overview`);
+  }
+
+  /**
+   * Prediction entity integration — POST /api/predictions/users/{userId}/generer
+   */
+  generatePrediction(userId: string): Observable<PredictionResponse> {
+    return this.http.post<PredictionResponse>(`${this.predictionsUrl}/users/${userId}/generer`, {});
+  }
+
+  /**
+   * Prediction entity integration — GET /api/predictions/users/{userId}
+   */
+  getPredictions(userId: string): Observable<PredictionResponse[]> {
+    return this.http.get<PredictionResponse[]>(`${this.predictionsUrl}/users/${userId}`);
+  }
+
+  /**
+   * Prediction entity integration — GET /api/predictions/users/{userId}/derniere
+   */
+  getLatestPrediction(userId: string): Observable<PredictionResponse | null> {
+    return this.http.get<PredictionResponse | null>(`${this.predictionsUrl}/users/${userId}/derniere`);
   }
 }

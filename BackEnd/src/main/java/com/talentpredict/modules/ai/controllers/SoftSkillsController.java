@@ -1,4 +1,4 @@
-package com.talentpredict.modules.ai.controllers;
+ package com.talentpredict.modules.ai.controllers;
 
 import java.util.List;
 import java.util.UUID;
@@ -103,6 +103,11 @@ public class SoftSkillsController {
                 HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
         Object principal = auth.getPrincipal();
+        if (principal == null) {
+            throw new ResponseStatusException(
+                HttpStatus.UNAUTHORIZED,
+                "Cannot resolve email from null principal");
+        }
         if (principal instanceof UserDetails ud) {
             return ud.getUsername();
         }

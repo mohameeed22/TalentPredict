@@ -57,6 +57,36 @@ public class Formation {
     @Builder.Default
     private Integer progression = 0; // 0-100
 
+    @Column(name = "review_note", columnDefinition = "TEXT")
+    private String reviewNote;
+
+    @Column(name = "next_action", length = 500)
+    private String nextAction;
+
+    @Column(name = "reviewed_by", length = 255)
+    private String reviewedBy;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "mini_test_score")
+    private Integer miniTestScore;
+
+    @Column(name = "mini_test_passed")
+    private Boolean miniTestPassed;
+
+    @Column(name = "mini_test_taken_at")
+    private LocalDateTime miniTestTakenAt;
+
+    @Column(name = "mini_test_notes", columnDefinition = "TEXT")
+    private String miniTestNotes;
+
+    @Column(name = "certificate_url", length = 600)
+    private String certificateUrl;
+
+    @Column(name = "certificate_uploaded_at")
+    private LocalDateTime certificateUploadedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private TypeFormation type;

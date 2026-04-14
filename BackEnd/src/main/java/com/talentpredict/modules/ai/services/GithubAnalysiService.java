@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.talentpredict.modules.skills.dto.SkillDto;
 
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -26,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Service
 @Slf4j
+@RequiredArgsConstructor
 @SuppressWarnings("null")
 public class GithubAnalysiService {
 
@@ -35,12 +37,6 @@ public class GithubAnalysiService {
 
     @Value("${github.token:}")
     private String githubToken;
-
-    public GithubAnalysiService(OpenRouterService openRouterService) {
-        this.openRouterService = openRouterService;
-        this.restTemplate = new RestTemplate();
-        this.objectMapper = new ObjectMapper();
-    }
 
     /**
      * Result containing both skills and GitHub profile stats.

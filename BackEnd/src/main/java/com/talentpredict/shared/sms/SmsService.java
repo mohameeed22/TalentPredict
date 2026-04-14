@@ -1,5 +1,6 @@
 package com.talentpredict.shared.sms;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -68,7 +69,11 @@ public class SmsService {
                     log.warn("Twilio returned {} — body: {}", response.statusCode(), response.body());
                 }
                 return;
-            } catch (Exception ex) {
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                log.warn("SMS sending interrupted for {} — token fallback: {}", toPhone, token, ex);
+                return;
+            } catch (IOException ex) {
                 log.warn("Failed to send SMS via Twilio to {} — token fallback: {}", toPhone, token, ex);
                 return;
             }
@@ -134,7 +139,10 @@ public class SmsService {
                 log.warn("Twilio WhatsApp returned {} — body: {}", response.statusCode(), response.body());
             }
 
-        } catch (Exception ex) {
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            log.warn("WhatsApp sending interrupted for {}", toPhone, ex);
+        } catch (IOException ex) {
             log.warn("Failed to send WhatsApp to {}", toPhone, ex);
         }
     }

@@ -5,7 +5,7 @@ import { environment } from '../../../../environments/environment';
 import { User, UserRequest } from '../../auth/models/user.model';
 
 /**
- * Admin-specific service that wraps /api/utilisateurs endpoints.
+ * Admin-specific service that wraps /api/users endpoints.
  * All methods require ADMIN role.
  */
 @Injectable({
@@ -13,29 +13,29 @@ import { User, UserRequest } from '../../auth/models/user.model';
 })
 export class AdminService {
   private http = inject(HttpClient);
-  private baseUrl = `${environment.apiUrl}/utilisateurs`;
+  private baseUrl = `${environment.apiUrl}/users`;
 
-  /** GET /api/utilisateurs — List all users */
+  /** GET /api/users — List all users */
   getAllUsers(): Observable<User[]> {
     return this.http.get<User[]>(this.baseUrl);
   }
 
-  /** GET /api/utilisateurs/{id} — Get user by ID */
+  /** GET /api/users/{id} — Get user by ID */
   getUserById(userId: string): Observable<User> {
     return this.http.get<User>(`${this.baseUrl}/${userId}`);
   }
 
-  /** POST /api/utilisateurs — Create a new user */
+  /** POST /api/users — Create a new user */
   createUser(data: UserRequest): Observable<User> {
     return this.http.post<User>(this.baseUrl, data);
   }
 
-  /** PUT /api/utilisateurs/{id} — Update user (including role) */
+  /** PUT /api/users/{id} — Update user (including role) */
   updateUser(userId: string, data: Partial<UserRequest>): Observable<User> {
     return this.http.put<User>(`${this.baseUrl}/${userId}`, data);
   }
 
-  /** PUT /api/utilisateurs/{id} — Update user role */
+  /** PUT /api/users/{id} — Update user role */
   updateUserRole(userId: string, role: string): Observable<User> {
     return this.http.put<User>(
       `${this.baseUrl}/${userId}`,
@@ -43,7 +43,7 @@ export class AdminService {
     );
   }
 
-  /** DELETE /api/utilisateurs/{id} — Delete user */
+  /** DELETE /api/users/{id} — Delete user */
   deleteUser(userId: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${userId}`);
   }

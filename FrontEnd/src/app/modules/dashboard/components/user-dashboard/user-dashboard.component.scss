@@ -664,6 +664,83 @@
   }
 }
 
+/* Prediction */
+.prediction-card {
+  margin-bottom: 1.5rem;
+}
+
+.prediction-header {
+  justify-content: space-between;
+  align-items: center;
+}
+
+.prediction-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.prediction-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.prediction-score,
+.prediction-date {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #64748b);
+}
+
+.prediction-analysis {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: var(--bg-tertiary, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  color: var(--text-secondary, #334155);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.prediction-block {
+  margin-top: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--primary, #6366f1);
+  background: rgba(99, 102, 241, 0.06);
+  border-radius: 8px;
+
+  h3 {
+    margin: 0 0 0.3rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary, #0f172a);
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #334155);
+    line-height: 1.45;
+  }
+}
+
+.prediction-error {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+
+  p {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+}
+
 /* Empty State */
 .empty-state {
   display: flex;

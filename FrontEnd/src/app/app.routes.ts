@@ -84,6 +84,50 @@ export const routes: Routes = [
       }
     ]
   },
+  {
+    path: 'career',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./modules/career/components/career-hub/career-hub.component').then(
+        m => m.CareerHubComponent
+      )
+  },
+  {
+    path: 'recruiter',
+    canActivate: [authGuard, roleGuard(['RECRUITER', 'ADMIN'])],
+    loadComponent: () =>
+      import('./modules/recruiter/components/recruiter-shell/recruiter-shell.component').then(
+        m => m.RecruiterShellComponent
+      ),
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: 'candidates'
+      },
+      {
+        path: 'candidates',
+        loadComponent: () =>
+          import(
+            './modules/recruiter/components/recruiter-candidate-list/recruiter-candidate-list.component'
+          ).then(m => m.RecruiterCandidateListComponent)
+      },
+      {
+        path: 'fraud',
+        loadComponent: () =>
+          import(
+            './modules/recruiter/components/recruiter-fraud-alerts/recruiter-fraud-alerts.component'
+          ).then(m => m.RecruiterFraudAlertsComponent)
+      },
+      {
+        path: 'interview',
+        loadComponent: () =>
+          import(
+            './modules/recruiter/components/recruiter-interview/recruiter-interview.component'
+          ).then(m => m.RecruiterInterviewComponent)
+      }
+    ]
+  },
   { path: 'formations', canActivate: [authGuard], loadComponent: () => import('./modules/formation/components/formation-list/formation-list.component').then(m => m.FormationListComponent) },
   { path: 'jira', canActivate: [authGuard, roleGuard(['ADMIN'])], loadComponent: () => import('./modules/jira/components/jira-tickets/jira-tickets.component').then(m => m.JiraTicketsComponent) },
   { path: '**', redirectTo: '/' }

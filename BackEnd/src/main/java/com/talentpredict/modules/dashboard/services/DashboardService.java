@@ -1,9 +1,11 @@
 package com.talentpredict.modules.dashboard.services;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -14,7 +16,6 @@ import com.talentpredict.modules.ai.dto.PredictionDto;
 import com.talentpredict.modules.ai.entities.Prediction;
 import com.talentpredict.modules.ai.repositories.PredictionRepository;
 import com.talentpredict.modules.ai.services.PredictionService;
-import com.talentpredict.modules.ai.services.SoftSkillsService;
 import com.talentpredict.modules.assessment.repositories.CandidateTestResultRepository;
 import com.talentpredict.modules.auth.services.AuthServiceImpl;
 import com.talentpredict.modules.dashboard.dto.DashboardDto;
@@ -26,7 +27,6 @@ import com.talentpredict.modules.formation.repositories.FormationRepository;
 import com.talentpredict.modules.formation.services.FormationService;
 import com.talentpredict.modules.skills.dto.SkillDto;
 import com.talentpredict.modules.skills.entities.Skill;
-import com.talentpredict.modules.skills.repositories.SkillRepository;
 import com.talentpredict.modules.skills.services.SkillService;
 import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.modules.user.repositories.UserRepository;
@@ -48,14 +48,12 @@ public class DashboardService {
     private final SkillService skillService;
     private final FormationService formationService;
     private final PredictionService predictionService;
-    private final SoftSkillsService softSkillsService;
     // Direct repos for admin overview aggregation
     private final UserRepository userRepository;
     private final PersonalityTestRepository personalityTestRepository;
     private final CandidateTestResultRepository candidateTestResultRepository;
     private final FormationRepository formationRepository;
     private final PredictionRepository predictionRepository;
-    private final SkillRepository skillRepository;
 
     /**
      * TASK 2 — Employee Dashboard: data for the logged-in user only.
@@ -231,19 +229,36 @@ public class DashboardService {
     public DashboardDto.AdminOverviewDto getAdminOverview() {
         DashboardDto.AdminOverviewDto overview = new DashboardDto.AdminOverviewDto();
 
-        // All non-admin accounts = employees
-        List<User> allUsers = userRepository.findAll();
-        List<User> employees = allUsers.stream()
-                .filter(a -> a.getRole() == User.Role.USER)
-                .collect(Collectors.toList());
+        // All employee accounts
+        List<User> employees = userRepository.findByRole(User.Role.USER);
+        List<UUID> employeeIds = employees.stream()
+            .map(User::getId)
+            .collect(Collectors.toList());
 
         overview.setTotalEmployees(employees.size());
 
-        // Total formations EN_COURS across all employees
-        long formationsEnCours = employees.stream()
-                .mapToLong(a -> formationRepository
-                        .countByUserIdAndStatut(a.getId(), Formation.StatutFormation.EN_COURS))
-                .sum();
+        Map<UUID, Long> formationCountByUserTmp = Map.of();
+        Map<UUID, Long> testCountByUserTmp = Map.of();
+        Map<UUID, String> personalityTypeByUserTmp = Map.of();
+        long formationsEnCours = 0;
+
+        if (!employeeIds.isEmpty()) {
+            formationCountByUserTmp = toCountMap(formationRepository.countGroupedByUserIds(employeeIds));
+            Map<UUID, Long> formationEnCoursByUser = toCountMap(
+                formationRepository.countGroupedByUserIdsAndStatut(employeeIds, Formation.StatutFormation.EN_COURS));
+            formationsEnCours = formationEnCoursByUser.values().stream().mapToLong(Long::longValue).sum();
+
+            testCountByUserTmp = toCountMap(personalityTestRepository.countGroupedByUserIds(employeeIds));
+
+            List<Prediction> latestOrderedPredictions = predictionRepository
+                .findByUserIdInOrderByDatePredictionDesc(employeeIds);
+            personalityTypeByUserTmp = extractLatestPersonalityTypeByUser(latestOrderedPredictions);
+        }
+
+        final Map<UUID, Long> formationCountByUser = formationCountByUserTmp;
+        final Map<UUID, Long> testCountByUser = testCountByUserTmp;
+        final Map<UUID, String> personalityTypeByUser = personalityTypeByUserTmp;
+
         overview.setTotalFormationsEnCours((int) formationsEnCours);
 
         // Total completed evaluations across both legacy and assessment pipelines.
@@ -268,16 +283,9 @@ public class DashboardService {
                     dto.setDepartment(emp.getDepartment());
                     dto.setEmail(emp.getEmail());
                     dto.setActive(Boolean.TRUE.equals(emp.getIsActive()));
-                    dto.setFormationCount((int) formationRepository
-                            .countByUserId(emp.getId()));
-                    dto.setTestCount(personalityTestRepository
-                            .findByUserIdOrderByDateTestDesc(emp.getId()).size());
-                        String personalityType = predictionRepository
-                            .findTopByUserOrderByDatePredictionDesc(emp)
-                            .map(Prediction::getAnalyse)
-                            .map(a -> extractSection(a, "TYPE_PERSONNALITE"))
-                            .orElse(null);
-                        dto.setPersonalityType(personalityType);
+                    dto.setFormationCount(formationCountByUser.getOrDefault(emp.getId(), 0L).intValue());
+                    dto.setTestCount(testCountByUser.getOrDefault(emp.getId(), 0L).intValue());
+                    dto.setPersonalityType(personalityTypeByUser.get(emp.getId()));
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -290,5 +298,49 @@ public class DashboardService {
                                 totalTests,
                                 totalPredictions);
         return overview;
+    }
+
+    private Map<UUID, Long> toCountMap(List<Object[]> rows) {
+        Map<UUID, Long> counts = new HashMap<>();
+        if (rows == null || rows.isEmpty()) {
+            return counts;
+        }
+
+        for (Object[] row : rows) {
+            if (row == null || row.length < 2 || !(row[0] instanceof UUID userId)) {
+                continue;
+            }
+            long value = 0;
+            Object countObj = row[1];
+            if (countObj instanceof Number number) {
+                value = number.longValue();
+            } else if (countObj != null) {
+                try {
+                    value = Long.parseLong(countObj.toString());
+                } catch (NumberFormatException ignored) {
+                    value = 0;
+                }
+            }
+            counts.put(userId, value);
+        }
+        return counts;
+    }
+
+    private Map<UUID, String> extractLatestPersonalityTypeByUser(List<Prediction> predictions) {
+        Map<UUID, String> byUser = new HashMap<>();
+        Set<UUID> seen = new HashSet<>();
+
+        for (Prediction prediction : predictions) {
+            if (prediction.getUser() == null || prediction.getUser().getId() == null) {
+                continue;
+            }
+            UUID userId = prediction.getUser().getId();
+            if (!seen.add(userId)) {
+                continue;
+            }
+            byUser.put(userId, extractSection(prediction.getAnalyse(), "TYPE_PERSONNALITE"));
+        }
+
+        return byUser;
     }
 }

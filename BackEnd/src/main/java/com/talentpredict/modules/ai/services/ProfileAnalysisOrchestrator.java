@@ -4,10 +4,14 @@ package com.talentpredict.modules.ai.services;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +39,8 @@ public class ProfileAnalysisOrchestrator {
     private final ProfileService profileService;
     private final PersonalityTestService personalityTestService;
     private final AnalysisStatusService analysisStatusService;
+    @Qualifier("aiAnalysisExecutor")
+    private final Executor aiAnalysisExecutor;
 
     @Async("aiAnalysisExecutor")
     public void analyserProfil(UUID id) {
@@ -45,32 +51,46 @@ public class ProfileAnalysisOrchestrator {
             ProfileDto.Response profile = profileService.getProfileByAccountId(id);
             List<SkillDto.CreateRequest> allSkills = new ArrayList<>();
 
+            // ETAPES 1-3 : Analyses paralleles pour reduire la latence totale.
+            CompletableFuture<List<SkillDto.CreateRequest>> cvFuture =
+                runAsyncSafely(() -> analyserCV(profile), List.of(), "CV");
+            CompletableFuture<GithubAnalysiService.GitHubAnalysisResult> githubFuture =
+                runAsyncSafely(() -> analyserGitHubComplet(profile), emptyGitHubResult(), "GitHub");
+            CompletableFuture<List<SkillDto.CreateRequest>> pythonFuture =
+                runAsyncSafely(() -> pythonAiClient.analyzeProfile(profile), List.of(), "Python AI");
+            CompletableFuture<List<SkillDto.CreateRequest>> pcmFuture =
+                runAsyncSafely(() -> analyserPCM(id), List.of(), "PCM");
+
+            CompletableFuture.allOf(cvFuture, githubFuture, pythonFuture, pcmFuture).join();
+
             // ETAPE 1 : Analyse du CV
-            List<SkillDto.CreateRequest> cvSkills = analyserCV(profile);
+            List<SkillDto.CreateRequest> cvSkills = cvFuture.join();
             cvSkills.forEach(s -> s.setSource("CV"));
             allSkills.addAll(cvSkills);
 
             // ETAPE 2 : Analyse GitHub (skills + profile stats)
-            GithubAnalysiService.GitHubAnalysisResult githubResult = analyserGitHubComplet(profile);
+            GithubAnalysiService.GitHubAnalysisResult githubResult = githubFuture.join();
+            if (githubResult == null) {
+                githubResult = emptyGitHubResult();
+            }
             githubResult.getSkills().forEach(s -> s.setSource("GITHUB"));
             allSkills.addAll(githubResult.getSkills());
             saveGitHubStats(id, githubResult);
 
             // ETAPE 2b : Analyse Python AI (GitHub + LinkedIn) si configuré
-            List<SkillDto.CreateRequest> pythonSkills = pythonAiClient.analyzeProfile(profile);
+            List<SkillDto.CreateRequest> pythonSkills = pythonFuture.join();
             pythonSkills.forEach(s -> s.setSource("PYTHON_AI"));
             allSkills.addAll(pythonSkills);
 
             // ETAPE 3 : Analyse Test PCM
-            List<SkillDto.CreateRequest> pcmSkills = analyserPCM(id);
+            List<SkillDto.CreateRequest> pcmSkills = pcmFuture.join();
             pcmSkills.forEach(s -> s.setSource("PCM"));
             allSkills.addAll(pcmSkills);
 
             // ETAPE 4 : Replace old skills only if new ones were found
             int added = 0;
             if (!allSkills.isEmpty()) {
-                skillService.supprimerSkillsParUser(id);
-                added = upsertSkills(id, allSkills);
+                added = skillService.remplacerSkillsParUser(id, allSkills);
                 log.info("Analyse terminee: {}/{} nouveaux skills ajoutes pour account {}",
                     added, allSkills.size(), id);
             } else {
@@ -88,6 +108,29 @@ public class ProfileAnalysisOrchestrator {
         }
 
         log.info("========== FIN ANALYSE IA - Account: {} ==========", id);
+    }
+
+    private GithubAnalysiService.GitHubAnalysisResult emptyGitHubResult() {
+        GithubAnalysiService.GitHubAnalysisResult empty = new GithubAnalysiService.GitHubAnalysisResult();
+        empty.setSkills(List.of());
+        return empty;
+    }
+
+    private <T> CompletableFuture<T> runAsyncSafely(Supplier<T> task, T fallback, String label) {
+        return CompletableFuture.supplyAsync(task, aiAnalysisExecutor)
+            .exceptionally(ex -> {
+                log.warn("Etape {} en echec: {}", label, rootMessage(ex));
+                return fallback;
+            });
+    }
+
+    private String rootMessage(Throwable ex) {
+        Throwable cause = ex;
+        if (cause instanceof CompletionException && cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        String message = cause.getMessage();
+        return message == null || message.isBlank() ? cause.getClass().getSimpleName() : message;
     }
 
     // ── Analyse du CV ──
@@ -175,35 +218,6 @@ public class ProfileAnalysisOrchestrator {
             log.warn("PCM: pas de test disponible pour account {} - {}", accountId, e.getMessage());
             return List.of();
         }
-    }
-
-    // ── Upsert des skills (insertion sans doublons) ──
-
-    private int upsertSkills(UUID accountId, List<SkillDto.CreateRequest> newSkills) {
-        List<SkillDto.Response> existing = skillService.getSkillsByUser(accountId);
-
-        Set<String> existingNames = existing.stream()
-            .map(s -> s.getNom().toLowerCase().trim())
-            .collect(Collectors.toSet());
-
-        int added = 0;
-        for (SkillDto.CreateRequest skill : newSkills) {
-            String skillNameNormalized = skill.getNom().toLowerCase().trim();
-
-            if (existingNames.contains(skillNameNormalized)) {
-                continue;
-            }
-
-            try {
-                skillService.creerSkill(accountId, skill);
-                existingNames.add(skillNameNormalized);
-                added++;
-            } catch (Exception e) {
-                log.warn("Impossible d'ajouter le skill '{}': {}", skill.getNom(), e.getMessage());
-            }
-        }
-
-        return added;
     }
 
     // ── Résumé IA du profil ──

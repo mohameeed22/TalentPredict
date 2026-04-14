@@ -84,11 +84,9 @@ public class UserDto {
     @AllArgsConstructor
     @Builder
     public static class UpdateRequest {
-        @NotBlank(message = "Le prénom est requis")
-        @Size(max = 100)
+        @Size(min = 1, max = 100)
         private String firstName;
-        @NotBlank(message = "Le nom de famille est requis")
-        @Size(max = 100)
+        @Size(min = 1, max = 100)
         private String lastName;
         @Size(max = 100)
         private String department;
@@ -96,6 +94,8 @@ public class UserDto {
         private String position;
         private LocalDate hireDate;
         private String profilePictureUrl;
+        private Boolean isActive;
+        private String role;
     }
 
 }

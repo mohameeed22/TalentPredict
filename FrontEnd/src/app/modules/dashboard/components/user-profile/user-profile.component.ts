@@ -7,7 +7,6 @@ import { NotificationService } from '../../../../core/services/notification.serv
 import { ProfileCompletenessComponent } from '../../../../shared/components/profile-completeness/profile-completeness.component';
 import { ProfileResponse } from '../../../auth/models/user.model';
 import { Subscription } from 'rxjs';
-import { JobMatchService } from '../../../job-match/services/job-match.service';
 
 @Component({
   selector: 'app-user-profile',
@@ -22,7 +21,6 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
-  private jobMatchService = inject(JobMatchService);
 
   profile: ProfileResponse | null = null;
   loading = true;
@@ -37,15 +35,6 @@ export class UserProfileComponent implements OnInit, OnDestroy {
 
   profileForm!: FormGroup;
   private profileSubscription?: Subscription;
-
-  jobUrl = '';
-  jobText = '';
-  jobMatchResult: {
-    overall_match?: number;
-    skill_breakdown?: { skill: string; match: string; candidate_score: number; required: boolean }[];
-    ai_recommendation?: string;
-  } | null = null;
-  jobMatchLoading = false;
 
   ngOnInit(): void {
     this.profileForm = this.fb.group({
@@ -167,6 +156,19 @@ export class UserProfileComponent implements OnInit, OnDestroy {
     return this.authService.getAssetUrl(this.profile.cvUrl);
   }
 
+  resetForm(): void {
+    if (!this.profile) {
+      return;
+    }
+
+    this.patchForm(this.profile);
+    this.photoFile = null;
+    this.photoPreview = null;
+    this.cvFile = null;
+    this.cvFileName = null;
+    this.cdr.detectChanges();
+  }
+
   saveProfile(): void {
     const user = this.authService.getCurrentUser();
     if (!user) return;
@@ -247,49 +249,6 @@ export class UserProfileComponent implements OnInit, OnDestroy {
 
   goToCompetences(): void {
     this.router.navigate(['/skills/github']);
-  }
-
-  runJobMatch(): void {
-    const user = this.authService.getCurrentUser();
-    if (!user?.id) {
-      return;
-    }
-    if (!this.jobUrl.trim() && !this.jobText.trim()) {
-      this.notificationService.warning('Indiquez une URL ou un texte d\'offre.');
-      return;
-    }
-    this.jobMatchLoading = true;
-    this.jobMatchService
-      .match({
-        candidate_id: String(user.id),
-        job_url: this.jobUrl.trim() || undefined,
-        job_description: this.jobText.trim() || undefined
-      })
-      .subscribe({
-        next: res => {
-          this.jobMatchLoading = false;
-          this.jobMatchResult = res as {
-            overall_match?: number;
-            skill_breakdown?: { skill: string; match: string; candidate_score: number; required: boolean }[];
-            ai_recommendation?: string;
-          };
-          this.cdr.detectChanges();
-        },
-        error: () => {
-          this.jobMatchLoading = false;
-          this.notificationService.error('Analyse de l\'offre impossible.');
-        }
-      });
-  }
-
-  barClass(match: string): string {
-    if (match === 'strong') {
-      return 'bar-strong';
-    }
-    if (match === 'partial') {
-      return 'bar-partial';
-    }
-    return 'bar-miss';
   }
 
   ngOnDestroy(): void {

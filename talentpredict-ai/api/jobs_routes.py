@@ -25,6 +25,7 @@ class MatchBody(BaseModel):
     job_url: str | None = None
     job_description: str | None = None
     candidate_skills: list[dict[str, Any]] = Field(default_factory=list)
+    candidate_context: dict[str, Any] = Field(default_factory=dict)
 
 
 @router.post("/match")
@@ -33,4 +34,5 @@ async def jobs_match(body: MatchBody) -> dict[str, Any]:
         job_url=body.job_url,
         job_description=body.job_description,
         candidate_skills=body.candidate_skills,
+        candidate_context=body.candidate_context,
     )

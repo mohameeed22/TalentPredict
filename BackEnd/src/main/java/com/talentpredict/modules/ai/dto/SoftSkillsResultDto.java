@@ -50,4 +50,7 @@ public class SoftSkillsResultDto {
 
     @JsonProperty("personality_description")
     private String personalityDescription;
+
+    @JsonProperty("parse_error")
+    private Boolean parseError;
 }

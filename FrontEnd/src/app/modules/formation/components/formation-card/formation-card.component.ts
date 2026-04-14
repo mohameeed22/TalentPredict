@@ -16,6 +16,7 @@ export class FormationCardComponent {
   getStatusClass(statut: StatutFormation): string {
     const statusMap: Record<StatutFormation, string> = {
       [StatutFormation.PROPOSEE]: 'status-proposed',
+      [StatutFormation.ACCEPTEE]: 'status-proposed',
       [StatutFormation.EN_COURS]: 'status-in-progress',
       [StatutFormation.TERMINEE]: 'status-completed',
       [StatutFormation.ANNULEE]: 'status-cancelled'
@@ -25,6 +26,10 @@ export class FormationCardComponent {
 
   getTypeLabel(type: TypeFormation): string {
     const typeLabels: Record<TypeFormation, string> = {
+      [TypeFormation.TECH_SKILL]: 'Technique',
+      [TypeFormation.SOFT_SKILL]: 'Soft Skills',
+      [TypeFormation.CERTIFICATION]: 'Certification',
+      [TypeFormation.WORKSHOP]: 'Workshop',
       [TypeFormation.TECHNIQUE]: 'Technique',
       [TypeFormation.SOFT_SKILLS]: 'Soft Skills',
       [TypeFormation.MANAGEMENT]: 'Management',
@@ -36,6 +41,7 @@ export class FormationCardComponent {
   getStatusLabel(statut: StatutFormation): string {
     const statusLabels: Record<StatutFormation, string> = {
       [StatutFormation.PROPOSEE]: 'Proposée',
+      [StatutFormation.ACCEPTEE]: 'Acceptée',
       [StatutFormation.EN_COURS]: 'En cours',
       [StatutFormation.TERMINEE]: 'Terminée',
       [StatutFormation.ANNULEE]: 'Annulée'

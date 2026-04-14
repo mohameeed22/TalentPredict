@@ -6,7 +6,7 @@ import { User, UserRequest } from '../../modules/auth/models/user.model';
 
 /**
  * Service layer for User CRUD operations.
- * Connects to the backend /api/utilisateurs endpoints.
+ * Connects to the backend /api/users endpoints.
  * Provides caching and state management for users.
  */
 @Injectable({
@@ -14,7 +14,7 @@ import { User, UserRequest } from '../../modules/auth/models/user.model';
 })
 export class UserService {
   private http = inject(HttpClient);
-  private baseUrl = `${environment.apiUrl}/utilisateurs`;
+  private baseUrl = `${environment.apiUrl}/users`;
 
   private usersSubject = new BehaviorSubject<User[]>([]);
   public users$ = this.usersSubject.asObservable();
@@ -26,7 +26,7 @@ export class UserService {
   public loading$ = this.loadingSubject.asObservable();
 
   /**
-   * GET /api/utilisateurs — List all users (ADMIN only)
+    * GET /api/users — List all users (ADMIN only)
    * Caches the result in memory
    */
   getAll(): Observable<User[]> {
@@ -45,7 +45,7 @@ export class UserService {
   }
 
   /**
-   * GET /api/utilisateurs/{id} — Get a single user by ID
+    * GET /api/users/{id} — Get a single user by ID
    */
   getById(id: string): Observable<User> {
     this.loadingSubject.next(true);
@@ -63,7 +63,7 @@ export class UserService {
   }
 
   /**
-   * POST /api/utilisateurs — Create a new user (ADMIN only)
+    * POST /api/users — Create a new user (ADMIN only)
    */
   create(data: UserRequest): Observable<User> {
     this.loadingSubject.next(true);
@@ -82,7 +82,7 @@ export class UserService {
   }
 
   /**
-   * PUT /api/utilisateurs/{id} — Update an existing user
+    * PUT /api/users/{id} — Update an existing user
    */
   update(id: string, data: Partial<UserRequest>): Observable<User> {
     this.loadingSubject.next(true);
@@ -108,7 +108,7 @@ export class UserService {
   }
 
   /**
-   * DELETE /api/utilisateurs/{id} — Delete a user (ADMIN only)
+    * DELETE /api/users/{id} — Delete a user (ADMIN only)
    */
   delete(id: string): Observable<void> {
     this.loadingSubject.next(true);

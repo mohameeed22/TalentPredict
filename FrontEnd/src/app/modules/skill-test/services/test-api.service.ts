@@ -8,9 +8,10 @@ export class TestApiService {
   private http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}`;
   // Keep UI responsive when AI/model calls take too long.
-  private readonly generateTimeoutMs = 30_000;
-  private readonly evaluateTimeoutMs = 45_000;
-  private readonly codeTimeoutMs = 45_000;
+  private readonly generateTimeoutMs = 25_000;
+  private readonly evaluateTimeoutMs = 20_000;
+  private readonly codeGenerateTimeoutMs = 20_000;
+  private readonly codeEvaluateTimeoutMs = 20_000;
 
   private normalizeCodeChallengeLevel(level?: string, difficulty?: string): string {
     const raw = (level ?? difficulty ?? 'EXPERT').toString().trim();
@@ -53,13 +54,13 @@ export class TestApiService {
     }
 
     return this.http.post(`${this.base}/test/code-challenge/generate`, payload).pipe(
-      timeout({ first: this.codeTimeoutMs })
+      timeout({ first: this.codeGenerateTimeoutMs })
     );
   }
 
   evaluateCodeChallenge(body: unknown): Observable<unknown> {
     return this.http.post(`${this.base}/test/code-challenge/evaluate`, body).pipe(
-      timeout({ first: this.codeTimeoutMs })
+      timeout({ first: this.codeEvaluateTimeoutMs })
     );
   }
 }
