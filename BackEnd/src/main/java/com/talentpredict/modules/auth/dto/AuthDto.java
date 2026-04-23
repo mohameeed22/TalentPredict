@@ -27,6 +27,8 @@ public class AuthDto {
         private String prenom;
         /** Role-based redirect URL returned to frontend */
         private String redirectUrl;
+        private Boolean emailVerified;
+        private Boolean twoFactorEnabled;
 
         public Response(String token, UUID id, String email, String role,
                 String nom, String prenom, String redirectUrl) {
@@ -37,6 +39,8 @@ public class AuthDto {
             this.nom = nom;
             this.prenom = prenom;
             this.redirectUrl = redirectUrl;
+            this.emailVerified = false;
+            this.twoFactorEnabled = false;
         }
     }
 
@@ -80,6 +84,16 @@ public class AuthDto {
         @NotBlank(message = "Password is required")
         @Size(min = 8, message = "Password must be at least 8 characters")
         private String password;
+
+        @Pattern(regexp = "^$|^[0-9]{6}$", message = "2FA code must contain 6 digits")
+        private String twoFactorCode;
+    }
+
+    @Data
+    public static class ResendVerificationRequest {
+        @NotBlank(message = "Email is required")
+        @Email(message = "Invalid email format")
+        private String email;
     }
 
     /** TASK 3: Step 1 — user submits their email to request a reset link */

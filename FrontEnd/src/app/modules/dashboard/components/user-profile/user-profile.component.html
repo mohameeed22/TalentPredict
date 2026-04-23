@@ -10,9 +10,13 @@
       Retour
     </button>
     <h1>Mon Profil</h1>
+    <button class="btn-security" (click)="goToSecurity()">
+      🔒 Sécurité & Confidentialité
+    </button>
     <button class="btn-competences" (click)="goToCompetences()">
       🧠 Mes Compétences
     </button>
+
   </div>
 
   @if (loading) {

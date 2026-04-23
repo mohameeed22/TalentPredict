@@ -45,22 +45,29 @@ export class AuthService {
   loginWithGoogle(code: string, redirectUri?: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.baseUrl}/oauth/google`, {
       code,
-      redirectUri: redirectUri || `${environment.oauthRedirectBase}/auth/callback/google`
+      redirectUri: redirectUri || this.getOAuthRedirectUri('google')
     }).pipe(tap(res => this.setSession(res)));
   }
 
   loginWithGithub(code: string, redirectUri?: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.baseUrl}/oauth/github`, {
       code,
-      redirectUri: redirectUri || `${environment.oauthRedirectBase}/auth/callback/github`
+      redirectUri: redirectUri || this.getOAuthRedirectUri('github')
     }).pipe(tap(res => this.setSession(res)));
+  }
+
+  getOAuthRedirectUri(provider: 'google' | 'github'): string {
+    if (typeof window !== 'undefined' && window.location?.origin) {
+      return `${window.location.origin}/auth/callback/${provider}`;
+    }
+    return `${environment.oauthRedirectBase}/auth/callback/${provider}`;
   }
 
   /**
    * TASK 1: Register — sends role in payload, redirectUrl returned by backend.
    * Backend returns access token in body + refresh token in HttpOnly cookie
    */
-  register(data: InscriptionRequest): Observable<AuthResponse> {
+  register(data: InscriptionRequest, autoLogin: boolean = true): Observable<AuthResponse> {
     const backendPayload = {
       lastName: data.nom,
       firstName: data.prenom,
@@ -71,9 +78,25 @@ export class AuthService {
     };
     return this.http.post<AuthResponse>(`${this.baseUrl}/register`, backendPayload).pipe(
       tap(response => {
-        this.setSession(response);
+        if (autoLogin) {
+          this.setSession(response);
+        }
       })
     );
+  }
+
+  registerWithoutLogin(data: InscriptionRequest): Observable<AuthResponse> {
+    return this.register(data, false);
+  }
+
+  verifyEmail(token: string): Observable<{ message: string }> {
+    return this.http.get<{ message: string }>(`${this.baseUrl}/verify-email`, {
+      params: { token }
+    });
+  }
+
+  resendVerificationEmail(email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/resend-verification`, { email });
   }
 
   /**
@@ -275,6 +298,8 @@ export class AuthService {
       prenom: authResponse.prenom,
       email: authResponse.email,
       role: authResponse.role as Role,
+      emailVerified: authResponse.emailVerified,
+      twoFactorEnabled: authResponse.twoFactorEnabled,
       dateInscription: new Date()
     };
     localStorage.setItem('user', JSON.stringify(user));

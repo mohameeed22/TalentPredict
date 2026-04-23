@@ -28,7 +28,7 @@ import com.talentpredict.shared.security.UserDetailsImpl;
 
 import lombok.RequiredArgsConstructor;
 
-@RestController
+@RestController("assessmentJobMatchController")
 @RequestMapping("/api/jobs")
 @RequiredArgsConstructor
 @SuppressWarnings("null")

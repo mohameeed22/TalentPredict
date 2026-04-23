@@ -2,9 +2,9 @@
   <header class="shell-hero">
     <div class="hero-copy">
       <p class="eyebrow">TalentPredict pipeline</p>
-      <h1>Recrutement Workspace</h1>
+      <h1>Gestion Candidats Workspace</h1>
       <p class="subtitle">
-        Pilotez vos candidats, surveillez les risques et preparez vos entretiens depuis une seule interface.
+        Pilotez vos candidats et surveillez les risques depuis une seule interface.
       </p>
     </div>
 
@@ -33,7 +33,7 @@
     </article>
   </section>
 
-  <nav class="shell-tabs" aria-label="Navigation recrutement">
+  <nav class="shell-tabs" aria-label="Navigation gestion candidats">
     @for (tab of tabs; track tab.path) {
     <a [routerLink]="tab.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }" class="tab-link">
       <span class="tab-title">{{ tab.label }}</span>

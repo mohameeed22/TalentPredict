@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.talentpredict.modules.assessment.entities.CandidateBadge;
 import com.talentpredict.modules.assessment.entities.CandidateTestResult;
+import com.talentpredict.modules.assessment.entities.FraudCase;
 import com.talentpredict.modules.assessment.entities.TestType;
 import com.talentpredict.modules.assessment.repositories.CandidateBadgeRepository;
 import com.talentpredict.modules.assessment.repositories.CandidateTestResultRepository;
@@ -31,6 +32,7 @@ public class AssessmentPersistenceService {
     private final CandidateBadgeRepository candidateBadgeRepository;
     private final ProfileRepository profileRepository;
     private final ObjectMapper objectMapper;
+    private final FraudCaseService fraudCaseService;
 
     @Transactional
     public void persistMcqEvaluation(User user, JsonNode result) {
@@ -68,6 +70,14 @@ public class AssessmentPersistenceService {
                     upsertBadge(user, skill, sc);
                 }
             });
+        }
+
+        if (result.has("_fraud_verdict") && result.get("_fraud_verdict").isObject()) {
+            fraudCaseService.recordFraudCase(
+                    user,
+                    user,
+                    FraudCase.FraudSource.MCQ_EVALUATION,
+                    result.get("_fraud_verdict"));
         }
     }
 

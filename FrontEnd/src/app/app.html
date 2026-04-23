@@ -49,17 +49,39 @@
           <span class="nav-label">Dashboard</span>
         </a>
 
-        <a routerLink="/profile" routerLinkActive="active" class="nav-item">
+        <a routerLink="/profile" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
             <circle cx="12" cy="7" r="4" />
           </svg>
           <span class="nav-label">Mon Profil</span>
         </a>
+
+        @if (isProfileSectionActive()) {
+        <div class="nav-submenu">
+          <a routerLink="/profile" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+            class="nav-item nav-subitem">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51h.09a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9c0 .66.39 1.26 1 1.51H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+            </svg>
+            <span class="nav-label">Parametres</span>
+          </a>
+
+          <a routerLink="/security" routerLinkActive="active" class="nav-item nav-subitem">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 3l7.5 4.5v6c0 5-3.5 7.5-7.5 8.5-4-1-7.5-3.5-7.5-8.5v-6L12 3z" />
+              <path d="M9 12l2 2 4-4" />
+            </svg>
+            <span class="nav-label">Confidentialite</span>
+          </a>
+        </div>
+        }
       </div>
 
       <div class="nav-section">
-        <span class="nav-section-title">ÉVALUATION</span>
+        <span class="nav-section-title">TESTS</span>
 
         <a routerLink="/evaluation/intro" routerLinkActive="active" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -67,19 +89,31 @@
             <path d="M2 17l10 5 10-5" />
             <path d="M2 12l10 5 10-5" />
           </svg>
-          <span class="nav-label">Évaluation PCM</span>
+          <span class="nav-label">Soft Skills</span>
         </a>
 
-        <a routerLink="/evaluation/results" routerLinkActive="active" class="nav-item">
+        <a routerLink="/competences" routerLinkActive="active" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            <path
+              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
           </svg>
-          <span class="nav-label">Mes Résultats</span>
+          <span class="nav-label">Tech Skills</span>
         </a>
       </div>
 
       <div class="nav-section">
-        <span class="nav-section-title">OUTILS</span>
+        <span class="nav-section-title">RESULTATS</span>
+
+        <a routerLink="/mes-resultats" routerLinkActive="active" class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+          </svg>
+          <span class="nav-label">Mes Resultats</span>
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <span class="nav-section-title">RECOMMANDATIONS</span>
 
         <a routerLink="/formations" routerLinkActive="active" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -87,21 +121,6 @@
             <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" />
           </svg>
           <span class="nav-label">Mes Formations</span>
-        </a>
-
-        <a routerLink="/skills/github" routerLinkActive="active" class="nav-item">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-          </svg>
-          <span class="nav-label">Mes Compétences</span>
-        </a>
-
-        <a routerLink="/career" routerLinkActive="active" class="nav-item">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 3l8 4v6c0 5-3.5 7.5-8 8.5-4.5-1-8-3.5-8-8.5V7l8-4z" />
-            <path d="M9 12l2 2 4-4" />
-          </svg>
-          <span class="nav-label">Career Hub</span>
         </a>
       </div>
       }
@@ -129,16 +148,6 @@
           <span class="nav-label">Campaign Manager</span>
         </a>
 
-        <a routerLink="/admin/workforce" routerLinkActive="active" class="nav-item">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 00-3-3.87" />
-            <path d="M16 3.13a4 4 0 010 7.75" />
-          </svg>
-          <span class="nav-label">Workforce Overview</span>
-        </a>
-
         <!-- TASK 2: Admin "Mon Profil" link -->
         <a routerLink="/admin/profile" routerLinkActive="active" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -156,16 +165,6 @@
             <path d="M16 3.13a4 4 0 010 7.75" />
           </svg>
           <span class="nav-label">Gestion Employés</span>
-        </a>
-
-        <a routerLink="/admin/reports" routerLinkActive="active" class="nav-item">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-          </svg>
-          <span class="nav-label">Rapports</span>
         </a>
       </div>
 
@@ -185,44 +184,36 @@
 
       @if (canAccessRecruiter()) {
       <div class="nav-section">
-        <span class="nav-section-title">RECRUTEMENT</span>
+        <span class="nav-section-title">GESTION CANDIDATS</span>
 
         <a routerLink="/recruiter" routerLinkActive="active" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="7" width="18" height="13" rx="2" />
             <path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2" />
           </svg>
-          <span class="nav-label">Recrutement</span>
+          <span class="nav-label">Candidatures</span>
         </a>
 
         @if (isRecruiterSectionActive()) {
         <div class="nav-submenu">
           <a routerLink="/recruiter/candidates" routerLinkActive="active" class="nav-item nav-subitem">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 00-3-3.87" />
-            <path d="M16 3.13a4 4 0 010 7.75" />
-          </svg>
-          <span class="nav-label">Candidats</span>
-        </a>
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 00-3-3.87" />
+              <path d="M16 3.13a4 4 0 010 7.75" />
+            </svg>
+            <span class="nav-label">Candidats</span>
+          </a>
 
           <a routerLink="/recruiter/fraud" routerLinkActive="active" class="nav-item nav-subitem">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 3l7.5 4.5v6c0 5-3.5 7.5-7.5 8.5-4-1-7.5-3.5-7.5-8.5v-6L12 3z" />
-            <path d="M9 12l2 2 4-4" />
-          </svg>
-          <span class="nav-label">Alertes fraude</span>
-        </a>
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 3l7.5 4.5v6c0 5-3.5 7.5-7.5 8.5-4-1-7.5-3.5-7.5-8.5v-6L12 3z" />
+              <path d="M9 12l2 2 4-4" />
+            </svg>
+            <span class="nav-label">Alertes fraude</span>
+          </a>
 
-          <a routerLink="/recruiter/interview" routerLinkActive="active" class="nav-item nav-subitem">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-            <line x1="8" y1="9" x2="16" y2="9" />
-            <line x1="8" y1="13" x2="13" y2="13" />
-          </svg>
-          <span class="nav-label">Entretien</span>
-        </a>
         </div>
         }
       </div>
@@ -252,7 +243,28 @@
 
   <!-- Top actions (floating right) -->
   @if (showSidebar()) {
-  <div class="top-bar-actions">
+  <div class="top-bar-actions" style="display: flex; gap: 10px; align-items: center;">
+    <button class="theme-toggle-btn" (click)="toggleDarkMode()"
+      [title]="isDarkMode() ? 'Passer au mode clair' : 'Passer au mode sombre'"
+      style="background: transparent; border: none; cursor: pointer; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; transition: background-color 0.2s;">
+      @if (isDarkMode()) {
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="5" />
+        <line x1="12" y1="1" x2="12" y2="3" />
+        <line x1="12" y1="21" x2="12" y2="23" />
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+        <line x1="1" y1="12" x2="3" y2="12" />
+        <line x1="21" y1="12" x2="23" y2="12" />
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+      </svg>
+      } @else {
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </svg>
+      }
+    </button>
     <app-notifications-center />
   </div>
   }

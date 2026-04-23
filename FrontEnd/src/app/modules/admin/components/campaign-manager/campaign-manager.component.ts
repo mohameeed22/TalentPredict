@@ -108,11 +108,11 @@ export class CampaignManagerComponent implements OnInit {
     },
     {
       id: 't2',
-      name: 'Interview Confirmation',
+      name: 'Application Update',
       channel: 'EMAIL',
-      subject: 'Interview Confirmed – {{job_title}} at TalentPredict',
-      body: 'Dear {{candidate_name}},\n\nYour interview for the position of {{job_title}} has been confirmed for {{interview_date}} at {{interview_time}}.\n\nPlease join using: {{meeting_link}}\n\nBest regards,\nTalentPredict HR Team',
-      variables: ['candidate_name', 'job_title', 'interview_date', 'interview_time', 'meeting_link'],
+      subject: 'Application Update – {{job_title}} at TalentPredict',
+      body: 'Dear {{candidate_name}},\n\nYour application for {{job_title}} has been updated.\n\nNext step: {{next_step}}\nTimeline: {{next_step_date}}\n\nDetails: {{action_link}}\n\nBest regards,\nTalentPredict HR Team',
+      variables: ['candidate_name', 'job_title', 'next_step', 'next_step_date', 'action_link'],
       createdAt: '2026-03-20'
     },
     {
@@ -512,7 +512,7 @@ export class CampaignManagerComponent implements OnInit {
           }
         },
         error: () => {
-          this.loadError.set('Unable to load live workforce context right now.');
+          this.loadError.set('Unable to load live talent context right now.');
           this.notificationService.error('Campaign manager failed to load live user data.');
         }
       });
@@ -552,7 +552,7 @@ export class CampaignManagerComponent implements OnInit {
         id: 'seed-training',
         name: 'Training Progress Pulse',
         templateId: 't2',
-        templateName: 'Interview Confirmation',
+        templateName: 'Application Update',
         channel: 'WHATSAPP',
         targetGroup: 'TRAINING_IN_PROGRESS',
         recipientCount: 0,
@@ -576,9 +576,9 @@ export class CampaignManagerComponent implements OnInit {
       },
       {
         id: 'seed-all',
-        name: 'Monthly Workforce Digest',
+        name: 'Monthly Talent Digest',
         templateId: 't2',
-        templateName: 'Interview Confirmation',
+        templateName: 'Application Update',
         channel: 'EMAIL',
         targetGroup: 'ACTIVE_EMPLOYEES',
         recipientCount: 0,

@@ -28,7 +28,7 @@ import com.talentpredict.modules.user.repositories.ProfileRepository;
 
 import lombok.RequiredArgsConstructor;
 
-@RestController
+@RestController("assessmentPublicProfileController")
 @RequestMapping("/api/public")
 @RequiredArgsConstructor
 public class PublicProfileController {

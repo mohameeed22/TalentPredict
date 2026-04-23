@@ -4,7 +4,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -19,11 +23,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.talentpredict.modules.ai.dto.SoftSkillsAnalysisRequestDto;
 import com.talentpredict.modules.ai.dto.SoftSkillsResultDto;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class N8nSoftSkillsService {
 
@@ -33,43 +35,75 @@ public class N8nSoftSkillsService {
     @Value("${n8n.webhook.soft-skills:/webhook/master-agent}")
     private String softSkillsWebhookPath;
 
+    /** Hard deadline for the CompletableFuture wrapper (slightly less than socket read timeout). */
+    @Value("${n8n.http.call-timeout-seconds:28}")
+    private long callTimeoutSeconds;
+
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+
+    public N8nSoftSkillsService(
+            @Qualifier("n8nRestTemplate") RestTemplate restTemplate,
+            ObjectMapper objectMapper) {
+        this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
+    }
 
     // ----------------------------------------------------------------
     // MAIN ENTRY POINT
     // ----------------------------------------------------------------
     public SoftSkillsResultDto analyze(SoftSkillsAnalysisRequestDto request) {
         String url = n8nBaseUrl + softSkillsWebhookPath;
-        log.info("Calling n8n at: {}", url);
+        log.info("Calling n8n at: {} (hard deadline: {}s)", url, callTimeoutSeconds);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Map<String, Object>> entity =
             new HttpEntity<>(buildRequestBody(request), headers);
 
-        try {
-            // n8n can return either a JSON object or an array of items.
-            ResponseEntity<Object> response =
-                restTemplate.exchange(url, HttpMethod.POST, entity, Object.class);
+        // Wrap the n8n call in a CompletableFuture so we can enforce a hard deadline
+        // even if n8n holds the TCP connection open (which bypasses socket read-timeout).
+        CompletableFuture<SoftSkillsResultDto> future = CompletableFuture.supplyAsync(() -> {
+            try {
+                ResponseEntity<Object> response =
+                    restTemplate.exchange(url, HttpMethod.POST, entity, Object.class);
 
-            if (!response.getStatusCode().is2xxSuccessful()
-                    || response.getBody() == null) {
-                throw new RuntimeException("Empty response from n8n");
+                if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                    throw new RuntimeException("Empty response from n8n");
+                }
+
+                SoftSkillsResultDto result = parseN8nResponse(response.getBody(), request);
+                log.info("n8n analysis done. Score={}", result.getOverallScore());
+                return result;
+            } catch (Exception e) {
+                throw new RuntimeException("n8n call failed: " + e.getMessage(), e);
             }
+        });
 
-            SoftSkillsResultDto result = parseN8nResponse(response.getBody(), request);
-            log.info("Analysis done. Score={}, Summary={}",
-                result.getOverallScore(),
-                result.getSummary() != null
-                    ? result.getSummary().substring(0, Math.min(60, result.getSummary().length()))
-                    : "null");
-            return result;
-
+        try {
+            return future.get(callTimeoutSeconds, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            future.cancel(true);
+            log.warn("n8n call exceeded {}s deadline — returning local fallback", callTimeoutSeconds);
+            return buildLocalFallback(request);
         } catch (Exception e) {
-            log.error("n8n call failed: {}", e.getMessage(), e);
-            throw new RuntimeException("Soft skills agent unavailable: " + e.getMessage());
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            log.error("n8n call failed: {}", cause.getMessage(), cause);
+            throw new RuntimeException("Soft skills agent unavailable: " + cause.getMessage());
         }
+    }
+
+    /** Compute a deterministic fallback from PCM answers when n8n is too slow or down. */
+    private SoftSkillsResultDto buildLocalFallback(SoftSkillsAnalysisRequestDto request) {
+        SoftSkillsResultDto result = new SoftSkillsResultDto();
+        applyFallbacks(result, request);
+        result.setSummary("Analyse calculée localement (n8n timeout). " +
+            "Les scores reflètent uniquement vos réponses PCM.");
+        result.setPersonalityType("Non déterminé");
+        result.setPersonalityDescription("L'analyse IA via n8n a dépassé le délai imparti.");
+        result.setCareerAdvice("Relancez l'évaluation lorsque les services IA sont disponibles.");
+        log.info("Local fallback applied for user: {}", request.getFullName());
+        return result;
     }
 
     // ----------------------------------------------------------------

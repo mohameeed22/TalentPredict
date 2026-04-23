@@ -84,6 +84,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
         try {
           this.profile = profile ?? ({} as ProfileResponse);
           this.patchForm(this.profile);
+          this._cacheProfileUrls(this.profile);
           this.loading = false;
           this.error = null;
           this.cdr.detectChanges();
@@ -223,6 +224,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
           next: (p) => {
             this.profile = p;
             this.patchForm(p);
+            this._cacheProfileUrls(p);
             this.saving = false;
             this.notificationService.success('Profil mis à jour avec succès !');
             this.cdr.detectChanges();
@@ -248,7 +250,25 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   }
 
   goToCompetences(): void {
-    this.router.navigate(['/skills/github']);
+    this.router.navigate(['/competences']);
+  }
+
+
+
+  goToSecurity(): void {
+    this.router.navigate(['/security']);
+  }
+
+  private _cacheProfileUrls(profile: any): void {
+    if (!profile) return;
+    try {
+      sessionStorage.setItem('userProfileUrls', JSON.stringify({
+        linkedinUrl: profile.lienLinkedin ?? '',
+        githubUrl: profile.githubUrl ?? '',
+        portfolioUrl: profile.portfolioUrl ?? '',
+        titreProfessionnel: profile.titreProfessionnel ?? ''
+      }));
+    } catch {}
   }
 
   ngOnDestroy(): void {

@@ -1,4 +1,4 @@
-"""GitHub deep analysis and fraud check."""
+"""GitHub deep analysis, fraud check, and CV authenticity."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from services.fraud_detector import collect_signals, copy_paste_ollama_check, ollama_fraud_verdict
 from services.github_deep_analyzer import analyze_github_deep
+from services.cv_authenticity import collect_cv_signals, ollama_cv_verdict
 
 logger = logging.getLogger(__name__)
 
@@ -64,4 +65,21 @@ async def fraud_check(body: FraudCheckBody) -> dict[str, Any]:
             )
     verdict = await ollama_fraud_verdict(signals, code_snippet=body.code_submission)
     verdict["copy_paste_analysis"] = copy_risk
+    return verdict
+
+
+# ── CV Authenticity ───────────────────────────────────────────────────────────
+
+class CvAuthenticityBody(BaseModel):
+    candidate_id: str
+    cv_text: str
+
+
+@router.post("/cv-authenticity")
+async def cv_authenticity(body: CvAuthenticityBody) -> dict[str, Any]:
+    """Run AI-text detection, timeline logic, and style analysis on a CV."""
+    heuristic_signals = collect_cv_signals(body.cv_text)
+    verdict = await ollama_cv_verdict(body.cv_text, heuristic_signals)
+    verdict["candidate_id"] = body.candidate_id
+    verdict["heuristic_signals"] = heuristic_signals
     return verdict

@@ -2,7 +2,11 @@
   <header class="page-hero">
     <div class="page-header">
       <div class="page-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        </svg>
       </div>
       <div>
         <h2>Mes Formations</h2>
@@ -17,15 +21,30 @@
         <span>Total formations suivies</span>
       </article>
 
-      <article class="hero-kpi">
-        <p class="label">En exécution</p>
-        <p class="value">{{ statusCount(StatutFormation.EN_COURS) }}</p>
-        <span>Modules en cours</span>
+      <article class="hero-kpi kpi-active">
+        <p class="label">En cours</p>
+        <p class="value">{{ formationsEnCoursCount() }}</p>
+        <span>Modules en exécution</span>
+      </article>
+
+      <article class="hero-kpi kpi-done">
+        <p class="label">Terminées</p>
+        <p class="value">{{ formationsTermineesCount() }}</p>
+        <span>Objectifs atteints</span>
+      </article>
+
+      <article class="hero-kpi kpi-readiness">
+        <p class="label">Progression globale</p>
+        <p class="value">{{ overallProgressPct() }}<span>%</span></p>
+        <div class="kpi-progress-bar">
+          <div class="kpi-progress-fill" [style.width.%]="overallProgressPct()"></div>
+        </div>
       </article>
 
       <article class="hero-kpi">
         <p class="label">Readiness IA</p>
-        <p class="value">{{ learningPlan()?.summary?.overall_readiness_pct || 'N/A' }}<span *ngIf="learningPlan()">%</span></p>
+        <p class="value">{{ learningPlan()?.summary?.overall_readiness_pct || 'N/A' }}<span
+            *ngIf="learningPlan()">%</span></p>
         <span>Plan courant</span>
       </article>
 
@@ -35,6 +54,22 @@
         <span>Semaines de continuité</span>
       </article>
     </div>
+
+    @if (currentUserGamification(); as g) {
+    <div class="xp-banner">
+      <div class="xp-level-badge">
+        <span class="xp-star">⭐</span>
+        <span class="xp-level-text">Niveau {{ g.level }}</span>
+      </div>
+      <div class="xp-bar-wrap">
+        <div class="xp-bar-track">
+          <div class="xp-bar-fill" [style.width.%]="(g.xp % 500) / 5"></div>
+        </div>
+        <span class="xp-label">{{ g.xp % 500 }} / 500 XP vers le niveau {{ g.level + 1 }}</span>
+      </div>
+      <span class="xp-total">{{ g.xp }} XP total</span>
+    </div>
+    }
   </header>
 
   <section class="learning-plan-card">
@@ -45,10 +80,7 @@
         <p>Un plan visuel, orienté impact et adapté à vos faiblesses techniques et soft skills.</p>
       </div>
 
-      <button
-        type="button"
-        class="btn-plan"
-        (click)="generateLearningPlan()"
+      <button type="button" class="btn-plan" (click)="generateLearningPlan()"
         [disabled]="learningPlanLoading() || autoReplanLoading()">
         {{ learningPlanLoading() ? 'Génération en cours...' : 'Générer mon plan IA' }}
       </button>
@@ -128,181 +160,248 @@
       </div>
 
       @if (weeklyGoalNotice()) {
-        <p class="goal-notice">{{ weeklyGoalNotice() }}</p>
+      <p class="goal-notice">{{ weeklyGoalNotice() }}</p>
       }
 
       @if (weeklyMissedAlert(); as missedAlert) {
-        <p class="goal-alert">{{ missedAlert }}</p>
+      <p class="goal-alert">{{ missedAlert }}</p>
       }
     </section>
 
     @if (shouldShowAutoReplan()) {
-      <section class="auto-replan-panel">
-        <div>
-          <h4>Auto re-planning recommandé</h4>
-          <p>{{ autoReplanHint() }}</p>
-          <ul class="compact-list" *ngIf="autoReplanReasons().length">
-            @for (reason of autoReplanReasons(); track reason) {
-              <li>{{ reason }}</li>
-            }
-          </ul>
-        </div>
-        <button
-          type="button"
-          class="btn-plan"
-          (click)="autoReplan()"
-          [disabled]="autoReplanLoading() || learningPlanLoading()">
-          {{ autoReplanLoading() ? 'Re-planning...' : 'Regénérer le plan automatiquement' }}
-        </button>
-      </section>
+    <section class="auto-replan-panel">
+      <div>
+        <h4>Auto re-planning recommandé</h4>
+        <p>{{ autoReplanHint() }}</p>
+        <ul class="compact-list" *ngIf="autoReplanReasons().length">
+          @for (reason of autoReplanReasons(); track reason) {
+          <li>{{ reason }}</li>
+          }
+        </ul>
+      </div>
+      <button type="button" class="btn-plan" (click)="autoReplan()"
+        [disabled]="autoReplanLoading() || learningPlanLoading()">
+        {{ autoReplanLoading() ? 'Re-planning...' : 'Regénérer le plan automatiquement' }}
+      </button>
+    </section>
     }
 
     @if (detectedWeakSkills().length) {
-      <div class="weakness-preview">
-        <span class="label">Faiblesses utilisées (tech + soft)</span>
-        <div class="chips">
-          @for (weak of detectedWeakSkills(); track weak.name) {
-            <span
-              class="chip"
-              [class.soft-chip]="weakSkillBadgeClass(weak.name) === 'soft'"
-              [class.tech-chip]="weakSkillBadgeClass(weak.name) === 'tech'">
-              {{ weak.name }} ({{ weak.score }}/10)
-            </span>
-          }
-        </div>
+    <div class="weakness-preview">
+      <span class="label">Faiblesses utilisées (tech + soft)</span>
+      <div class="chips">
+        @for (weak of detectedWeakSkills(); track weak.name) {
+        <span class="chip" [class.soft-chip]="weakSkillBadgeClass(weak.name) === 'soft'"
+          [class.tech-chip]="weakSkillBadgeClass(weak.name) === 'tech'">
+          {{ weak.name }} ({{ weak.score }}/10)
+        </span>
+        }
       </div>
+    </div>
     }
 
     @if (learningPlanError()) {
-      <div class="error-card compact">
-        <p>{{ learningPlanError() }}</p>
-      </div>
+    <div class="error-card compact">
+      <p>{{ learningPlanError() }}</p>
+    </div>
     }
 
     @if (courseActionError()) {
-      <div class="error-card compact">
-        <p>{{ courseActionError() }}</p>
-      </div>
+    <div class="error-card compact">
+      <p>{{ courseActionError() }}</p>
+    </div>
     }
 
     @if (courseActionSuccess()) {
-      <div class="success-card compact">
-        <p>{{ courseActionSuccess() }}</p>
-      </div>
+    <div class="success-card compact">
+      <p>{{ courseActionSuccess() }}</p>
+    </div>
     }
 
     @if (learningPlan(); as plan) {
-      <div class="plan-grid">
-        <article class="plan-box plan-box-summary">
-          <h4>Résumé stratégique</h4>
-          <p>{{ plan.summary.profile_evaluation }}</p>
+    <div class="plan-grid">
+      <article class="plan-box plan-box-summary">
+        <h4>Résumé stratégique</h4>
+        <p>{{ plan.summary.profile_evaluation }}</p>
 
-          <div class="readiness-meter">
-            <div class="meter-track">
-              <div class="meter-fill" [style.width.%]="plan.summary.overall_readiness_pct"></div>
-            </div>
-            <p><strong>Readiness:</strong> {{ plan.summary.overall_readiness_pct }}%</p>
+        <div class="readiness-meter">
+          <div class="meter-track">
+            <div class="meter-fill" [style.width.%]="plan.summary.overall_readiness_pct"></div>
           </div>
+          <p><strong>Readiness:</strong> {{ plan.summary.overall_readiness_pct }}%</p>
+        </div>
 
-          <p><strong>Date estimée:</strong> {{ plan.meta.estimated_ready_date | date }}</p>
+        <p><strong>Date estimée:</strong> {{ plan.meta.estimated_ready_date | date }}</p>
 
-          <div class="chips" *ngIf="plan.summary.main_gaps.length">
-            @for (gap of plan.summary.main_gaps; track gap) {
-              <span class="chip danger">{{ gap }}</span>
-            }
-          </div>
-        </article>
-
-        <article class="plan-box">
-          <h4>Analyse des écarts</h4>
-          <ul class="compact-list">
-            @for (item of plan.skill_gap_analysis.breakdown; track item.skill) {
-              <li>
-                <strong>{{ item.skill }}</strong>
-                <div>{{ item.current_level }}/10 → {{ item.required_level }}/10</div>
-                <div>Gap {{ item.gap }} · Priorité {{ item.priority }}</div>
-              </li>
-            }
-          </ul>
-        </article>
-
-        <article class="plan-box">
-          <h4>Roadmap</h4>
-          <ul class="compact-list roadmap-list">
-            @for (phase of plan.roadmap; track phase.phase) {
-              <li>
-                <strong>Phase {{ phase.phase }} · {{ phase.title }}</strong>
-                <div>{{ phase.duration_weeks }} semaines · {{ phase.focus_skills.join(', ') }}</div>
-              </li>
-            }
-          </ul>
-        </article>
-      </div>
-
-      @if (autoRoadmapSuggestions().length) {
-        <article class="plan-box full-width auto-roadmap-box">
-          <h4>Roadmap ajustée</h4>
-          <ul class="compact-list">
-            @for (item of autoRoadmapSuggestions(); track item) {
-              <li>{{ item }}</li>
-            }
-          </ul>
-        </article>
-      }
-
-      <article class="plan-box full-width">
-        <h4>Formations recommandées</h4>
-        <div class="formation-reco-grid">
-          @for (formation of plan.formations; track formation.skill) {
-            <section class="course-skill">
-              <div class="course-skill-header">
-                <h5>{{ formation.skill }}</h5>
-                <span class="skill-level-chip">{{ formation.current_level }}/10 → {{ formation.required_level }}/10</span>
-              </div>
-
-              <ul class="compact-list">
-                @for (course of formation.courses; track course.id) {
-                  <li class="course-row">
-                    <div class="course-meta">
-                      <a [href]="course.url" target="_blank" rel="noopener">{{ course.title }}</a>
-                      <span>{{ course.platform }} · {{ course.duration_hours }}h · {{ course.level }}</span>
-                      <small>{{ course.reason }}</small>
-                      <div class="impact-row" [ngClass]="impactClass(courseReadinessGain(formation.skill, course))">
-                        <span>Impact readiness: +{{ courseReadinessGain(formation.skill, course) }}%</span>
-                        <span>Niveau projeté: {{ courseExpectedLevelAfter(formation.skill, course) }}/10</span>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      class="btn-practice"
-                      [disabled]="isCourseLoading(formation.skill, course)"
-                      (click)="startCoursePractice(formation.skill, course)">
-                      {{ isCourseLoading(formation.skill, course) ? 'Ajout...' : 'Pratiquer ce cours' }}
-                    </button>
-                  </li>
-                }
-              </ul>
-            </section>
+        <div class="chips" *ngIf="plan.summary.main_gaps.length">
+          @for (gap of plan.summary.main_gaps; track gap) {
+          <span class="chip danger">{{ gap }}</span>
           }
         </div>
       </article>
 
-      <article class="plan-box full-width">
-        <h4>Plan quotidien (7 premiers jours)</h4>
-        <ul class="compact-list daily-plan-list">
-          @for (dayPlan of topDailyPlan(); track dayPlan.day) {
-            <li>
-              <strong>Jour {{ dayPlan.day }}</strong> · {{ dayPlan.focus_skill }} · {{ dayPlan.estimated_total_hours }}h
-              <ul>
-                @for (task of dayPlan.tasks; track task.task) {
-                  <li>{{ task.task }} ({{ task.duration_minutes }} min)</li>
-                }
-              </ul>
-            </li>
+      <article class="plan-box">
+        <h4>Analyse des écarts</h4>
+        <ul class="compact-list">
+          @for (item of plan.skill_gap_analysis.breakdown; track item.skill) {
+          <li>
+            <strong>{{ item.skill }}</strong>
+            <div>{{ item.current_level }}/10 → {{ item.required_level }}/10</div>
+            <div>Gap {{ item.gap }} · Priorité {{ item.priority }}</div>
+          </li>
           }
         </ul>
       </article>
+
+      <article class="plan-box">
+        <h4>Roadmap</h4>
+        <ul class="compact-list roadmap-list">
+          @for (phase of plan.roadmap; track phase.phase) {
+          <li>
+            <strong>Phase {{ phase.phase }} · {{ phase.title }}</strong>
+            <div>{{ phase.duration_weeks }} semaines · {{ phase.focus_skills?.join(', ') }}</div>>
+          </li>
+          }
+        </ul>
+      </article>
+    </div>
+
+    @if (autoRoadmapSuggestions().length) {
+    <article class="plan-box full-width auto-roadmap-box">
+      <h4>Roadmap ajustée</h4>
+      <ul class="compact-list">
+        @for (item of autoRoadmapSuggestions(); track item) {
+        <li>{{ item }}</li>
+        }
+      </ul>
+    </article>
+    }
+
+    <!-- ─── Formations Recommandées — Advanced ─────────────────────────── -->
+    <article class="plan-box full-width reco-section">
+      <div class="reco-header">
+        <div>
+          <h4>🎯 Formations Recommandées par l'IA</h4>
+          <p class="reco-meta">{{ recoTotalCourses() }} cours · {{ recoUniqueSkills().length }} compétences · Plan
+            personnalisé</p>
+        </div>
+        <div class="reco-summary-chips">
+          <span class="reco-chip">🎓 {{ statusCount(StatutFormation.PROPOSEE) }} proposées</span>
+          <span class="reco-chip active">▶ {{ formationsEnCoursCount() }} actives</span>
+          <span class="reco-chip done">✔ {{ formationsTermineesCount() }} terminées</span>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="reco-filters">
+        <div class="reco-filter-group">
+          <label>Compétence</label>
+          <select [ngModel]="recoFilterSkill()" (ngModelChange)="recoFilterSkill.set($event)">
+            <option value="ALL">Toutes</option>
+            @for (s of recoUniqueSkills(); track s) {
+            <option [value]="s">{{ s }}</option>
+            }
+          </select>
+        </div>
+        <div class="reco-filter-group">
+          <label>Priorité</label>
+          <select [ngModel]="recoFilterPriority()" (ngModelChange)="recoFilterPriority.set($event)">
+            <option value="ALL">Toutes</option>
+            <option value="critical">🔴 Critique</option>
+            <option value="high">🟠 Haute</option>
+            <option value="medium">🟡 Moyenne</option>
+            <option value="low">🟢 Faible</option>
+          </select>
+        </div>
+        <div class="reco-filter-group">
+          <label>Plateforme</label>
+          <select [ngModel]="recoFilterPlatform()" (ngModelChange)="recoFilterPlatform.set($event)">
+            <option value="ALL">Toutes</option>
+            @for (p of recoUniquePlatforms(); track p) {
+            <option [value]="p">{{ platformIcon(p) }} {{ p }}</option>
+            }
+          </select>
+        </div>
+        <button type="button" class="btn-secondary"
+          (click)="recoFilterSkill.set('ALL'); recoFilterPriority.set('ALL'); recoFilterPlatform.set('ALL')">
+          Réinitialiser
+        </button>
+      </div>
+
+      <!-- Skill cards -->
+      <div class="formation-reco-grid">
+        @for (formation of filteredRecoFormations; track formation.skill) {
+        <section class="course-skill">
+          <div class="course-skill-header">
+            <div class="skill-title-row">
+              <h5>{{ formation.skill }}</h5>
+              <span class="priority-badge" [ngClass]="priorityBadgeClass(formation.priority)">{{
+                priorityLabel(formation.priority) }}</span>
+            </div>
+            <div class="skill-level-bar">
+              <span class="skill-level-chip">{{ formation.current_level }}/10 → {{ formation.required_level }}/10</span>
+              <div class="skill-gap-track">
+                <div class="skill-gap-fill"
+                  [style.width.%]="(formation.current_level / (formation.required_level || 10)) * 100"></div>
+              </div>
+            </div>
+          </div>
+
+          <ul class="compact-list course-list">
+            @for (course of formation.courses; track course.id) {
+            <li class="course-row-adv">
+              <div class="course-platform-icon">{{ platformIcon(course.platform) }}</div>
+              <div class="course-meta-adv">
+                <a [href]="course.url" target="_blank" rel="noopener" class="course-title-link">{{ course.title }}</a>
+                <div class="course-tags">
+                  <span class="tag tag-platform">{{ course.platform }}</span>
+                  <span class="tag tag-duration">⏱ {{ course.duration_hours }}h</span>
+                  <span class="tag tag-level">{{ course.level }}</span>
+                </div>
+                <small class="course-reason">{{ course.reason }}</small>
+                <div class="impact-row" [ngClass]="impactClass(courseReadinessGain(formation.skill, course))">
+                  <span>📈 +{{ courseReadinessGain(formation.skill, course) }}% readiness</span>
+                  <span>🎯 Niveau projeté: {{ courseExpectedLevelAfter(formation.skill, course) }}/10</span>
+                </div>
+              </div>
+              <button type="button" class="btn-add-course" [disabled]="isCourseLoading(formation.skill, course)"
+                (click)="startCoursePractice(formation.skill, course)">
+                @if (isCourseLoading(formation.skill, course)) {
+                <span class="btn-spinner"></span> Ajout...
+                } @else {
+                + Ajouter
+                }
+              </button>
+            </li>
+            }
+          </ul>
+        </section>
+        } @empty {
+        <div class="reco-empty">
+          <span>🔍 Aucune formation ne correspond aux filtres sélectionnés.</span>
+          <button type="button" class="btn-secondary"
+            (click)="recoFilterSkill.set('ALL'); recoFilterPriority.set('ALL'); recoFilterPlatform.set('ALL')">Voir
+            tout</button>
+        </div>
+        }
+      </div>
+    </article>
+
+    <article class="plan-box full-width">
+      <h4>Plan quotidien (7 premiers jours)</h4>
+      <ul class="compact-list daily-plan-list">
+        @for (dayPlan of topDailyPlan(); track dayPlan.day) {
+        <li>
+          <strong>Jour {{ dayPlan.day }}</strong> · {{ dayPlan.focus_skill }} · {{ dayPlan.estimated_total_hours }}h
+          <ul>
+            @for (task of dayPlan.tasks; track task.task) {
+            <li>{{ task.task }} ({{ task.duration_minutes }} min)</li>
+            }
+          </ul>
+        </li>
+        }
+      </ul>
+    </article>
     }
   </section>
 
@@ -324,250 +423,257 @@
     </article>
   </section>
 
+  <!-- Empty state when no formations yet -->
+  @if (hasNoFormations()) {
+  <section class="empty-state-section">
+    <div class="empty-state-icon">📚</div>
+    <h3>Démarrez votre parcours de formation</h3>
+    <p>Aucune formation active. Générez votre plan IA pour obtenir des recommandations personnalisées basées sur vos
+      compétences et objectifs.</p>
+    <button type="button" class="btn-plan" (click)="generateLearningPlan()" [disabled]="learningPlanLoading()">
+      {{ learningPlanLoading() ? 'Génération...' : '✨ Générer mon plan IA' }}
+    </button>
+  </section>
+  }
+
   <section class="kanban-section">
     <div class="kanban-header">
-      <h3>Formation Kanban board</h3>
-      <p>Glissez-déposez vos formations pour piloter votre cadence et vos objectifs de livraison.</p>
+      <div class="kanban-header-row">
+        <div>
+          <h3>📋 Formation Kanban board</h3>
+          <p>Glissez-déposez vos formations pour piloter votre cadence et vos objectifs de livraison.</p>
+        </div>
+        <div class="kanban-type-filter">
+          <button type="button" [class.active]="kanbanTypeFilter() === 'ALL'"
+            (click)="kanbanTypeFilter.set('ALL')">Tout</button>
+          <button type="button" [class.active]="kanbanTypeFilter() === 'TECH'" (click)="kanbanTypeFilter.set('TECH')">🔧
+            Tech</button>
+          <button type="button" [class.active]="kanbanTypeFilter() === 'SOFT'" (click)="kanbanTypeFilter.set('SOFT')">💬
+            Soft</button>
+          <button type="button" [class.active]="kanbanTypeFilter() === 'CERTIFICATION'"
+            (click)="kanbanTypeFilter.set('CERTIFICATION')">🏆 Certif</button>
+        </div>
+      </div>
     </div>
 
     @if (boardError()) {
-      <div class="error-card compact">
-        <p>{{ boardError() }}</p>
-      </div>
+    <div class="error-card compact">
+      <p>{{ boardError() }}</p>
+    </div>
     }
 
     @if (boardMessage()) {
-      <div class="success-card compact">
-        <p>{{ boardMessage() }}</p>
-      </div>
+    <div class="success-card compact">
+      <p>{{ boardMessage() }}</p>
+    </div>
     }
 
     @if (reviewError()) {
-      <div class="error-card compact">
-        <p>{{ reviewError() }}</p>
-      </div>
+    <div class="error-card compact">
+      <p>{{ reviewError() }}</p>
+    </div>
     }
 
     @if (reviewMessage()) {
-      <div class="success-card compact">
-        <p>{{ reviewMessage() }}</p>
-      </div>
+    <div class="success-card compact">
+      <p>{{ reviewMessage() }}</p>
+    </div>
     }
 
     @if (miniQuizError()) {
-      <div class="error-card compact">
-        <p>{{ miniQuizError() }}</p>
-      </div>
+    <div class="error-card compact">
+      <p>{{ miniQuizError() }}</p>
+    </div>
     }
 
     @if (miniQuizMessage()) {
-      <div class="success-card compact">
-        <p>{{ miniQuizMessage() }}</p>
-      </div>
+    <div class="success-card compact">
+      <p>{{ miniQuizMessage() }}</p>
+    </div>
     }
 
     @if (certificateError()) {
-      <div class="error-card compact">
-        <p>{{ certificateError() }}</p>
-      </div>
+    <div class="error-card compact">
+      <p>{{ certificateError() }}</p>
+    </div>
     }
 
     @if (certificateMessage()) {
-      <div class="success-card compact">
-        <p>{{ certificateMessage() }}</p>
-      </div>
+    <div class="success-card compact">
+      <p>{{ certificateMessage() }}</p>
+    </div>
     }
 
     <div class="kanban-board">
       @for (column of kanbanColumns; track column.status) {
-        <article
-          class="kanban-column"
-          (dragover)="allowDrop($event)"
-          (drop)="onDrop($event, column.status)">
-          <header class="kanban-column-header">
-            <h4>{{ column.title }}</h4>
-            <span>{{ statusCount(column.status) }}</span>
-          </header>
-          <p class="kanban-column-subtitle">{{ column.subtitle }}</p>
+      <article class="kanban-column" (dragover)="allowDrop($event)" (drop)="onDrop($event, column.status)">
+        <header class="kanban-column-header">
+          <h4>{{ column.title }}</h4>
+          <span>{{ statusCount(column.status) }}</span>
+        </header>
+        <p class="kanban-column-subtitle">{{ column.subtitle }}</p>
 
-          <div class="kanban-column-body">
-            @for (formation of formationsByStatus(column.status); track formation.id) {
-              <article
-                class="kanban-card"
-                draggable="true"
-                (dragstart)="onCardDragStart($event, formation)"
-                (dragend)="onCardDragEnd()">
-                <div class="kanban-card-head">
-                  <h5>{{ formation.titre }}</h5>
-                  <span class="risk-pill" [ngClass]="deadlineRiskClass(formation)">
-                    {{ deadlineRiskLabel(formation) }}
-                  </span>
-                </div>
+        <div class="kanban-column-body">
+          @for (formation of formationsByStatusFiltered(column.status); track formation.id) {
+          <article class="kanban-card" draggable="true" (dragstart)="onCardDragStart($event, formation)"
+            (dragend)="onCardDragEnd()">
+            <div class="kanban-card-head">
+              <h5>{{ formation.titre }}</h5>
+              <span class="risk-pill" [ngClass]="deadlineRiskClass(formation)">
+                {{ deadlineRiskLabel(formation) }}
+              </span>
+            </div>
 
-                <p class="kanban-card-description">{{ formation.description }}</p>
+            <p class="kanban-card-description">{{ formation.description }}</p>
 
-                <div class="kanban-meta">
-                  <span>{{ formation.duree }}h</span>
-                  <span *ngIf="formation.dateDebut">Début: {{ formation.dateDebut | date:'shortDate' }}</span>
-                  <span *ngIf="formation.dateFin">Fin: {{ formation.dateFin | date:'shortDate' }}</span>
-                </div>
+            <div class="kanban-meta">
+              <span>{{ formation.duree }}h</span>
+              <span *ngIf="formation.dateDebut">Début: {{ formation.dateDebut | date:'shortDate' }}</span>
+              <span *ngIf="formation.dateFin">Fin: {{ formation.dateFin | date:'shortDate' }}</span>
+            </div>
 
-                <div class="kanban-progress">
-                  <label>Progression: {{ formation.progression }}%</label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    [value]="formation.progression"
-                    (change)="updateProgressionFromInput(formation, $any($event.target).value)"
-                    [disabled]="isStatusActionLoading(formation.id)" />
-                </div>
+            <div class="kanban-progress">
+              <label>Progression: {{ formation.progression }}%</label>
+              <input type="range" min="0" max="100" [value]="formation.progression"
+                (change)="updateProgressionFromInput(formation, $any($event.target).value)"
+                [disabled]="isStatusActionLoading(formation.id)" />
+            </div>
 
-                <div class="kanban-actions">
-                  <button
-                    type="button"
-                    class="btn-secondary"
-                    (click)="moveToNextStatus(formation)"
-                    [disabled]="!canMoveToNextStatus(formation) || isStatusActionLoading(formation.id)">
-                    {{ isStatusActionLoading(formation.id) ? 'Mise à jour...' : 'Passer à l\'étape suivante' }}
-                  </button>
+            <div class="kanban-actions">
+              <button type="button" class="btn-secondary" (click)="moveToNextStatus(formation)"
+                [disabled]="!canMoveToNextStatus(formation) || isStatusActionLoading(formation.id)">
+                {{ isStatusActionLoading(formation.id) ? 'Mise à jour...' : 'Passer à l\'étape suivante' }}
+              </button>
 
-                  <a *ngIf="formation.url" [href]="formation.url" target="_blank" rel="noopener">Ouvrir le cours</a>
-                </div>
+              <a *ngIf="formation.url" [href]="formation.url" target="_blank" rel="noopener">Ouvrir le cours</a>
+            </div>
 
-                @if (isMiniQuizEligible(formation)) {
-                  <section class="validation-box">
-                    <div class="validation-head">
-                      <h6>Validation post-formation</h6>
-                      @if (formation.miniTestScore !== undefined && formation.miniTestScore !== null) {
-                        <span
-                          class="quiz-score-pill"
-                          [class.passed]="formation.miniTestPassed"
-                          [class.failed]="!formation.miniTestPassed">
-                          {{ formation.miniTestScore }}%
-                        </span>
-                      }
-                    </div>
+            @if (isMiniQuizEligible(formation)) {
+            <section class="validation-box">
+              <div class="validation-head">
+                <h6>Validation post-formation</h6>
+                @if (formation.miniTestScore !== undefined && formation.miniTestScore !== null) {
+                <span class="quiz-score-pill" [class.passed]="formation.miniTestPassed"
+                  [class.failed]="!formation.miniTestPassed">
+                  {{ formation.miniTestScore }}%
+                </span>
+                }
+              </div>
 
-                    <p class="validation-text">
-                      Passez un mini-test rapide pour verifier les acquis avant l'upload du certificat.
-                    </p>
+              <p class="validation-text">
+                Passez un mini-test rapide pour verifier les acquis avant l'upload du certificat.
+              </p>
 
-                    @if (formation.miniTestTakenAt) {
-                      <p class="validation-meta">Dernier mini-test: {{ formation.miniTestTakenAt | date:'short' }}</p>
+              @if (miniQuizFraudVerdicts()[formation.id]; as verdict) {
+              <div class="fraud-verdict" [ngClass]="verdict?.['fraud_risk'] || 'low'">
+                <p><strong>IA Proctoring:</strong> {{ verdict?.['fraud_risk'] || 'Low' | titlecase }} Risk (Score: {{
+                  verdict?.['fraud_score'] || 0 }}/100)</p>
+                <p class="fraud-explanation"><small>{{ verdict?.['explanation'] || 'Comportement normal détecté.'
+                    }}</small></p>
+              </div>
+              }
+
+              @if (formation.miniTestTakenAt) {
+              <p class="validation-meta">Dernier mini-test: {{ formation.miniTestTakenAt | date:'short' }}</p>
+              }
+
+              <div class="validation-actions">
+                <button type="button" class="btn-secondary" (click)="toggleMiniQuiz(formation)">
+                  {{ isMiniQuizOpen(formation.id) ? 'Masquer le mini-test' : 'Lancer le mini-test' }}
+                </button>
+              </div>
+
+              @if (isMiniQuizOpen(formation.id)) {
+              <div class="mini-quiz-panel">
+                @for (question of miniQuizQuestions(formation); track question.id; let questionIndex = $index) {
+                <article class="quiz-question">
+                  <p class="quiz-question-title">{{ questionIndex + 1 }}. {{ question.prompt }}</p>
+                  <div class="quiz-options">
+                    @for (option of question.options; track option; let optionIndex = $index) {
+                    <label class="quiz-option">
+                      <input type="radio" [name]="'mini-quiz-' + formation.id + '-' + questionIndex"
+                        [checked]="miniQuizAnswerAt(formation.id, questionIndex) === optionIndex"
+                        (change)="setMiniQuizAnswer(formation.id, questionIndex, optionIndex)" />
+                      <span>{{ option }}</span>
+                    </label>
                     }
-
-                    <div class="validation-actions">
-                      <button type="button" class="btn-secondary" (click)="toggleMiniQuiz(formation)">
-                        {{ isMiniQuizOpen(formation.id) ? 'Masquer le mini-test' : 'Lancer le mini-test' }}
-                      </button>
-                    </div>
-
-                    @if (isMiniQuizOpen(formation.id)) {
-                      <div class="mini-quiz-panel">
-                        @for (question of miniQuizQuestions(formation); track question.id; let questionIndex = $index) {
-                          <article class="quiz-question">
-                            <p class="quiz-question-title">{{ questionIndex + 1 }}. {{ question.prompt }}</p>
-                            <div class="quiz-options">
-                              @for (option of question.options; track option; let optionIndex = $index) {
-                                <label class="quiz-option">
-                                  <input
-                                    type="radio"
-                                    [name]="'mini-quiz-' + formation.id + '-' + questionIndex"
-                                    [checked]="miniQuizAnswerAt(formation.id, questionIndex) === optionIndex"
-                                    (change)="setMiniQuizAnswer(formation.id, questionIndex, optionIndex)" />
-                                  <span>{{ option }}</span>
-                                </label>
-                              }
-                            </div>
-                          </article>
-                        }
-
-                        <button
-                          type="button"
-                          class="btn-plan"
-                          (click)="submitMiniQuiz(formation)"
-                          [disabled]="isMiniQuizSubmitting(formation.id)">
-                          {{ isMiniQuizSubmitting(formation.id) ? 'Validation...' : 'Valider mon mini-test' }}
-                        </button>
-                      </div>
-                    }
-
-                    <div class="certificate-box">
-                      <div>
-                        <p class="certificate-title">Certificat de completion</p>
-                        <p class="certificate-help">
-                          Upload disponible apres reussite du mini-test (score >= 70%).
-                        </p>
-                        @if (formation.certificateUrl) {
-                          <a [href]="formation.certificateUrl" target="_blank" rel="noopener">
-                            Voir le certificat ({{ certificateFilename(formation) }})
-                          </a>
-                          @if (formation.certificateUploadedAt) {
-                            <p class="validation-meta">Televerse le {{ formation.certificateUploadedAt | date:'short' }}</p>
-                          }
-                        }
-                      </div>
-
-                      <label
-                        class="certificate-upload-btn"
-                        [class.disabled]="!canUploadCertificate(formation) || isCertificateUploading(formation.id)">
-                        <input
-                          type="file"
-                          accept=".pdf,.png,.jpg,.jpeg"
-                          [disabled]="!canUploadCertificate(formation) || isCertificateUploading(formation.id)"
-                          (change)="onCertificateSelected($event, formation)" />
-                        <span>{{ isCertificateUploading(formation.id) ? 'Upload...' : 'Televerser certificat' }}</span>
-                      </label>
-                    </div>
-                  </section>
+                  </div>
+                </article>
                 }
 
-                <section class="review-box">
-                  <h6>Mentor / manager review notes</h6>
+                <button type="button" class="btn-plan" (click)="submitMiniQuiz(formation)"
+                  [disabled]="isMiniQuizSubmitting(formation.id)">
+                  {{ isMiniQuizSubmitting(formation.id) ? 'Validation...' : 'Valider mon mini-test' }}
+                </button>
+              </div>
+              }
 
-                  @if (canEditReviewNotes()) {
-                    <label>
-                      <span>Review note</span>
-                      <textarea
-                        [ngModel]="getReviewDraft(formation.id).reviewNote"
-                        (ngModelChange)="updateReviewDraft(formation.id, 'reviewNote', $event)"
-                        rows="2"
-                        placeholder="Observations, points d'attention..."></textarea>
-                    </label>
-
-                    <label>
-                      <span>Next actions</span>
-                      <input
-                        [ngModel]="getReviewDraft(formation.id).nextAction"
-                        (ngModelChange)="updateReviewDraft(formation.id, 'nextAction', $event)"
-                        placeholder="Ex: finir module API d'ici vendredi" />
-                    </label>
-
-                    <button
-                      type="button"
-                      class="btn-secondary"
-                      (click)="saveReviewNotes(formation)"
-                      [disabled]="isReviewSaving(formation.id)">
-                      {{ isReviewSaving(formation.id) ? 'Sauvegarde...' : 'Sauvegarder notes' }}
-                    </button>
-                  } @else {
-                    <p>{{ formation.reviewNote || 'Pas encore de note manager.' }}</p>
-                    <p class="next-action" *ngIf="formation.nextAction">Next: {{ formation.nextAction }}</p>
-                  }
-
-                  <p class="review-meta" *ngIf="formation.reviewedBy || formation.reviewedAt">
-                    Dernière revue:
-                    <span *ngIf="formation.reviewedBy">{{ formation.reviewedBy }}</span>
-                    <span *ngIf="formation.reviewedAt"> · {{ formation.reviewedAt | date:'short' }}</span>
+              <div class="certificate-box">
+                <div>
+                  <p class="certificate-title">Certificat de completion</p>
+                  <p class="certificate-help">
+                    Upload disponible apres reussite du mini-test (score >= 70%).
                   </p>
-                </section>
-              </article>
-            } @empty {
-              <div class="kanban-empty">Déposez des formations ici</div>
+                  @if (formation.certificateUrl) {
+                  <a [href]="formation.certificateUrl" target="_blank" rel="noopener">
+                    Voir le certificat ({{ certificateFilename(formation) }})
+                  </a>
+                  @if (formation.certificateUploadedAt) {
+                  <p class="validation-meta">Televerse le {{ formation.certificateUploadedAt | date:'short' }}</p>
+                  }
+                  }
+                </div>
+
+                <label class="certificate-upload-btn"
+                  [class.disabled]="!canUploadCertificate(formation) || isCertificateUploading(formation.id)">
+                  <input type="file" accept=".pdf,.png,.jpg,.jpeg"
+                    [disabled]="!canUploadCertificate(formation) || isCertificateUploading(formation.id)"
+                    (change)="onCertificateSelected($event, formation)" />
+                  <span>{{ isCertificateUploading(formation.id) ? 'Upload...' : 'Televerser certificat' }}</span>
+                </label>
+              </div>
+            </section>
             }
-          </div>
-        </article>
+
+            <section class="review-box">
+              <h6>Mentor / manager review notes</h6>
+
+              @if (canEditReviewNotes()) {
+              <label>
+                <span>Review note</span>
+                <textarea [ngModel]="getReviewDraft(formation.id).reviewNote"
+                  (ngModelChange)="updateReviewDraft(formation.id, 'reviewNote', $event)" rows="2"
+                  placeholder="Observations, points d'attention..."></textarea>
+              </label>
+
+              <label>
+                <span>Next actions</span>
+                <input [ngModel]="getReviewDraft(formation.id).nextAction"
+                  (ngModelChange)="updateReviewDraft(formation.id, 'nextAction', $event)"
+                  placeholder="Ex: finir module API d'ici vendredi" />
+              </label>
+
+              <button type="button" class="btn-secondary" (click)="saveReviewNotes(formation)"
+                [disabled]="isReviewSaving(formation.id)">
+                {{ isReviewSaving(formation.id) ? 'Sauvegarde...' : 'Sauvegarder notes' }}
+              </button>
+              } @else {
+              <p>{{ formation.reviewNote || 'Pas encore de note manager.' }}</p>
+              <p class="next-action" *ngIf="formation.nextAction">Next: {{ formation.nextAction }}</p>
+              }
+
+              <p class="review-meta" *ngIf="formation.reviewedBy || formation.reviewedAt">
+                Dernière revue:
+                <span *ngIf="formation.reviewedBy">{{ formation.reviewedBy }}</span>
+                <span *ngIf="formation.reviewedAt"> · {{ formation.reviewedAt | date:'short' }}</span>
+              </p>
+            </section>
+          </article>
+          } @empty {
+          <div class="kanban-empty">Déposez des formations ici</div>
+          }
+        </div>
+      </article>
       }
     </div>
   </section>

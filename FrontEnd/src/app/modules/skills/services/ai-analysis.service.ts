@@ -9,7 +9,9 @@ import { CandidateAnalysis } from '../../../core/models/candidate-analysis.model
 })
 export class AiAnalysisService {
   private http = inject(HttpClient);
-  private baseUrl = environment.aiServiceUrl;
+  // Route through Spring Boot proxy (/api/analysis/analyze-candidate)
+  // so that JWT auth headers are automatically attached by the interceptor.
+  private baseUrl = `${environment.apiUrl}/analysis`;
 
   analyzeCandidate(
     github: string,

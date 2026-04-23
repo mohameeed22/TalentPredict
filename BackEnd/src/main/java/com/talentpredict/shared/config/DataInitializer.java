@@ -9,6 +9,8 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -27,6 +29,10 @@ public class DataInitializer implements ApplicationRunner {
             admin.setPassword(passwordEncoder.encode("Admin@123"));
             admin.setRole(User.Role.ADMIN);
             admin.setIsActive(true);
+            admin.setEmailVerified(true);
+            admin.setEmailVerifiedAt(Instant.now());
+            admin.setTwoFactorEnabled(false);
+            admin.setTwoFactorMethod("NONE");
             userRepository.save(admin);
             log.info("=======================================================");
             log.info("  Default admin account created:");

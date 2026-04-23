@@ -1,57 +1,188 @@
 <section class="fraud-page">
+
+  <!-- ══ PAGE HEADER ══════════════════════════════════════════════ -->
   <header class="page-head">
     <div>
-      <h2>Alertes fraude</h2>
-      <p>Priorisez les dossiers sensibles et relancez une verification ciblée.</p>
+      <h2>Alertes Fraude & Intégrité</h2>
+      <p>Dossiers priorisés par risque IA · Explications détaillées · Décisions de revue</p>
     </div>
     <button type="button" class="refresh-btn" (click)="loadAlerts()" [disabled]="loading">
-      {{ loading ? 'Chargement...' : 'Actualiser' }}
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.96"/>
+      </svg>
+      {{ loading ? 'Chargement…' : 'Actualiser' }}
     </button>
   </header>
 
+  <!-- ══ KPI STRIP ════════════════════════════════════════════════ -->
+  <div class="kpi-grid" *ngIf="kpis">
+    <article class="kpi-card">
+      <span class="kpi-label">Précision Top-K</span>
+      <strong>{{ formatPercent(kpis.precisionAtTopK) }}</strong>
+      <small>{{ kpis.labeledCases }} dossiers labélisés</small>
+    </article>
+    <article class="kpi-card">
+      <span class="kpi-label">Faux Positifs</span>
+      <strong>{{ formatPercent(kpis.falsePositiveRate) }}</strong>
+      <small>Fenêtre courante</small>
+    </article>
+    <article class="kpi-card">
+      <span class="kpi-label">Délai moyen revue</span>
+      <strong>{{ kpis.avgReviewTurnaroundHours }}h</strong>
+      <small>Du check à la décision</small>
+    </article>
+    <article class="kpi-card" *ngIf="calibration">
+      <span class="kpi-label">Seuils conseillés</span>
+      <strong>M{{ calibration.suggestedMediumThreshold }} / H{{ calibration.suggestedHighThreshold }}</strong>
+      <small>Recalibration feedback</small>
+    </article>
+  </div>
+
+  <!-- ══ FILTERS ══════════════════════════════════════════════════ -->
   <div class="filters">
-    <label for="riskFilter">Filtre risque</label>
-    <select id="riskFilter" [(ngModel)]="riskFilter">
-      <option value="ALL">Tous</option>
-      <option value="HIGH">Eleve</option>
-      <option value="MEDIUM">Moyen</option>
-      <option value="LOW">Faible</option>
-      <option value="UNKNOWN">Non evalue</option>
-    </select>
+    <span class="filter-label">Filtre risque</span>
+    <div class="filter-pills">
+      <button type="button" class="filter-pill" [class.active]="riskFilter === 'ALL'"    (click)="riskFilter = 'ALL'">   Tous</button>
+      <button type="button" class="filter-pill high"   [class.active]="riskFilter === 'HIGH'"   (click)="riskFilter = 'HIGH'">  🔴 Élevé</button>
+      <button type="button" class="filter-pill medium" [class.active]="riskFilter === 'MEDIUM'" (click)="riskFilter = 'MEDIUM'">🟡 Moyen</button>
+      <button type="button" class="filter-pill low"    [class.active]="riskFilter === 'LOW'"    (click)="riskFilter = 'LOW'">  🟢 Faible</button>
+    </div>
+    <span class="count-badge">{{ filteredRows.length }} dossier(s)</span>
   </div>
 
   <p class="err" *ngIf="error">{{ error }}</p>
 
-  <div class="table-wrap" *ngIf="filteredRows.length && !loading; else fraudState">
-    <table>
-      <thead>
-        <tr>
-          <th>Nom</th>
-          <th>Risque</th>
-          <th>Score</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let r of filteredRows">
-          <td>{{ r.firstName }} {{ r.lastName }}</td>
-          <td>
-            <span class="badge" [ngClass]="getRiskClass(r.fraudRisk)">{{ r.fraudRisk || 'N/A' }}</span>
-          </td>
-          <td>{{ r.realScore ?? '—' }}</td>
-          <td>
-            <button type="button" class="action-btn" (click)="runFraudCheck(r)" [disabled]="runningByUser[r.userId]">
-              Recheck
-            </button>
-            <div *ngIf="statusByUser[r.userId]" class="status-text">{{ statusByUser[r.userId] }}</div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+  <!-- ══ CANDIDATE RISK CARDS ═════════════════════════════════════ -->
+  <div class="cards-grid" *ngIf="filteredRows.length && !loading; else fraudState">
+    <article class="risk-card" *ngFor="let r of filteredRows" [ngClass]="'risk-' + getRiskClass(r.fraudRisk)">
+
+      <!-- Card header: candidate + risk indicator -->
+      <div class="card-top">
+        <div class="candidate-avatar" [ngClass]="'avatar-' + getRiskClass(r.fraudRisk)">
+          {{ (r.firstName?.[0] ?? '?').toUpperCase() }}{{ (r.lastName?.[0] ?? '').toUpperCase() }}
+        </div>
+        <div class="candidate-info">
+          <div class="candidate-name">{{ r.firstName }} {{ r.lastName }}</div>
+          <div class="candidate-email">{{ r.email }}</div>
+          <div class="candidate-meta" *ngIf="r.fraudCheckedAt">
+            Analysé le {{ r.fraudCheckedAt | date:'dd MMM yyyy · HH:mm' }}
+          </div>
+        </div>
+        <div class="risk-indicator">
+          <div class="risk-score-ring" [ngClass]="'ring-' + getRiskClass(r.fraudRisk)">
+            <span class="score-num">{{ r.fraudScore ?? '–' }}</span>
+            <span class="score-label">/100</span>
+          </div>
+          <span class="risk-badge" [ngClass]="getRiskClass(r.fraudRisk)">{{ r.fraudRisk || 'N/A' }}</span>
+          <span class="confidence-text" *ngIf="r.fraudScoreConfidence !== null && r.fraudScoreConfidence !== undefined">
+            Confiance: {{ formatPercent(r.fraudScoreConfidence) }}
+          </span>
+        </div>
+      </div>
+
+      <!-- AI Explanation box -->
+      <div class="explanation-box" *ngIf="r.fraudExplanation || r.fraudRecommendation">
+        <div class="explanation-icon">🤖</div>
+        <div class="explanation-body">
+          <p class="explanation-reco" *ngIf="r.fraudRecommendation">
+            <strong>Recommandation IA:</strong>
+            <span class="reco-tag" [ngClass]="r.fraudRecommendation === 'reject' ? 'reco-reject' :
+                                               r.fraudRecommendation === 'manual_review' ? 'reco-review' : 'reco-proceed'">
+              {{ r.fraudRecommendation === 'reject' ? '🚫 Rejeter' :
+                 r.fraudRecommendation === 'manual_review' ? '🔍 Revue manuelle' : '✅ Poursuivre' }}
+            </span>
+          </p>
+          <p class="explanation-text" *ngIf="r.fraudExplanation">{{ r.fraudExplanation }}</p>
+        </div>
+      </div>
+
+      <!-- Signal chips -->
+      <div class="signals-section" *ngIf="r.topFraudFlags?.length">
+        <span class="signals-label">Signaux détectés</span>
+        <div class="signal-chips">
+          <span class="signal-chip"
+                *ngFor="let f of r.topFraudFlags"
+                [ngClass]="'chip-' + (f.severity || 'low')">
+            <span class="chip-dot"></span>
+            {{ formatFlagLabel(f) }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stats-row">
+        <div class="stat-item" *ngIf="r.realScore !== null && r.realScore !== undefined">
+          <span>Score Tech</span><strong>{{ r.realScore }}</strong>
+        </div>
+        <div class="stat-item" *ngIf="r.fraudSource">
+          <span>Source</span><strong>{{ r.fraudSource }}</strong>
+        </div>
+        <div class="stat-item">
+          <span>Statut</span>
+          <strong class="review-status-badge" [ngClass]="getReviewClass(r.fraudReviewStatus)">
+            {{ r.fraudReviewStatus || 'OPEN' }}
+          </strong>
+        </div>
+      </div>
+
+      <!-- Quick action buttons -->
+      <div class="quick-actions" *ngIf="r.latestFraudCaseId as caseId">
+        <button type="button"
+                class="qa-btn confirm"
+                [class.selected]="reviewDecisionByCase[caseId] === 'CONFIRMED_FRAUD'"
+                (click)="onReviewDecisionChange(caseId, 'CONFIRMED_FRAUD')">
+          🚫 Fraude confirmée
+        </button>
+        <button type="button"
+                class="qa-btn watch"
+                [class.selected]="reviewDecisionByCase[caseId] === 'MONITORING'"
+                (click)="onReviewDecisionChange(caseId, 'MONITORING')">
+          👁 Monitoring
+        </button>
+        <button type="button"
+                class="qa-btn clear"
+                [class.selected]="reviewDecisionByCase[caseId] === 'FALSE_POSITIVE'"
+                (click)="onReviewDecisionChange(caseId, 'FALSE_POSITIVE')">
+          ✅ Faux positif
+        </button>
+      </div>
+
+      <!-- Review note + save -->
+      <div class="review-footer" *ngIf="r.latestFraudCaseId as caseId">
+        <input type="text"
+               class="review-note-input"
+               placeholder="Note interne (optionnelle)…"
+               [(ngModel)]="reviewNoteByCase[caseId]" />
+        <button type="button"
+                class="save-btn"
+                (click)="submitReview(r)"
+                [disabled]="reviewSavingByCase[caseId]">
+          {{ reviewSavingByCase[caseId] ? 'Enregistrement…' : 'Enregistrer la décision' }}
+        </button>
+      </div>
+
+      <!-- Recheck action -->
+      <div class="recheck-row">
+        <button type="button" class="recheck-btn"
+                (click)="runFraudCheck(r)"
+                [disabled]="runningByUser[r.userId]">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.96"/>
+          </svg>
+          {{ runningByUser[r.userId] ? 'Analyse en cours…' : 'Relancer l\'analyse IA' }}
+        </button>
+        <span class="status-text" *ngIf="statusByUser[r.userId]">{{ statusByUser[r.userId] }}</span>
+      </div>
+
+    </article>
   </div>
 
+  <!-- ══ EMPTY STATE ═══════════════════════════════════════════════ -->
   <ng-template #fraudState>
-    <p class="hint" *ngIf="loading">Chargement des alertes...</p>
-    <p class="hint" *ngIf="!loading && !filteredRows.length">Aucune alerte pour le moment.</p>
+    <div class="empty-state">
+      <div class="empty-icon">{{ loading ? '⏳' : '✅' }}</div>
+      <p>{{ loading ? 'Chargement des alertes…' : 'Aucune alerte fraude pour le filtre sélectionné.' }}</p>
+    </div>
   </ng-template>
+
 </section>

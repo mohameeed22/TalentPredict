@@ -200,6 +200,28 @@
   background: rgba(99,102,241,0.2); color: #a5b4fc;
   padding: 0.2rem 0.7rem; border-radius: 999px;
 }
+
+// ── Biometric paste warning bar ────────────────────────────────────
+.paste-warning-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #450a0a;
+  color: #fca5a5;
+  padding: 0.5rem 1rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  animation: slide-in-paste 0.3s ease;
+
+  svg { flex-shrink: 0; color: #f87171; }
+}
+
+@keyframes slide-in-paste {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+// ── End biometric paste warning ─────────────────────────────────────
+
 .code-editor {
   display: block; width: 100%; box-sizing: border-box;
   background: #0f172a; color: #e2e8f0;

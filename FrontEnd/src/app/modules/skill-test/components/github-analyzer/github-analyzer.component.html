@@ -1,0 +1,205 @@
+<div class="ga-wrap">
+
+  <!-- ══ HEADER ══════════════════════════════════════════════════ -->
+  <div class="ga-header">
+    <button type="button" class="back-btn" (click)="goBack()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      Retour
+    </button>
+    <div class="header-title">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+      </svg>
+      <h1>GitHub Code Analyzer</h1>
+    </div>
+  </div>
+
+  <!-- ══ INPUT FORM ══════════════════════════════════════════════ -->
+  @if (!result) {
+    <div class="input-section">
+      <!-- GitHub Username -->
+      <div class="input-card">
+        <div class="input-icon-row">
+          <div class="icon-circle github-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+            </svg>
+          </div>
+          <div class="input-group">
+            <label class="field-label">Nom d'utilisateur GitHub</label>
+            <input
+              type="text"
+              class="text-input"
+              [(ngModel)]="githubUsername"
+              placeholder="ex: torvalds"
+              [disabled]="analyzing"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Skills Selector -->
+      <div class="input-card">
+        <label class="field-label">Compétences revendiquées à vérifier</label>
+        <p class="field-hint">Sélectionnez les compétences de votre CV que l'IA vérifiera contre vos dépôts GitHub.</p>
+
+        @if (loadingSkills) {
+          <div class="loading-row">
+            <span class="spinner"></span>
+            <span>Chargement des compétences…</span>
+          </div>
+        } @else if (allUserSkills.length > 0) {
+          <div class="skill-chips">
+            @for (skill of allUserSkills; track skill) {
+              <button
+                type="button"
+                class="skill-chip"
+                [class.selected]="isSkillSelected(skill)"
+                [disabled]="analyzing"
+                (click)="toggleSkill(skill)">
+                @if (isSkillSelected(skill)) {
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                }
+                {{ skill }}
+              </button>
+            }
+          </div>
+        } @else {
+          <input
+            type="text"
+            class="text-input"
+            placeholder="Python, TypeScript, React, Java…"
+            (blur)="parseSkillsInput($any($event.target).value)"
+            [disabled]="analyzing"
+          />
+          <p class="field-hint">Entrez vos compétences séparées par des virgules.</p>
+        }
+      </div>
+
+      <!-- Analyze Button -->
+      <button
+        type="button"
+        class="btn analyze-btn"
+        [disabled]="analyzing || !githubUsername.trim() || claimedSkills.length === 0"
+        (click)="analyze()">
+        @if (analyzing) {
+          <span class="spinner white"></span> Analyse en cours…
+        } @else {
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          Analyser le profil GitHub
+        }
+      </button>
+    </div>
+  }
+
+  <!-- ══ ANALYZING STATE ═════════════════════════════════════════ -->
+  @if (analyzing) {
+    <div class="state-card">
+      <div class="big-spinner"></div>
+      <p class="state-title">Analyse du profil GitHub…</p>
+      <p class="state-sub">
+        L'IA examine les dépôts de <strong>{{ githubUsername }}</strong> pour vérifier
+        vos <strong>{{ claimedSkills.length }}</strong> compétences revendiquées.
+      </p>
+    </div>
+  }
+
+  <!-- ══ RESULTS ═════════════════════════════════════════════════ -->
+  @if (result && !analyzing) {
+    <div class="results-section">
+
+      <!-- Summary Card -->
+      <div class="summary-card">
+        <div class="summary-header">
+          <div class="icon-circle verified-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="summary-title">Analyse complète — {{ result.username }}</h2>
+            <p class="summary-sub">{{ result.data?.summary }}</p>
+          </div>
+        </div>
+
+        <!-- Complexity Badge -->
+        @if (result.data?.code_complexity_estimate) {
+          <div class="complexity-row">
+            <span class="label-tag">Complexité globale du code :</span>
+            <span class="complexity-badge" [ngClass]="getComplexityClass(result.data.code_complexity_estimate)">
+              {{ result.data.code_complexity_estimate | titlecase }}
+            </span>
+          </div>
+        }
+      </div>
+
+      <!-- Verified Skills Grid -->
+      @if (result.data?.verified_skills?.length) {
+        <div class="section-block">
+          <h3 class="section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Compétences vérifiées
+          </h3>
+          <div class="skills-grid">
+            @for (skill of result.data.verified_skills; track skill.skill) {
+              <div class="verified-card">
+                <div class="vc-top">
+                  <span class="vc-name">{{ skill.skill }}</span>
+                  <span class="confidence-badge" [ngClass]="getConfidenceClass(skill.confidence)">
+                    {{ skill.confidence | titlecase }}
+                  </span>
+                </div>
+                <p class="vc-evidence">{{ skill.evidence }}</p>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Missing Skills -->
+      @if (result.data?.missing_claimed_skills?.length) {
+        <div class="section-block warning-block">
+          <h3 class="section-title warning-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Compétences non trouvées sur GitHub
+          </h3>
+          <div class="missing-chips">
+            @for (skill of result.data.missing_claimed_skills; track skill) {
+              <span class="missing-chip">{{ skill }}</span>
+            }
+          </div>
+          <p class="warning-hint">
+            Ces compétences figurent sur votre CV mais n'ont pas été détectées dans vos dépôts publics.
+          </p>
+        </div>
+      }
+
+      <!-- Actions -->
+      <div class="result-actions">
+        <button type="button" class="btn retry-btn" (click)="reset()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 .49-4.96"/>
+          </svg>
+          Nouvelle analyse
+        </button>
+        <button type="button" class="btn back-btn-alt" (click)="goBack()">
+          Retour
+        </button>
+      </div>
+    </div>
+  }
+
+</div>

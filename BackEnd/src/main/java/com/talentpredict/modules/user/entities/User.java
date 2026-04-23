@@ -83,6 +83,30 @@ public class User {
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 
+    @Column(name = "email_verified", nullable = false)
+    @Builder.Default
+    private Boolean emailVerified = false;
+
+    @Column(name = "email_verified_at")
+    private Instant emailVerifiedAt;
+
+    @Column(name = "two_factor_enabled", nullable = false)
+    @Builder.Default
+    private Boolean twoFactorEnabled = false;
+
+    @Column(name = "two_factor_method", nullable = false, length = 30)
+    @Builder.Default
+    private String twoFactorMethod = "NONE";
+
+    // gamification
+    @Column(name = "xp")
+    @Builder.Default
+    private Integer xp = 0;
+
+    @Column(name = "level")
+    @Builder.Default
+    private Integer level = 1;
+
     // relationships
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     @JsonIgnore

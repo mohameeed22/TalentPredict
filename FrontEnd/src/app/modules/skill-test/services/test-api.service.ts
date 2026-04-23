@@ -63,4 +63,79 @@ export class TestApiService {
       timeout({ first: this.codeEvaluateTimeoutMs })
     );
   }
+
+  // ── GitHub Code Analyzer ─────────────────────────────────────────
+  analyzeGithub(body: { username: string; claimedSkills: string[] }): Observable<unknown> {
+    return this.http.post(`${this.base}/assessment/github/analyze`, body).pipe(
+      timeout({ first: this.generateTimeoutMs })
+    );
+  }
+
+  // ── Scenario Simulator ───────────────────────────────────────────
+  generateScenario(body: { role: string; level: string }): Observable<unknown> {
+    return this.http.post(`${this.base}/assessment/scenario/generate`, body).pipe(
+      timeout({ first: this.generateTimeoutMs })
+    );
+  }
+
+  evaluateScenario(body: {
+    scenario: string;
+    response: string;
+    fraudContext?: Record<string, unknown>;
+  }): Observable<unknown> {
+    return this.http.post(`${this.base}/assessment/scenario/evaluate`, body).pipe(
+      timeout({ first: this.evaluateTimeoutMs })
+    );
+  }
+
+  // ── Standalone Fraud Check (mini-quiz / course test) ─────────────
+  checkFraud(body: {
+    candidateId?: string;
+    testType?: string;
+    fraudContext?: Record<string, unknown>;
+  }): Observable<unknown> {
+    return this.http.post(`${this.base}/assessment/fraud/check`, body).pipe(
+      timeout({ first: this.evaluateTimeoutMs })
+    );
+  }
+
+  // ── AI Voice Interview ────────────────────────────────────────────
+  private readonly interviewTimeoutMs = 30_000;
+
+  getInterviewQuestion(body: {
+    role: string;
+    level?: string;
+    focus_area?: string;
+    history?: unknown[];
+    language?: string;
+  }): Observable<unknown> {
+    return this.http.post(`${this.base}/assessment/interview/question`, body).pipe(
+      timeout({ first: this.interviewTimeoutMs })
+    );
+  }
+
+  evaluateInterviewTurn(body: {
+    role: string;
+    level?: string;
+    question: string;
+    answer: string;
+    turn_number?: number;
+    max_turns?: number;
+    language?: string;
+  }): Observable<unknown> {
+    return this.http.post(`${this.base}/assessment/interview/evaluate-turn`, body).pipe(
+      timeout({ first: this.interviewTimeoutMs })
+    );
+  }
+
+  getInterviewSummary(body: {
+    role: string;
+    level?: string;
+    history: unknown[];
+    language?: string;
+  }): Observable<unknown> {
+    return this.http.post(`${this.base}/assessment/interview/summary`, body).pipe(
+      timeout({ first: this.interviewTimeoutMs })
+    );
+  }
 }

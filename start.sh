@@ -80,7 +80,7 @@ fi
 echo -e "${YELLOW}[5/5]${NC} Starting Docker containers..."
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
-docker-compose up -d
+docker-compose up -d --build
 
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 

@@ -16,7 +16,11 @@ import java.util.UUID;
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
     Optional<RefreshToken> findByToken(String token);
 
+    Optional<RefreshToken> findByIdAndUser(UUID id, User user);
+
     Optional<RefreshToken> findByTokenAndUserIdAndRevokedFalse(String token, UUID userId);
+
+    List<RefreshToken> findAllByUserOrderByCreatedAtDesc(User user);
 
     @Query("SELECT rt FROM RefreshToken rt WHERE rt.user = :user AND rt.revoked = false AND rt.expiryDate > CURRENT_TIMESTAMP")
     List<RefreshToken> findActiveTokensByUser(@Param("user") User user);

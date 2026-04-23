@@ -66,6 +66,27 @@
         </div>
       </div>
 
+      <!-- LINKEDIN -->
+      <div class="form-section">
+        <h3>
+          <span>💼</span>
+          Profil LinkedIn
+          <span class="optional-badge">Optionnel</span>
+        </h3>
+        <p class="section-hint">
+          Permet d'enrichir l'analyse de vos soft skills avec votre parcours professionnel
+        </p>
+        <div class="form-group">
+          <label for="linkedinUrl">URL LinkedIn</label>
+          <input
+            id="linkedinUrl"
+            name="linkedinUrl"
+            type="url"
+            formControlName="linkedinUrl"
+            placeholder="https://linkedin.com/in/votre-profil">
+        </div>
+      </div>
+
       <!-- CV UPLOAD -->
       <div class="form-section">
         <h3>
@@ -111,8 +132,9 @@
         <ul>
           <li *ngIf="hasGithub()">🐙 Analyse de votre profil GitHub</li>
           <li *ngIf="selectedFile">📄 Extraction des compétences depuis votre CV</li>
-          <li>📋 Test PCM en 12 questions (≈ 5 minutes)</li>
-          <li>🤖 Analyse IA et fusion des 3 sources</li>
+          <li>📋 Test PCM aléatoire (6-12 questions · ≈ 3 minutes)</li>
+          <li>🎭 Simulateur de Scénario professionnel</li>
+          <li>🤖 Analyse IA et fusion des sources</li>
           <li>📊 Rapport détaillé avec recommandations de formation</li>
         </ul>
       </div>
@@ -120,9 +142,21 @@
       <button
         type="submit"
         class="btn-start"
-        [disabled]="profileForm.invalid">
-        Commencer le test PCM →
+        [disabled]="profileForm.invalid || isExtracting">
+        @if (isExtracting) {
+          ⏳ Extraction du CV en cours…
+        } @else {
+          Commencer le test PCM →
+        }
       </button>
+
+      <!-- Show form errors explicitly so the user knows why button is blocked -->
+      @if (profileForm.get('fullName')?.invalid && profileForm.get('fullName')?.touched) {
+        <p class="error-text">Le nom complet est requis.</p>
+      }
+      @if (profileForm.get('email')?.invalid && profileForm.get('email')?.touched) {
+        <p class="error-text">Un email valide est requis.</p>
+      }
 
     </form>
   </div>

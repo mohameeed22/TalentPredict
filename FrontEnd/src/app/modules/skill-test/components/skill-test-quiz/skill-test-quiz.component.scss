@@ -55,6 +55,49 @@
   animation: fade-up 0.45s ease;
 }
 
+// ── Behavioural biometric alert banner ──────────────────────────────
+.biometric-alert-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  background: linear-gradient(135deg, #fef3c7, #fefce8);
+  border: 1.5px solid #fbbf24;
+  border-radius: 12px;
+  padding: 0.72rem 1rem;
+  margin-bottom: 0.9rem;
+  animation: slide-in-alert 0.35s ease, pulse-amber 3s ease 0.5s infinite;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.22);
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: #d97706;
+  }
+}
+
+.biometric-alert-text {
+  font-size: 0.85rem;
+  color: #92400e;
+  line-height: 1.45;
+
+  strong {
+    color: #b45309;
+    font-weight: 800;
+  }
+}
+
+@keyframes slide-in-alert {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-amber {
+  0%, 100% { box-shadow: 0 4px 12px rgba(251, 191, 36, 0.22); }
+  50%       { box-shadow: 0 4px 18px rgba(251, 191, 36, 0.42); }
+}
+// ── End biometric alert ──────────────────────────────────────────────
+
+
 .hero-copy {
   h1 {
     margin: 0;
@@ -103,7 +146,33 @@
   &.hidden {
     opacity: 0.68;
   }
+
+  // Proctoring state overrides
+  &.proctor-active {
+    border-color: rgba(134, 239, 172, 0.4);
+    background: rgba(22, 101, 52, 0.35);
+  }
+
+  &.proctor-denied {
+    border-color: rgba(252, 165, 165, 0.4);
+    background: rgba(127, 29, 29, 0.3);
+  }
 }
+
+// Proctoring pill typography
+.proctor-pill {
+  font-size: 0.82rem !important;
+
+  &.active    { color: #86efac !important; }
+  &.denied    { color: #fca5a5 !important; }
+  &.requesting { color: #fde68a !important; animation: proctor-blink 1.2s ease infinite; }
+}
+
+@keyframes proctor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
 
 .panel {
   background: #ffffff;

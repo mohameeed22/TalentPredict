@@ -34,7 +34,18 @@ export class PcmIntroComponent implements OnInit {
       fullName: [this.currentUser?.username || '', Validators.required],
       email: [this.currentUser?.email || '', [Validators.required, Validators.email]],
       githubUsername: [''],
+      linkedinUrl: [''],
     });
+
+    // Auto-fill URLs from profile cache
+    try {
+      const cached = sessionStorage.getItem('userProfileUrls');
+      if (cached) {
+        const urls = JSON.parse(cached);
+        if (urls.githubUrl) this.profileForm.patchValue({ githubUsername: urls.githubUrl });
+        if (urls.linkedinUrl) this.profileForm.patchValue({ linkedinUrl: urls.linkedinUrl });
+      }
+    } catch {}
   }
 
   async onFileSelected(event: Event): Promise<void> {

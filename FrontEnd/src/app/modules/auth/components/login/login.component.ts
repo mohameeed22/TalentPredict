@@ -24,12 +24,14 @@ export class LoginComponent implements OnInit {
 
   loginForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]]
+    password: ['', [Validators.required, Validators.minLength(6)]],
+    twoFactorCode: ['']
   });
 
   loading = false;
   socialLoading = false;
   showPassword = false;
+  requiresTwoFactor = false;
 
   ngOnInit(): void {
     // If already authenticated, redirect to appropriate dashboard
@@ -47,10 +49,22 @@ export class LoginComponent implements OnInit {
   }
 
   onSubmit(): void {
+    if (!this.loginForm.valid) {
+      return;
+    }
+
+    if (this.requiresTwoFactor && this.loginForm.get('twoFactorCode')?.invalid) {
+      this.notificationService.warning('Veuillez renseigner le code de vérification à 6 chiffres.');
+      this.loginForm.get('twoFactorCode')?.markAsTouched();
+      return;
+    }
+
     if (this.loginForm.valid) {
       this.loading = true;
       this.authService.login(this.loginForm.value).subscribe({
         next: (response) => {
+          this.requiresTwoFactor = false;
+          this.disableTwoFactorField();
           this.notificationService.success('Connexion réussie !');
           // TASK 1: Role-based redirect using backend's redirectUrl
           const redirectUrl = response.redirectUrl || this.authService.getRedirectUrl();
@@ -58,13 +72,33 @@ export class LoginComponent implements OnInit {
         },
         error: (error: HttpErrorResponse) => {
           this.loading = false;
+          const message = error.error?.message || error.error?.error || '';
+          const normalizedMessage = String(message).toLowerCase();
+
+          if (error.status === 428 || normalizedMessage.includes('2fa') || normalizedMessage.includes('verification code')) {
+            this.requiresTwoFactor = true;
+            this.enableTwoFactorField();
+            this.notificationService.info(message || 'Un code de sécurité a été envoyé à votre adresse e-mail.');
+            return;
+          }
+
+          if (error.status === 403 && normalizedMessage.includes('verify your email')) {
+            this.notificationService.warning('Veuillez vérifier votre e-mail avant de vous connecter.');
+            this.router.navigate(['/auth/verify-email'], {
+              queryParams: {
+                email: this.loginForm.get('email')?.value || ''
+              }
+            }).then(() => this.appRef.tick());
+            return;
+          }
+
           if (error.status === 401) {
             this.notificationService.error('Email ou mot de passe incorrect.');
           } else if (error.status === 0) {
             this.notificationService.error('Impossible de contacter le serveur.');
           } else {
             this.notificationService.error(
-              error.error?.message || 'Une erreur est survenue. Veuillez réessayer.'
+              message || 'Une erreur est survenue. Veuillez réessayer.'
             );
           }
         },
@@ -75,6 +109,23 @@ export class LoginComponent implements OnInit {
     }
   }
 
+  private enableTwoFactorField(): void {
+    const control = this.loginForm.get('twoFactorCode');
+    if (!control) return;
+
+    control.setValidators([Validators.required, Validators.pattern(/^\d{6}$/)]);
+    control.updateValueAndValidity();
+  }
+
+  private disableTwoFactorField(): void {
+    const control = this.loginForm.get('twoFactorCode');
+    if (!control) return;
+
+    control.clearValidators();
+    control.setValue('');
+    control.updateValueAndValidity();
+  }
+
   startGoogle(): void {
     this.socialLoading = true;
     if (!environment.googleClientId) {
@@ -82,7 +133,7 @@ export class LoginComponent implements OnInit {
       this.socialLoading = false;
       return;
     }
-    const redirectUri = `${environment.oauthRedirectBase}/auth/callback/google`;
+    const redirectUri = this.authService.getOAuthRedirectUri('google');
     const params = new URLSearchParams({
       client_id: environment.googleClientId,
       redirect_uri: redirectUri,
@@ -101,18 +152,12 @@ export class LoginComponent implements OnInit {
       this.socialLoading = false;
       return;
     }
-    const redirectUri = `${environment.oauthRedirectBase}/auth/callback/github`;
+    const redirectUri = this.authService.getOAuthRedirectUri('github');
     const params = new URLSearchParams({
       client_id: environment.githubClientId,
       redirect_uri: redirectUri,
       scope: 'read:user user:email'
     });
     window.location.href = `https://github.com/login/oauth/authorize?${params.toString()}`;
-  }
-
-  startLinkedin(): void {
-    this.socialLoading = true;
-    this.notificationService.error('Connexion LinkedIn non encore configurée.');
-    this.socialLoading = false;
   }
 }

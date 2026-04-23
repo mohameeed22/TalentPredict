@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NotificationService, AppNotification } from '../../../core/services/notification.service';
+import { NotificationCenterApiService, ServerNotificationResponse } from '../../../core/services/notification-center-api.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -518,10 +519,13 @@ import { Subscription } from 'rxjs';
 })
 export class NotificationsCenterComponent implements OnInit, OnDestroy {
   private notificationService = inject(NotificationService);
+  private notificationApi = inject(NotificationCenterApiService);
   private cdr = inject(ChangeDetectorRef);
   private elRef = inject(ElementRef);
   private sub!: Subscription;
   private unreadSub!: Subscription;
+  private pollIntervalId?: ReturnType<typeof setInterval>;
+  private syncInProgress = false;
 
   notifications: AppNotification[] = [];
   unreadCount = 0;
@@ -537,10 +541,16 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
       this.unreadCount = count;
       this.cdr.markForCheck();
     });
+
+    this.syncFromServer();
+    this.pollIntervalId = setInterval(() => this.syncFromServer(), 20000);
   }
 
   toggle(): void {
     this.isOpen = !this.isOpen;
+    if (this.isOpen) {
+      this.syncFromServer();
+    }
     this.cdr.detectChanges();
   }
 
@@ -562,20 +572,48 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
 
   markRead(id: string): void {
     this.notificationService.markRead(id);
+
+    const notification = this.notificationService.getNotificationById(id);
+    if (notification?.source === 'server') {
+      this.notificationApi.markRead(id).subscribe({
+        error: () => this.syncFromServer()
+      });
+    }
   }
 
   markAllRead(): void {
     this.notificationService.markAllRead();
+
+    if (this.notifications.some(notification => notification.source === 'server' && !notification.read)) {
+      this.notificationApi.markAllRead().subscribe({
+        error: () => this.syncFromServer()
+      });
+    }
   }
 
   clearAll(): void {
+    const hadServerNotifications = this.notifications.some(notification => notification.source === 'server');
     this.notificationService.clearAll();
+
+    if (hadServerNotifications) {
+      this.notificationApi.clearAll().subscribe({
+        error: () => this.syncFromServer()
+      });
+    }
+
     this.activeFilter = 'all';
     this.isOpen = false;
   }
 
   remove(id: string): void {
+    const notification = this.notificationService.getNotificationById(id);
     this.notificationService.removeNotification(id);
+
+    if (notification?.source === 'server') {
+      this.notificationApi.delete(id).subscribe({
+        error: () => this.syncFromServer()
+      });
+    }
   }
 
   timeAgo(ts: number): string {
@@ -607,5 +645,56 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
     this.unreadSub?.unsubscribe();
+    if (this.pollIntervalId) {
+      clearInterval(this.pollIntervalId);
+    }
+  }
+
+  private syncFromServer(): void {
+    if (this.syncInProgress) {
+      return;
+    }
+
+    this.syncInProgress = true;
+    this.notificationApi.list(false).subscribe({
+      next: (serverNotifications) => {
+        const mappedNotifications = serverNotifications.map(notification => this.mapServerNotification(notification));
+        this.notificationService.syncServerNotifications(mappedNotifications);
+      },
+      error: () => {
+        // Preserve local notifications if server sync fails.
+        this.syncInProgress = false;
+      },
+      complete: () => {
+        this.syncInProgress = false;
+      }
+    });
+  }
+
+  private mapServerNotification(notification: ServerNotificationResponse): AppNotification {
+    const parsedDate = new Date(notification.createdAt).getTime();
+
+    return {
+      id: notification.id,
+      type: this.mapType(notification.type),
+      title: notification.title,
+      body: notification.body,
+      timestamp: Number.isNaN(parsedDate) ? Date.now() : parsedDate,
+      read: notification.read,
+      source: 'server'
+    };
+  }
+
+  private mapType(type: string): AppNotification['type'] {
+    switch ((type || '').toUpperCase()) {
+      case 'SUCCESS':
+        return 'success';
+      case 'ERROR':
+        return 'error';
+      case 'WARNING':
+        return 'warning';
+      default:
+        return 'info';
+    }
   }
 }

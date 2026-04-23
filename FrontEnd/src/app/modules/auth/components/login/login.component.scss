@@ -245,6 +245,24 @@
   color: #dc2626;
 }
 
+.two-factor-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin: 0.35rem 0 1rem;
+  padding: 0.72rem 0.78rem;
+  border: 1px solid rgba(29, 78, 216, 0.22);
+  border-radius: 10px;
+  background: rgba(29, 78, 216, 0.08);
+  color: #1e40af;
+  font-size: 0.82rem;
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 0.08rem;
+  }
+}
+
 .social-buttons {
   display: flex;
   flex-direction: column;
@@ -302,17 +320,6 @@
     &:hover:not(:disabled) {
       background: #1b1f24;
       border-color: #1b1f24;
-    }
-  }
-
-  &.linkedin {
-    background: #0a66c2;
-    color: #ffffff;
-    border-color: #0a66c2;
-
-    &:hover:not(:disabled) {
-      background: #004182;
-      border-color: #004182;
     }
   }
 }

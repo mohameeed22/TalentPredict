@@ -8,7 +8,15 @@ ALTER TABLE IF EXISTS users
     ADD COLUMN IF NOT EXISTS failed_login_attempts INTEGER NOT NULL DEFAULT 0,
     ADD COLUMN IF NOT EXISTS lock_until TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS phone_number VARCHAR(30);
+    ADD COLUMN IF NOT EXISTS phone_number VARCHAR(30),
+    ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS two_factor_method VARCHAR(30) NOT NULL DEFAULT 'NONE';
+
+UPDATE users
+SET email_verified = TRUE
+WHERE email_verified IS NULL;
 
 -- Ensure refresh token lookup index exists without failing if already present
 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens (user_id);
@@ -38,6 +46,30 @@ CREATE TABLE IF NOT EXISTS candidate_test_results (
 
 CREATE INDEX IF NOT EXISTS idx_ctr_user_taken ON candidate_test_results (user_id, taken_at DESC);
 
+CREATE TABLE IF NOT EXISTS fraud_cases (
+    id UUID PRIMARY KEY,
+    candidate_id UUID NOT NULL REFERENCES users (id),
+    triggered_by_user_id UUID REFERENCES users (id),
+    source VARCHAR(30) NOT NULL,
+    risk_level VARCHAR(20) NOT NULL,
+    fraud_score INTEGER,
+    score_confidence DOUBLE PRECISION,
+    recommendation VARCHAR(40),
+    explanation TEXT,
+    flags_json TEXT,
+    review_status VARCHAR(30) NOT NULL DEFAULT 'OPEN',
+    reviewed_by_user_id UUID REFERENCES users (id),
+    reviewed_at TIMESTAMPTZ,
+    review_note TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_fraud_cases_candidate_created ON fraud_cases (candidate_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_fraud_cases_risk_created ON fraud_cases (risk_level, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_fraud_cases_review_status ON fraud_cases (review_status);
+CREATE INDEX IF NOT EXISTS idx_fraud_cases_source_created ON fraud_cases (source, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS job_matches (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users (id),
@@ -57,3 +89,66 @@ CREATE TABLE IF NOT EXISTS candidate_badges (
     badge_svg_url VARCHAR(1000),
     CONSTRAINT uk_user_skill_badge UNIQUE (user_id, skill)
 );
+
+-- Auth hardening: email verification + two-factor one-time codes
+CREATE TABLE IF NOT EXISTS email_verification_tokens (
+    id UUID PRIMARY KEY,
+    token VARCHAR(120) NOT NULL UNIQUE,
+    user_id UUID NOT NULL REFERENCES users (id),
+    expiry_date TIMESTAMP NOT NULL,
+    used BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_verification_user_id ON email_verification_tokens (user_id);
+
+CREATE TABLE IF NOT EXISTS two_factor_codes (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users (id),
+    purpose VARCHAR(20) NOT NULL,
+    code_hash VARCHAR(128) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_two_factor_user_id ON two_factor_codes (user_id);
+CREATE INDEX IF NOT EXISTS idx_two_factor_purpose ON two_factor_codes (purpose);
+CREATE INDEX IF NOT EXISTS idx_two_factor_expires ON two_factor_codes (expires_at);
+
+-- In-app notifications center
+CREATE TABLE IF NOT EXISTS user_notifications (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users (id),
+    type VARCHAR(20) NOT NULL,
+    category VARCHAR(40) NOT NULL,
+    title VARCHAR(180) NOT NULL,
+    body TEXT NOT NULL,
+    target_url VARCHAR(500),
+    email_alert BOOLEAN NOT NULL DEFAULT FALSE,
+    emailed_at TIMESTAMPTZ,
+    read_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_notifications_user_id ON user_notifications (user_id);
+CREATE INDEX IF NOT EXISTS idx_user_notifications_read_at ON user_notifications (read_at);
+CREATE INDEX IF NOT EXISTS idx_user_notifications_created_at ON user_notifications (created_at);
+
+-- GDPR/self-service privacy settings
+CREATE TABLE IF NOT EXISTS user_privacy_settings (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL UNIQUE REFERENCES users (id),
+    marketing_emails_consent BOOLEAN NOT NULL DEFAULT FALSE,
+    analytics_consent BOOLEAN NOT NULL DEFAULT TRUE,
+    profile_visibility_consent BOOLEAN NOT NULL DEFAULT TRUE,
+    data_processing_consent BOOLEAN NOT NULL DEFAULT TRUE,
+    consent_version VARCHAR(30) NOT NULL DEFAULT 'v1',
+    consent_updated_at TIMESTAMPTZ,
+    data_retention_days INTEGER NOT NULL DEFAULT 365,
+    delete_requested_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_privacy_user_id ON user_privacy_settings (user_id);

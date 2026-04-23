@@ -8,15 +8,19 @@ import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import com.talentpredict.modules.ai.services.ProfileAnalysisOrchestrator;
 import com.talentpredict.modules.auth.dto.AuthDto;
+import com.talentpredict.modules.auth.services.AuditLogService;
 import com.talentpredict.modules.auth.services.AuthServiceImpl;
 import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.shared.security.JwtService;
+import com.talentpredict.shared.security.UserDetailsImpl;
 
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,16 +36,19 @@ public class AuthController {
     private final ProfileAnalysisOrchestrator profileAnalysisOrchestrator;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final AuditLogService auditLogService;
 
     @Value("${security.cookie.secure:false}")
     private boolean refreshCookieSecure;
 
     @PostMapping("/register")
     public ResponseEntity<AuthDto.Response> register(@Valid @RequestBody AuthDto.RegisterRequest request,
+            HttpServletRequest httpRequest,
             HttpServletResponse response) {
         User user = authServiceImpl.createUser(request);
         String accessToken = jwtService.generateAccessToken(user.getEmail());
-        String refreshToken = authServiceImpl.generateRefreshToken(user, "device-id-placeholder");
+        String deviceId = resolveDeviceId(httpRequest);
+        String refreshToken = authServiceImpl.generateRefreshToken(user, deviceId);
 
         // Return refresh token in HttpOnly cookie
         Cookie cookie = buildRefreshCookie(refreshToken, 604800);
@@ -59,29 +66,55 @@ public class AuthController {
                 user.getLastName(),
                 user.getFirstName(),
                 redirectUrl);
+        responseDto.setEmailVerified(Boolean.TRUE.equals(user.getEmailVerified()));
+        responseDto.setTwoFactorEnabled(Boolean.TRUE.equals(user.getTwoFactorEnabled()));
 
         log.info("Registered: {} role={} → {}", user.getEmail(), user.getRole(), redirectUrl);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthDto.Response> login(@Valid @RequestBody AuthDto.LoginRequest request,
+        public ResponseEntity<?> login(@Valid @RequestBody AuthDto.LoginRequest request,
+            HttpServletRequest httpRequest,
             HttpServletResponse response) {
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
         } catch (LockedException ex) {
             return ResponseEntity.status(HttpStatus.LOCKED)
-                    .build();
+                .body(new AuthDto.MessageResponse("Compte temporairement verrouillé."));
         } catch (BadCredentialsException ex) {
             authServiceImpl.recordFailedLoginAttempt(request.getEmail());
-            throw ex;
+            auditLogService.logFailedLogin(
+                request.getEmail(),
+                resolveClientIp(httpRequest),
+                httpRequest.getHeader("User-Agent"),
+                "Invalid credentials");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new AuthDto.MessageResponse("Email ou mot de passe incorrect."));
         }
 
         User user = authServiceImpl.getUserByEmail(request.getEmail());
+
+        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new AuthDto.MessageResponse(
+                    "Please verify your email before logging in. Use the verification link sent to your inbox."));
+        }
+
+        try {
+            authServiceImpl.ensureTwoFactorForLogin(user, request.getTwoFactorCode());
+        } catch (IllegalArgumentException ex) {
+            HttpStatus status = ex.getMessage() != null && ex.getMessage().toLowerCase().contains("sent")
+                ? HttpStatus.PRECONDITION_REQUIRED
+                : HttpStatus.BAD_REQUEST;
+            return ResponseEntity.status(status).body(new AuthDto.MessageResponse(ex.getMessage()));
+        }
+
         authServiceImpl.registerSuccessfulLogin(request.getEmail());
         String accessToken = jwtService.generateAccessToken(user.getEmail());
-        String refreshToken = authServiceImpl.generateRefreshToken(user, "device-id-placeholder");
+        String deviceId = resolveDeviceId(httpRequest);
+        String refreshToken = authServiceImpl.generateRefreshToken(user, deviceId);
 
         // Return refresh token in HttpOnly cookie
         Cookie cookie = buildRefreshCookie(refreshToken, 604800);
@@ -99,11 +132,35 @@ public class AuthController {
                 user.getLastName(),
                 user.getFirstName(),
                 redirectUrl);
+        responseDto.setEmailVerified(Boolean.TRUE.equals(user.getEmailVerified()));
+        responseDto.setTwoFactorEnabled(Boolean.TRUE.equals(user.getTwoFactorEnabled()));
 
         log.info("Login: {} role={} → {}", user.getEmail(), user.getRole(), redirectUrl);
+        auditLogService.logLogin(
+                user,
+                resolveClientIp(httpRequest),
+                httpRequest.getHeader("User-Agent"),
+                deviceId);
         log.info("🤖 Déclenchement analyse IA pour account: {}", responseDto.getId());
         profileAnalysisOrchestrator.analyserProfil(responseDto.getId());
         return ResponseEntity.ok(responseDto);
+    }
+
+    @GetMapping("/verify-email")
+    public ResponseEntity<AuthDto.MessageResponse> verifyEmail(@RequestParam("token") String token) {
+        try {
+            String message = authServiceImpl.verifyEmailToken(token);
+            return ResponseEntity.ok(new AuthDto.MessageResponse(message));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(new AuthDto.MessageResponse(ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<AuthDto.MessageResponse> resendVerification(
+            @Valid @RequestBody AuthDto.ResendVerificationRequest request) {
+        String message = authServiceImpl.resendVerificationEmail(request.getEmail());
+        return ResponseEntity.ok(new AuthDto.MessageResponse(message));
     }
 
     /**
@@ -133,8 +190,8 @@ public class AuthController {
     @PostMapping("/change-password")
     public ResponseEntity<AuthDto.MessageResponse> changePassword(
             @Valid @RequestBody AuthDto.ChangePasswordRequest request,
-            @AuthenticationPrincipal User currentUser) {
-        String message = authServiceImpl.changePassword(request, currentUser);
+            @AuthenticationPrincipal UserDetailsImpl principal) {
+        String message = authServiceImpl.changePassword(request, principal.getUser());
         return ResponseEntity.ok(new AuthDto.MessageResponse(message));
     }
 
@@ -144,6 +201,7 @@ public class AuthController {
     @PostMapping("/refresh-token")
     public ResponseEntity<AuthDto.RefreshResponse> refreshToken(
             @CookieValue(value = "refreshToken", required = false) String refreshToken,
+            HttpServletRequest httpRequest,
             HttpServletResponse response) {
         try {
             if (refreshToken == null || refreshToken.isEmpty()) {
@@ -154,7 +212,7 @@ public class AuthController {
             String newAccessToken = authServiceImpl.refreshAccessToken(refreshToken);
             String newRefreshToken = authServiceImpl.generateRefreshToken(
                 authServiceImpl.getUserByEmail(jwtService.extractUsername(newAccessToken)),
-                "device-id-placeholder"
+                resolveDeviceId(httpRequest)
             );
 
             // Return new refresh token in HttpOnly cookie
@@ -172,14 +230,17 @@ public class AuthController {
      */
     @PostMapping("/logout")
     public ResponseEntity<AuthDto.MessageResponse> logout(
-            @AuthenticationPrincipal User currentUser,
+            @AuthenticationPrincipal UserDetailsImpl principal,
+            HttpServletRequest httpRequest,
             @CookieValue(value = "refreshToken", required = false) String refreshToken,
             HttpServletResponse response) {
         // Clear refresh token cookie regardless of auth state
         Cookie clear = buildRefreshCookie(null, 0);
         response.addCookie(clear);
 
-        if (currentUser != null) {
+        if (principal != null && principal.getUser() != null) {
+            User currentUser = principal.getUser();
+            auditLogService.logLogout(currentUser, resolveClientIp(httpRequest));
             log.info("User logout: {}", currentUser.getEmail());
         }
 
@@ -194,5 +255,27 @@ public class AuthController {
         cookie.setMaxAge(maxAgeSeconds);
         cookie.setAttribute("SameSite", "Lax");
         return cookie;
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (StringUtils.hasText(xForwardedFor)) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
+
+    private String resolveDeviceId(HttpServletRequest request) {
+        String headerDeviceId = request.getHeader("X-Device-Id");
+        if (StringUtils.hasText(headerDeviceId)) {
+            return headerDeviceId.trim();
+        }
+
+        String userAgent = request.getHeader("User-Agent");
+        if (StringUtils.hasText(userAgent)) {
+            return "ua-" + Integer.toHexString(userAgent.hashCode());
+        }
+
+        return "unknown-device";
     }
 }

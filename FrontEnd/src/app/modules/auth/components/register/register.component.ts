@@ -46,11 +46,16 @@ export class RegisterComponent {
         ...this.registerForm.value,
         role: 'USER'
       };
-      this.authService.register(formValue).subscribe({
-        next: (response) => {
-          this.notificationService.success('Compte créé avec succès !');
-          const redirectUrl = response.redirectUrl || this.authService.getRedirectUrl();
-          this.router.navigateByUrl(redirectUrl).then(() => this.appRef.tick());
+      this.authService.registerWithoutLogin(formValue).subscribe({
+        next: () => {
+          this.authService.clearSession();
+          this.notificationService.success('Compte créé avec succès. Vérifiez votre e-mail pour activer le compte.');
+          this.router.navigate(['/auth/verify-email'], {
+            queryParams: {
+              sent: 1,
+              email: formValue.email
+            }
+          }).then(() => this.appRef.tick());
         },
         error: (error) => {
           if (error.status === 409) {
@@ -77,7 +82,7 @@ export class RegisterComponent {
       this.socialLoading = false;
       return;
     }
-    const redirectUri = `${environment.oauthRedirectBase}/auth/callback/google`;
+    const redirectUri = this.authService.getOAuthRedirectUri('google');
     const params = new URLSearchParams({
       client_id: environment.googleClientId,
       redirect_uri: redirectUri,
@@ -96,18 +101,12 @@ export class RegisterComponent {
       this.socialLoading = false;
       return;
     }
-    const redirectUri = `${environment.oauthRedirectBase}/auth/callback/github`;
+    const redirectUri = this.authService.getOAuthRedirectUri('github');
     const params = new URLSearchParams({
       client_id: environment.githubClientId,
       redirect_uri: redirectUri,
       scope: 'read:user user:email'
     });
     window.location.href = `https://github.com/login/oauth/authorize?${params.toString()}`;
-  }
-
-  startLinkedin(): void {
-    this.socialLoading = true;
-    this.notificationService.error('Connexion LinkedIn non encore configurée.');
-    this.socialLoading = false;
   }
 }

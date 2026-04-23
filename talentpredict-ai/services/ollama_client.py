@@ -8,6 +8,8 @@ import re
 from typing import Any
 
 import httpx
+import json5
+import re
 
 from config.settings import (
     OLLAMA_BASE_URL,
@@ -148,3 +150,54 @@ async def call_ollama_json(
         )
         text2 = await call_ollama(strict, model=model, temperature=0.3)
         return parse_json_lenient(text2)
+
+def parse_json_lenient(text):
+    # Strip markdown code blocks
+    text = re.sub(r"```(?:json)?\s*", "", text).strip()
+    text = re.sub(r"```\s*$", "", text).strip()
+
+    # Replace smart/curly quotes with straight quotes
+    text = text.replace("\u201c", '"').replace("\u201d", '"')
+    text = text.replace("\u2018", "'").replace("\u2019", "'")
+
+    # Try direct parse first
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # Try to find and parse the first complete JSON object or array
+    for match in re.finditer(r"(\{|\[)", text):
+        start = match.start()
+        opener = match.group(1)
+        closer = "}" if opener == "{" else "]"
+        depth = 0
+        in_string = False
+        escape = False
+        for i, ch in enumerate(text[start:], start):
+            if escape:
+                escape = False
+                continue
+            if ch == "\\" and in_string:
+                escape = True
+                continue
+            if ch == '"':
+                in_string = not in_string
+                continue
+            if in_string:
+                continue
+            if ch == opener:
+                depth += 1
+            elif ch == closer:
+                depth -= 1
+                if depth == 0:
+                    candidate = text[start:i+1]
+                    try:
+                        return json.loads(candidate)
+                    except json.JSONDecodeError:
+                        try:
+                            return json5.loads(candidate)
+                        except Exception:
+                            break
+
+    raise ValueError(f"No valid JSON found in response: {text[:200]}")

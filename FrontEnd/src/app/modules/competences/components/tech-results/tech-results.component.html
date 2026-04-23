@@ -1,0 +1,285 @@
+<div class="tr-wrap" id="print-area">
+
+  <!-- ══ HEADER ════════════════════════════════════════════════════════ -->
+  <div class="tr-header">
+    <div class="header-left">
+      <button type="button" class="back-btn" (click)="retakeTest()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        Refaire
+      </button>
+      <div>
+        <h1>Résultats Techniques</h1>
+        <p class="header-sub">Rapport complet · Analyse GitHub · Gaps de compétences</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="btn-export-pdf" type="button" class="btn-export" (click)="exportPdf()" [disabled]="exportingPdf">
+        @if (exportingPdf) {
+          <span class="spin"></span> Génération…
+        } @else {
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Exporter PDF
+        }
+      </button>
+      <button type="button" class="btn-summary" (click)="goToMesResultats()">
+        Mes Résultats →
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ TABS ═══════════════════════════════════════════════════════════ -->
+  <div class="tab-bar">
+    <button class="tab-btn" [class.active]="activeTab==='overview'" (click)="activeTab='overview'">Vue d'ensemble</button>
+    <button class="tab-btn" [class.active]="activeTab==='skills'"   (click)="activeTab='skills'">Compétences</button>
+    <button class="tab-btn" [class.active]="activeTab==='github'"   (click)="activeTab='github'">GitHub Analyzer</button>
+    <button class="tab-btn" [class.active]="activeTab==='gaps'"     (click)="activeTab='gaps'">Gaps</button>
+  </div>
+
+  <!-- ══ TAB: OVERVIEW ══════════════════════════════════════════════════ -->
+  @if (activeTab === 'overview') {
+  <div class="tab-content">
+
+    <!-- Score ring -->
+    <div class="score-card">
+      <div class="score-ring-wrap">
+        <svg class="score-ring" viewBox="0 0 120 120" width="130" height="130">
+          <circle cx="60" cy="60" r="54" fill="none" stroke="#e5e7eb" stroke-width="10"/>
+          <circle cx="60" cy="60" r="54" fill="none" [attr.stroke]="scoreColor" stroke-width="10"
+            stroke-linecap="round" [attr.stroke-dasharray]="strokeDash"
+            stroke-dashoffset="0" transform="rotate(-90 60 60)" style="transition: stroke-dasharray .6s ease"/>
+        </svg>
+        <div class="score-inner">
+          <span class="score-num">{{ overallScore }}</span>
+          <span class="score-pct">%</span>
+        </div>
+      </div>
+      <div class="score-meta">
+        <div class="score-label-badge" [style.background]="scoreColor + '22'" [style.color]="scoreColor">
+          {{ scoreLabel }}
+        </div>
+        <p class="score-headline">{{ quizResult?.headline ?? 'Résultat de votre test adaptatif' }}</p>
+
+        <!-- Sub-scores -->
+        <div class="sub-scores">
+          <div class="sub-score">
+            <span class="ss-label">QCM</span>
+            <div class="ss-bar">
+              <div class="ss-fill qcm-fill" [style.width.%]="quizResult?.mcqScore ?? 0"></div>
+            </div>
+            <span class="ss-val">{{ quizResult?.mcqScore ?? 0 }}%</span>
+          </div>
+          @if (quizResult?.codeScore) {
+          <div class="sub-score">
+            <span class="ss-label">Code</span>
+            <div class="ss-bar">
+              <div class="ss-fill code-fill" [style.width.%]="quizResult?.codeScore ?? 0"></div>
+            </div>
+            <span class="ss-val">{{ quizResult?.codeScore ?? 0 }}%</span>
+          </div>
+          }
+          <div class="sub-score">
+            <span class="ss-label">Fiabilité</span>
+            <div class="ss-bar">
+              <div class="ss-fill conf-fill" [style.width.%]="quizResult?.confidenceAccuracy ?? 0"></div>
+            </div>
+            <span class="ss-val">{{ quizResult?.confidenceAccuracy ?? 0 }}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Strongest & Weak summary -->
+    <div class="two-cols">
+      @if (quizResult?.strongestSkills?.length) {
+      <div class="col-card strengths">
+        <h3>💪 Points forts</h3>
+        @for (s of quizResult.strongestSkills; track s) {
+          <div class="tag-row">
+            <span class="tag-dot green"></span>
+            <span>{{ s }}</span>
+          </div>
+        }
+      </div>
+      }
+      @if (quizResult?.weakSkills?.length) {
+      <div class="col-card weaknesses">
+        <h3>📈 À renforcer</h3>
+        @for (s of quizResult.weakSkills; track s) {
+          <div class="tag-row">
+            <span class="tag-dot red"></span>
+            <span>{{ s }}</span>
+          </div>
+        }
+      </div>
+      }
+    </div>
+
+    <!-- Summary text -->
+    @if (quizResult?.mcqSummary) {
+      <div class="summary-text-card">
+        <p>{{ quizResult.mcqSummary }}</p>
+      </div>
+    }
+
+  </div>
+  }
+
+  <!-- ══ TAB: SKILLS ════════════════════════════════════════════════════ -->
+  @if (activeTab === 'skills') {
+  <div class="tab-content">
+    @if (quizResult?.skillScores) {
+      <div class="skill-grid">
+        @for (entry of quizResult.skillScores | keyvalue; track entry.key) {
+          <div class="skill-row">
+            <span class="sr-name">{{ entry.key }}</span>
+            <div class="sr-bar-wrap">
+              <div class="sr-bar" [style.width.%]="entry.value" [class]="'bar-' + getScoreClass(+entry.value)"></div>
+            </div>
+            <span class="sr-val">{{ entry.value }}%</span>
+          </div>
+        }
+      </div>
+    }
+
+    @if (techSkills.length) {
+      <div class="section-block">
+        <h3 class="sb-title">Vos compétences profil</h3>
+        <div class="profile-skills">
+          @for (s of techSkills; track s.id) {
+            <div class="ps-item">
+              <span class="ps-name">{{ s.nom }}</span>
+              <div class="ps-dots">
+                @for (i of [1,2,3,4,5]; track i) {
+                  <span class="dot" [class.filled]="i <= (s.niveau ?? 0)"></span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+  }
+
+  <!-- ══ TAB: GITHUB ════════════════════════════════════════════════════ -->
+  @if (activeTab === 'github') {
+  <div class="tab-content">
+    @if (githubResult) {
+      <div class="gh-summary-card">
+        <div class="gh-sh">
+          <div class="gh-avatar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+            </svg>
+          </div>
+          <div>
+            <h2>{{ githubResult.username }}</h2>
+            <p>{{ githubResult.data?.summary }}</p>
+          </div>
+        </div>
+        @if (githubResult.data?.code_complexity_estimate) {
+          <div class="gh-complexity">
+            Complexité : <strong>{{ githubResult.data.code_complexity_estimate }}</strong>
+          </div>
+        }
+      </div>
+
+      @if (githubResult.data?.verified_skills?.length) {
+        <div class="section-block">
+          <h3 class="sb-title">✅ Compétences vérifiées</h3>
+          <div class="vskills-list">
+            @for (s of githubResult.data.verified_skills; track s.skill) {
+              <div class="vs-item">
+                <div class="vs-top">
+                  <strong>{{ s.skill }}</strong>
+                  <span class="conf-badge conf-{{ s.confidence.toLowerCase() }}">{{ s.confidence }}</span>
+                </div>
+                <p class="vs-ev">{{ s.evidence }}</p>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      @if (githubResult.data?.missing_claimed_skills?.length) {
+        <div class="section-block warning-section">
+          <h3 class="sb-title">⚠️ Compétences non trouvées sur GitHub</h3>
+          <div class="missing-chips">
+            @for (s of githubResult.data.missing_claimed_skills; track s) {
+              <span class="missing-chip">{{ s }}</span>
+            }
+          </div>
+          <p class="hint-text">Ces compétences figurent sur votre CV mais n'ont pas été détectées dans vos dépôts publics.</p>
+        </div>
+      }
+
+    } @else {
+      <div class="empty-state">
+        <p>Aucune analyse GitHub disponible. Retournez à la page d'intake et entrez votre URL GitHub.</p>
+      </div>
+    }
+  </div>
+  }
+
+  <!-- ══ TAB: GAPS ══════════════════════════════════════════════════════ -->
+  @if (activeTab === 'gaps') {
+  <div class="tab-content">
+
+    @if (quizResult?.gapSummary) {
+      <div class="gap-summary-banner">{{ quizResult.gapSummary }}</div>
+    }
+
+    @if (gapBelow.length) {
+      <div class="section-block">
+        <h3 class="sb-title">🔴 Sous-performance détectée</h3>
+        @for (g of gapBelow; track g.skill) {
+          <div class="gap-row red-gap">
+            <div class="gap-skill">{{ g.skill }}</div>
+            <div class="gap-scores">
+              <span class="score-analyzed">Profil: {{ g.analyzed }}%</span>
+              <span class="score-arrow">→</span>
+              <span class="score-tested">Test: {{ g.tested }}%</span>
+              <span class="score-delta neg">{{ g.delta }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    @if (gapAbove.length) {
+      <div class="section-block">
+        <h3 class="sb-title">🟢 Surperformance détectée</h3>
+        @for (g of gapAbove; track g.skill) {
+          <div class="gap-row green-gap">
+            <div class="gap-skill">{{ g.skill }}</div>
+            <div class="gap-scores">
+              <span class="score-analyzed">Profil: {{ g.analyzed }}%</span>
+              <span class="score-arrow">→</span>
+              <span class="score-tested">Test: {{ g.tested }}%</span>
+              <span class="score-delta pos">+{{ g.delta }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    @if (!gapBelow.length && !gapAbove.length) {
+      <div class="section-block">
+        <div class="empty-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="1.5">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <p>Profil cohérent — aucun écart significatif détecté entre votre analyse de profil et les résultats du test.</p>
+        </div>
+      </div>
+    }
+  </div>
+  }
+
+</div>

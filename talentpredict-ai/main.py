@@ -57,9 +57,9 @@ app.include_router(parse_cv_router)
 app.include_router(test_router)
 app.include_router(analysis_router)
 app.include_router(jobs_router)
-app.include_router(recruiter_router)
 app.include_router(career_router)
-#every router become an endpoint in the backend, for example: /api/analyze, /api/test, /api/analysis, /api/jobs, /api/ recruiter
+app.include_router(recruiter_router)
+#every router become an endpoint in the backend, for example: /api/analyze, /api/test, /api/analysis, /api/jobs, /api/career, /api/recruiter
 
 @app.on_event("startup")
 async def startup() -> None:
@@ -80,3 +80,5 @@ async def startup() -> None:
 async def health():
     """Health check endpoint."""
     return {"status": "ok", "service": "talentpredict-ai"}
+
+

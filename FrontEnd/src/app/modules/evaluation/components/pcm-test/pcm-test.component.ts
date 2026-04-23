@@ -29,14 +29,14 @@ export class PcmTestComponent implements OnInit {
   private router = inject(Router);
 
   currentStep = 0;
-  totalSteps = 9; // 18 questions, 2 per step = 9 steps
-  responses: { [key: string]: string } = {}; // For PCM endpoint (personality test)
-  answers: { [key: string]: number } = {};   // For soft skills endpoint (0-10 scale)
+  totalSteps = 0; // set dynamically
+  responses: { [key: string]: string } = {};
+  answers: { [key: string]: number } = {};
   loading = false;
   error: string | null = null;
 
-  // All 18 questions: 12 PCM personality + 6 soft skills (Ownership + Leadership)
-  questions: PCMQuestion[] = [
+  // All 18 source questions
+  private readonly allQuestions: PCMQuestion[] = [
     // PCM Personality Questions (q1-q12)
     {
       id: 'q1',
@@ -132,7 +132,16 @@ export class PcmTestComponent implements OnInit {
     }
   ];
 
+  // Randomly selected subset shown this session
+  questions: PCMQuestion[] = [];
+
   ngOnInit(): void {
+    // Pick a random subset of 6-12 questions
+    const count = 6 + Math.floor(Math.random() * 7); // 6 to 12
+    const shuffled = [...this.allQuestions].sort(() => Math.random() - 0.5);
+    this.questions = shuffled.slice(0, count);
+    this.totalSteps = Math.ceil(this.questions.length / 2);
+
     // Initialize both responses (for PCM endpoint) and answers (for soft skills endpoint)
     this.questions.forEach(q => {
       this.responses[q.id] = ''; // String for PCM endpoint
@@ -283,13 +292,13 @@ export class PcmTestComponent implements OnInit {
         console.log('[PcmTest] Soft skills analysis complete. Result:', result);
         this.loading = false;
         sessionStorage.setItem('softSkillsResult', JSON.stringify(result));
-        this.router.navigate(['/evaluation/results'],
+        this.router.navigate(['/evaluation/scenario'],
           { state: { result } });
       },
       error: (err) => {
         console.error('[PcmTest] Soft skills error:', err);
         this.loading = false;
-        this.router.navigate(['/evaluation/results'],
+        this.router.navigate(['/evaluation/scenario'],
           { state: { softSkillsError: true } });
       }
     });

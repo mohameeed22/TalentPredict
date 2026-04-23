@@ -31,6 +31,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const isAuthEndpoint =
     req.url.includes('/api/auth/login') ||
     req.url.includes('/api/auth/register') ||
+    req.url.includes('/api/auth/oauth/') ||
+    req.url.includes('/api/auth/verify-email') ||
+    req.url.includes('/api/auth/resend-verification') ||
     req.url.includes('/api/auth/refresh-token') ||
     req.url.includes('/api/auth/logout') ||
     req.url.includes('/api/auth/forgot-password') ||

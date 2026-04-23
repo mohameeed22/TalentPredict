@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 public class FormationService {
     
     private final FormationRepository formationRepository;
+    private final com.talentpredict.modules.user.repositories.UserRepository userRepository;
     private final AuthServiceImpl authServiceImpl;
     private final FileStorageService fileStorageService;
     
@@ -156,10 +157,20 @@ public class FormationService {
         int score = resolveMiniTestScore(request);
         int passingScore = resolvePassingScore(request);
 
+        boolean isPassing = score >= passingScore;
         formation.setMiniTestScore(score);
-        formation.setMiniTestPassed(score >= passingScore);
+        formation.setMiniTestPassed(isPassing);
         formation.setMiniTestTakenAt(LocalDateTime.now());
         formation.setMiniTestNotes(cleanText(request != null ? request.getNotes() : null));
+
+        if (isPassing && formation.getUser() != null) {
+            User user = formation.getUser();
+            int xpGained = 50 + (score / 2); // Base 50 XP + up to 50 more based on score
+            int currentXp = user.getXp() != null ? user.getXp() : 0;
+            user.setXp(currentXp + xpGained);
+            user.setLevel((user.getXp() / 500) + 1); // 1 level per 500 XP
+            userRepository.save(user);
+        }
 
         return convertToResponse(formationRepository.save(formation));
     }

@@ -213,7 +213,7 @@ async def _generate_ollama_summary(
 ) -> str:
     """Generate a brief profile summary using Ollama (no tools, simple prompt)."""
     base_url = os.getenv("ANTHROPIC_BASE_URL", "http://localhost:11434/v1")
-    model = os.getenv("ANTHROPIC_MODEL", "llama3.2")
+    model = os.getenv("ANTHROPIC_MODEL", "llama3.2:latest")
 
     skill_names = [s["name"] for s in scored_skills[:10]]
     top_langs = []

@@ -1,0 +1,357 @@
+<div class="mr-wrap" id="mr-print">
+
+  <!-- ══ HERO ═══════════════════════════════════════════════════════════ -->
+  <div class="mr-hero">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+        Rapport global
+      </div>
+      <h1>Mes Résultats</h1>
+      <p>Synthèse complète de vos compétences techniques et comportementales — votre tableau de bord de progression.</p>
+    </div>
+
+    <!-- Overall readiness ring -->
+    <div class="readiness-ring-card">
+      <div class="ring-wrap">
+        <svg class="ring-svg" viewBox="0 0 120 120" width="140" height="140">
+          <circle cx="60" cy="60" r="54" fill="none" stroke="#e5e7eb" stroke-width="10"/>
+          <circle cx="60" cy="60" r="54" fill="none" [attr.stroke]="readinessColor" stroke-width="10"
+            stroke-linecap="round" [attr.stroke-dasharray]="strokeDash"
+            stroke-dashoffset="0" transform="rotate(-90 60 60)"
+            style="transition: stroke-dasharray .8s ease"/>
+        </svg>
+        <div class="ring-inner">
+          <span class="ring-num">{{ overallReadiness }}</span>
+          <span class="ring-unit">%</span>
+        </div>
+      </div>
+      <div class="ring-meta">
+        <div class="readiness-badge" [style.background]="readinessColor + '22'" [style.color]="readinessColor">
+          {{ overallReadiness >= 50 ? '🟢' : '🟡' }} Readiness Score
+        </div>
+        <p class="readiness-label">{{ readinessLabel }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ VOICE INTERVIEW (DISCOVERY — SHOW FIRST) ════════════════════════ -->
+  <div class="voice-track-wrap">
+    @if (!voiceResult) {
+      <div class="voice-capstone-banner">
+        <div class="vc-icon">🎙️</div>
+        <div class="vc-content">
+          <h3>Entretien de Découverte</h3>
+          <p>Participez à un échange interactif pour que l'IA apprenne à mieux vous connaître. Sans enjeu de recrutement, cet échange vient enrichir votre profil avec une synthèse personnalisée Tech et Soft Skills.</p>
+        </div>
+        <button type="button" class="btn-voice-start" (click)="goToVoiceInterview()">
+          Démarrer la découverte →
+        </button>
+      </div>
+    } @else {
+      <div class="voice-result-card">
+        <div class="vr-header">
+          <div class="vr-title">
+            <span class="vr-icon">🎙️</span>
+            <div>
+              <h3>Synthèse de Découverte</h3>
+              <p>Aperçu de votre profil basé sur notre échange, vos soft skills et votre expertise tech.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="vr-body">
+          @if (voiceResult.summary_paragraph) {
+            <p class="vr-summary">{{ voiceResult.summary_paragraph }}</p>
+          }
+
+          @if (voiceResult.avg_scores) {
+            <div class="vr-scores-row">
+              @for (entry of [{k:'relevance',l:'Pertinence',i:'🎯'},{k:'depth',l:'Profondeur',i:'🔬'},{k:'clarity',l:'Clarté',i:'💬'},{k:'confidence',l:'Confiance',i:'💪'}]; track entry.k) {
+                @if (voiceResult.avg_scores[entry.k] != null) {
+                  <div class="vr-score-chip">
+                    <span>{{ entry.i }}</span>
+                    <span class="vr-score-label">{{ entry.l }}</span>
+                    <span class="vr-score-val" [style.color]="getScoreColor(voiceResult.avg_scores[entry.k], 100)">{{ voiceResult.avg_scores[entry.k] }}</span>
+                  </div>
+                }
+              }
+            </div>
+          }
+
+          @if (voiceResult.strengths?.length) {
+            <div class="vr-strengths">
+              <strong>✅ Forces :</strong> {{ voiceResult.strengths.join(' · ') }}
+            </div>
+          }
+          @if (voiceResult.areas_for_improvement?.length) {
+            <div class="vr-areas">
+              <strong>📈 Axes :</strong> {{ voiceResult.areas_for_improvement.join(' · ') }}
+            </div>
+          }
+
+          <div class="vr-actions">
+            <button type="button" class="btn-retake" (click)="goToVoiceInterview()">Refaire la découverte</button>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- ══ TWO TRACK CARDS ════════════════════════════════════════════════ -->
+  <div class="tracks-grid">
+
+    <!-- TECH TRACK ─────────────────────────────────────────────────────── -->
+    <div class="track-card tech-track">
+      <div class="track-header">
+        <div class="track-icon tech-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+          </svg>
+        </div>
+        <div>
+          <h2>Compétences Techniques</h2>
+          <p class="track-sub">GitHub Analyzer · QCM adaptatif · Code Challenge</p>
+        </div>
+      </div>
+
+      @if (loadingTech) {
+        <div class="loading-row"><div class="spinner"></div><span>Chargement…</span></div>
+      } @else if (latestTechTest) {
+        <div class="track-score">
+          <span class="score-big" [style.color]="getScoreColor(latestTechTest.overall_score, 100)">
+            {{ latestTechTest.overall_score }}%
+          </span>
+          <span class="score-label">Dernier test</span>
+        </div>
+
+        @if (techSkills.length) {
+          <div class="mini-skills">
+            @for (s of techSkills; track s.id) {
+              <div class="ms-item">
+                <span class="ms-name">{{ s.nom }}</span>
+                <div class="ms-dots">
+                  @for (i of [1,2,3,4,5]; track i) {
+                    <span class="dot" [class.filled]="i <= (s.niveau ?? 0)"></span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        @if (githubResult?.data?.code_complexity_estimate) {
+          <div class="mini-badge gh-badge">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+            </svg>
+            GitHub · Complexité : {{ githubResult.data.code_complexity_estimate }}
+          </div>
+        }
+
+      } @else {
+        <div class="track-empty">
+          <p>Aucun test technique complété.</p>
+          <button type="button" class="btn-track" (click)="goToTech()">
+            Commencer l'évaluation Tech →
+          </button>
+        </div>
+      }
+
+      @if (techGaps.length) {
+        <div class="gaps-mini">
+          <p class="gaps-title">⚠️ Gaps détectés</p>
+          <div class="gaps-chips">
+            @for (g of techGaps; track g) {
+              <span class="gap-chip">{{ g }}</span>
+            }
+          </div>
+        </div>
+      }
+
+      @if (latestTechTest) {
+        <div class="track-actions">
+          <button type="button" class="btn-pdf" (click)="exportTechPdf()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            PDF Tech
+          </button>
+          <button type="button" class="btn-retake" (click)="goToTech()">Refaire →</button>
+        </div>
+      }
+    </div>
+
+    <!-- SOFT TRACK ─────────────────────────────────────────────────────── -->
+    <div class="track-card soft-track">
+      <div class="track-header">
+        <div class="track-icon soft-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <div>
+          <h2>Soft Skills &amp; Personnalité</h2>
+          <p class="track-sub">PCM · Simulateur de Scénario · Analyse CV · LinkedIn</p>
+        </div>
+      </div>
+
+      @if (loadingSoft && !softResult) {
+        <div class="loading-row"><div class="spinner"></div><span>Chargement…</span></div>
+      } @else if (softResult) {
+        <div class="track-score">
+          <span class="score-big" [style.color]="getScoreColor(softResult.overallScore ?? 0, 10)">
+            {{ softResult.overallScore?.toFixed(1) ?? '—' }}<span class="score-max">/10</span>
+          </span>
+          <span class="score-label">Score global</span>
+        </div>
+
+        @if (softResult.personalityType) {
+          <div class="personality-chip">
+            🧠 Type PCM : <strong>{{ softResult.personalityType }}</strong>
+          </div>
+        }
+
+        <!-- Soft skill bars & Radar Chart -->
+        <div class="soft-visualization-grid">
+          <div class="soft-bars">
+            @for (entry of getSoftSkillEntries().slice(0, 6); track entry.name) {
+              <div class="sb-row">
+                <span class="sb-icon">{{ softSkillIcons[entry.name] || '⭐' }}</span>
+                <span class="sb-name">{{ entry.name | titlecase }}</span>
+                <div class="sb-bar-wrap">
+                  <div class="sb-bar" [style.width.%]="entry.score * 10" [style.background]="getScoreColor(entry.score, 10)"></div>
+                </div>
+                <span class="sb-val">{{ entry.score }}</span>
+              </div>
+            }
+          </div>
+          
+          @if (getSoftSkillEntries().length >= 3) {
+            <div class="soft-radar-chart">
+              <svg viewBox="0 0 200 200" width="100%" height="100%">
+                <!-- Background grid -->
+                @for (level of [0.2, 0.4, 0.6, 0.8, 1.0]; track level) {
+                  <polygon 
+                    [attr.points]="getRadarGridPoints(level)"
+                    fill="none" stroke="#e5e7eb" stroke-width="1"/>
+                }
+                <!-- Axes -->
+                @for (axis of radarAxisPoints; track axis.x2) {
+                  <line x1="100" y1="100" [attr.x2]="axis.x2" [attr.y2]="axis.y2" stroke="#e5e7eb" stroke-width="1"/>
+                }
+                <!-- Data Polygon -->
+                <polygon [attr.points]="radarPolygonPoints" fill="rgba(11, 121, 208, 0.2)" stroke="var(--brand)" stroke-width="2"/>
+                
+                <!-- Data Points -->
+                @for (entry of getSoftSkillEntries().slice(0, 6); track entry.name; let i = $index) {
+                  <circle 
+                    [attr.cx]="getRadarPointX(entry.score, i, Math.min(6, getSoftSkillEntries().length))"
+                    [attr.cy]="getRadarPointY(entry.score, i, Math.min(6, getSoftSkillEntries().length))"
+                    r="4" fill="var(--brand)"/>
+                }
+                
+                <!-- Labels -->
+                @for (label of radarLabels; track label.text) {
+                  <text [attr.x]="label.x" [attr.y]="label.y" [attr.text-anchor]="label.anchor" dominant-baseline="middle" font-size="8" fill="#4b5563" font-weight="600">
+                    {{ label.text | titlecase }}
+                  </text>
+                }
+              </svg>
+            </div>
+          }
+        </div>
+
+        @if (softResult.top3Strengths?.length) {
+          <div class="mini-badge soft-badge">
+            💪 Forces : {{ softResult.top3Strengths.join(' · ') }}
+          </div>
+        }
+
+        <!-- LinkedIn Analysis -->
+        @if (linkedinUrl) {
+          <div class="mini-badge linkedin-badge">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+              <rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
+            </svg>
+            LinkedIn analysé · Profil intégré
+          </div>
+        }
+
+      } @else {
+        <div class="track-empty">
+          <p>Aucune évaluation soft skills complétée.</p>
+          <button type="button" class="btn-track" (click)="goToSoft()">
+            Commencer l'évaluation PCM →
+          </button>
+        </div>
+      }
+
+      @if (softGaps.length) {
+        <div class="gaps-mini">
+          <p class="gaps-title">📈 Axes à renforcer</p>
+          <div class="gaps-chips">
+            @for (g of softGaps; track g) {
+              <span class="gap-chip soft-gap">{{ g }}</span>
+            }
+          </div>
+        </div>
+      }
+
+      @if (softResult) {
+        <div class="track-actions">
+          <button type="button" class="btn-pdf soft-pdf" (click)="exportSoftPdf()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            PDF Soft
+          </button>
+          <button type="button" class="btn-retake" (click)="goToSoft()">Refaire →</button>
+        </div>
+      }
+    </div>
+
+  </div>
+
+  <!-- ══ COMBINED GAPS SECTION ══════════════════════════════════════════ -->
+  @if (techGaps.length || softGaps.length) {
+  <div class="combined-gaps">
+    <h2 class="cg-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2l7.5 4.5v6c0 5-3.5 7.5-7.5 8.5-4-1-7.5-3.5-7.5-8.5v-6L12 2z"/>
+      </svg>
+      Plan de développement recommandé
+    </h2>
+    <div class="cg-grid">
+      @if (techGaps.length) {
+        <div class="cg-col tech-col">
+          <h3>🔧 Tech — à combler</h3>
+          @for (g of techGaps; track g) {
+            <div class="cg-item">
+              <span class="cg-dot red"></span>
+              <span>{{ g }}</span>
+            </div>
+          }
+        </div>
+      }
+      @if (softGaps.length) {
+        <div class="cg-col soft-col">
+          <h3>💡 Soft — à renforcer</h3>
+          @for (g of softGaps; track g) {
+            <div class="cg-item">
+              <span class="cg-dot orange"></span>
+              <span>{{ g | titlecase }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+  }
+
+</div>

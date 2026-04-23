@@ -31,6 +31,9 @@ export class App implements OnInit, OnDestroy {
    */
   isSidebarOpen = true;
 
+  /** Dark Mode state */
+  isDarkMode = signal(false);
+
   /** Computed signal — sidebar shows when logged in AND not on public pages */
   showSidebar = computed(() => !this.isPublicPage() && this.authenticated());
 
@@ -44,6 +47,13 @@ export class App implements OnInit, OnDestroy {
       } else {
         // Desktop: restore from localStorage (default: open)
         this.isSidebarOpen = saved !== 'false';
+      }
+      
+      // Restore dark mode
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'dark') {
+        this.isDarkMode.set(true);
+        document.documentElement.setAttribute('data-theme', 'dark');
       }
     }
 
@@ -98,6 +108,10 @@ export class App implements OnInit, OnDestroy {
     return this.router.url.startsWith('/recruiter');
   }
 
+  isProfileSectionActive(): boolean {
+    return this.router.url.startsWith('/profile') || this.router.url.startsWith('/security');
+  }
+
   getCurrentRoleLabel(): string {
     if (this.isAdmin()) return '🏢 RH / Manager';
     if (this.isRecruiter()) return '🎯 Recruiter';
@@ -127,5 +141,16 @@ export class App implements OnInit, OnDestroy {
     const user = this.authService.getCurrentUser();
     if (!user) return '?';
     return `${user.prenom?.charAt(0) || ''}${user.nom?.charAt(0) || ''}`.toUpperCase();
+  }
+
+  toggleDarkMode(): void {
+    this.isDarkMode.update(v => !v);
+    if (this.isDarkMode()) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      if (typeof localStorage !== 'undefined') localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      if (typeof localStorage !== 'undefined') localStorage.setItem('theme', 'light');
+    }
   }
 }

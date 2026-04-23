@@ -1,0 +1,183 @@
+<div class="security-privacy-page">
+  <div class="page-header">
+    <button type="button" class="btn-back" (click)="goBack()">
+      Retour au profil
+    </button>
+    <h1>Sécurité et confidentialité</h1>
+    <p>Gérez la sécurité du compte, les sessions actives et vos paramètres GDPR.</p>
+  </div>
+
+  @if (loading) {
+  <div class="loading-box">Chargement des paramètres...</div>
+  }
+
+  @if (!loading && dashboard) {
+  <section class="status-grid">
+    <article class="status-card" [class.ok]="dashboard.emailVerified" [class.warn]="!dashboard.emailVerified">
+      <h3>Vérification e-mail</h3>
+      <p>{{ dashboard.emailVerified ? 'Adresse vérifiée' : 'Adresse non vérifiée' }}</p>
+      @if (!dashboard.emailVerified) {
+      <button type="button" class="btn-secondary" (click)="resendVerificationEmail()" [disabled]="processing">
+        Renvoyer l'e-mail
+      </button>
+      }
+    </article>
+
+    <article class="status-card" [class.ok]="dashboard.twoFactorEnabled" [class.warn]="!dashboard.twoFactorEnabled">
+      <h3>Authentification à deux facteurs</h3>
+      <p>
+        {{ dashboard.twoFactorEnabled ? 'Activée' : 'Désactivée' }}
+        @if (dashboard.twoFactorEnabled) {
+        <span class="hint">({{ dashboard.twoFactorMethod || 'EMAIL_OTP' }})</span>
+        }
+      </p>
+      <div class="action-row">
+        <button
+          type="button"
+          class="btn-primary"
+          (click)="requestTwoFactorCode(dashboard.twoFactorEnabled ? 'DISABLE' : 'ENABLE')"
+          [disabled]="processing"
+        >
+          {{ dashboard.twoFactorEnabled ? 'Recevoir un code de désactivation' : 'Recevoir un code d\'activation' }}
+        </button>
+      </div>
+
+      @if (pendingTwoFactorAction) {
+      <form class="inline-form" [formGroup]="twoFactorForm" (ngSubmit)="submitTwoFactorAction()">
+        <input
+          type="text"
+          formControlName="code"
+          placeholder="Code à 6 chiffres"
+          [class.invalid]="twoFactorForm.get('code')?.invalid && twoFactorForm.get('code')?.touched"
+        />
+        <button type="submit" class="btn-primary" [disabled]="processing || twoFactorForm.invalid">
+          {{ pendingTwoFactorAction === 'ENABLE' ? 'Activer 2FA' : 'Désactiver 2FA' }}
+        </button>
+      </form>
+      }
+    </article>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Sessions actives</h2>
+      <button type="button" class="btn-secondary" (click)="revokeAllSessions()" [disabled]="processing">
+        Révoquer toutes les sessions
+      </button>
+    </div>
+
+    @if (!dashboard.activeSessions.length) {
+    <p class="empty">Aucune session active.</p>
+    }
+
+    @for (session of dashboard.activeSessions; track session.id) {
+    <div class="list-item">
+      <div>
+        <strong>{{ session.deviceId || 'Appareil inconnu' }}</strong>
+        <p>Créée: {{ formatDate(session.createdAt) }} - Expire: {{ formatDate(session.expiresAt) }}</p>
+      </div>
+      <button type="button" class="btn-danger" (click)="revokeSession(session.id)" [disabled]="processing">
+        Révoquer
+      </button>
+    </div>
+    }
+  </section>
+
+  <section class="panel">
+    <h2>Historique de connexion</h2>
+
+    @if (!dashboard.loginHistory.length) {
+    <p class="empty">Aucun événement de sécurité récent.</p>
+    }
+
+    @for (event of dashboard.loginHistory; track event.createdAt + event.eventType + event.ipAddress) {
+    <div class="list-item compact">
+      <div>
+        <strong>{{ event.eventType }}</strong>
+        <p>{{ formatDate(event.createdAt) }} - IP: {{ event.ipAddress || 'N/A' }}</p>
+        @if (event.details) {
+        <p>{{ event.details }}</p>
+        }
+      </div>
+      <span class="pill">{{ event.deviceId || 'N/A' }}</span>
+    </div>
+    }
+  </section>
+  }
+
+  @if (!loading && privacySettings) {
+  <section class="panel">
+    <h2>Préférences de confidentialité</h2>
+
+    <form [formGroup]="privacyForm" (ngSubmit)="savePrivacySettings()" class="privacy-form">
+      <label class="check-item">
+        <input type="checkbox" formControlName="marketingEmailsConsent" />
+        <span>Recevoir les e-mails marketing</span>
+      </label>
+
+      <label class="check-item">
+        <input type="checkbox" formControlName="analyticsConsent" />
+        <span>Autoriser l'analyse d'usage</span>
+      </label>
+
+      <label class="check-item">
+        <input type="checkbox" formControlName="profileVisibilityConsent" />
+        <span>Rendre mon profil visible aux recruteurs</span>
+      </label>
+
+      <label class="check-item">
+        <input type="checkbox" formControlName="dataProcessingConsent" />
+        <span>Consentement au traitement des données</span>
+      </label>
+
+      <div class="form-row">
+        <div>
+          <label>Durée de rétention (jours)</label>
+          <input type="number" formControlName="dataRetentionDays" min="30" max="3650" />
+        </div>
+        <div>
+          <label>Version du consentement</label>
+          <input type="text" formControlName="consentVersion" />
+        </div>
+      </div>
+
+      <p class="hint">Dernière mise à jour: {{ formatDate(privacySettings.consentUpdatedAt) }}</p>
+
+      <div class="action-row">
+        <button type="submit" class="btn-primary" [disabled]="processing || privacyForm.invalid">
+          Sauvegarder mes préférences
+        </button>
+        <button type="button" class="btn-secondary" (click)="applyRetention()" [disabled]="processing">
+          Appliquer la rétention
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel danger-panel">
+    <h2>Outils GDPR</h2>
+    <p>Téléchargez vos données, planifiez la suppression, ou anonymisez définitivement votre compte.</p>
+
+    <div class="action-row">
+      <button type="button" class="btn-secondary" (click)="exportData()" [disabled]="processing">
+        Exporter mes données
+      </button>
+      <button type="button" class="btn-warning" (click)="requestDeletion()" [disabled]="processing">
+        Demander la suppression
+      </button>
+    </div>
+
+    @if (privacySettings.deleteRequestedAt) {
+    <p class="hint warning">Suppression demandée le {{ formatDate(privacySettings.deleteRequestedAt) }}</p>
+    }
+
+    <form [formGroup]="deleteForm" (ngSubmit)="deleteAccount()" class="delete-form">
+      <label for="confirmPhrase">Confirmez avec la phrase: DELETE MY ACCOUNT</label>
+      <input id="confirmPhrase" type="text" formControlName="confirmPhrase" placeholder="DELETE MY ACCOUNT" />
+      <button type="submit" class="btn-danger" [disabled]="processing || deleteForm.invalid">
+        Anonymiser mon compte
+      </button>
+    </form>
+  </section>
+  }
+</div>

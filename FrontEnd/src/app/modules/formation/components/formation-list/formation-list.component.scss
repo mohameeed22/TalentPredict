@@ -1368,3 +1368,211 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Gamification XP Banner ─────────────────────────────────────────── */
+.xp-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 0.7rem 1rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(11,121,208,0.07), rgba(20,169,160,0.1));
+  border: 1px solid rgba(11,121,208,0.2);
+  animation: riseIn 0.4s ease both;
+
+  .xp-level-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: linear-gradient(135deg, #0b79d0, #14a9a0);
+    color: #fff;
+    border-radius: 12px;
+    padding: 0.4rem 0.75rem;
+    font-weight: 800;
+    font-size: 0.88rem;
+    white-space: nowrap;
+    box-shadow: 0 6px 14px rgba(11,121,208,0.3);
+
+    .xp-star { font-size: 1rem; }
+  }
+
+  .xp-bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+
+    .xp-bar-track {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(11,121,208,0.12);
+      overflow: hidden;
+
+      .xp-bar-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #0b79d0, #14a9a0, #53d291);
+        transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+        box-shadow: 0 0 8px rgba(20,169,160,0.5);
+      }
+    }
+
+    .xp-label {
+      font-size: 0.72rem;
+      color: #2a5f7f;
+      font-weight: 700;
+    }
+  }
+
+  .xp-total {
+    font-size: 0.78rem;
+    color: #0b79d0;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+}
+
+/* ── Fraud Verdict Panel ─────────────────────────────────────────────── */
+.fraud-verdict {
+  margin-top: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border-left: 4px solid var(--brand);
+  background: #f0f8ff;
+  font-size: 0.78rem;
+
+  p { margin: 0.15rem 0; color: #1e3d55; }
+
+  .fraud-explanation small { color: #4f6d82; }
+
+  &.low { border-color: #14a9a0; background: #f0fefd; }
+  &.medium { border-color: #ee8f2a; background: #fff9ef; }
+  &.high { border-color: #da4f4f; background: #fff2f2; }
+  &.very_high { border-color: #a01c1c; background: #ffe8e8; }
+}
+
+// ── Enhanced KPI grid (6 cols) ────────────────────────────────────────────
+.hero-kpi-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  @media (max-width: 1100px) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 700px)  { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.hero-kpi.kpi-active  { border-color: #a8dff8; background: linear-gradient(145deg, #f0fbff, #e4f6ff); }
+.hero-kpi.kpi-done    { border-color: #a8e8c6; background: linear-gradient(145deg, #f2fcf7, #e4faf0); }
+.hero-kpi.kpi-readiness { border-color: #c5b5f5; background: linear-gradient(145deg, #f7f4ff, #ede7ff); }
+.kpi-progress-bar {
+  height: 6px; border-radius: 999px; background: #e5edf6; margin-top: 0.4rem; overflow: hidden;
+  .kpi-progress-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--brand), var(--accent)); transition: width 0.35s ease; }
+}
+
+// ── Reco section ──────────────────────────────────────────────────────────
+.reco-section { background: linear-gradient(160deg, #f8fdff, #f3f9fe); border-color: #c8dff5; }
+.reco-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;
+  h4 { margin: 0; color: #0d2e44; font-size: 1rem; }
+  .reco-meta { margin: 0.2rem 0 0; color: #546e84; font-size: 0.78rem; }
+}
+.reco-summary-chips { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.reco-chip {
+  border-radius: 999px; padding: 0.22rem 0.64rem; font-size: 0.72rem; font-weight: 800;
+  background: #e9f3fc; border: 1px solid #c5ddf4; color: #2a5f84;
+  &.active { background: #e3f7f0; border-color: #aedfc8; color: #0e6b47; }
+  &.done   { background: #e0f5e9; border-color: #a8e0bb; color: #0c5e30; }
+}
+.reco-filters {
+  display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end;
+  margin-bottom: 1rem; padding: 0.72rem; border-radius: 12px;
+  border: 1px dashed #c8def3; background: #f5faff;
+}
+.reco-filter-group {
+  display: flex; flex-direction: column; gap: 0.26rem;
+  label { font-size: 0.68rem; font-weight: 800; color: #527086; text-transform: uppercase; letter-spacing: 0.06em; }
+  select {
+    border: 1px solid #bed8ec; border-radius: 9px; padding: 0.44rem 0.62rem;
+    background: #fff; color: #1a3f5a; font-size: 0.8rem; font-weight: 600; min-width: 140px;
+    &:focus { outline: none; border-color: #6db0e8; box-shadow: 0 0 0 3px rgba(11,121,208,0.12); }
+  }
+}
+.skill-title-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.priority-badge {
+  border-radius: 999px; padding: 0.18rem 0.52rem; font-size: 0.68rem; font-weight: 800; white-space: nowrap;
+  &.priority-critical { background: #ffe4e4; color: #b03030; border: 1px solid #f5bbbb; }
+  &.priority-high     { background: #fff2de; color: #a05818; border: 1px solid #f5d3a0; }
+  &.priority-medium   { background: #fdfce4; color: #887015; border: 1px solid #e8d878; }
+  &.priority-low      { background: #e6f9ef; color: #1a7a45; border: 1px solid #a8e0be; }
+}
+.skill-level-bar { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.3rem; }
+.skill-gap-track { flex: 1; height: 6px; border-radius: 999px; background: #dce8f3; overflow: hidden; }
+.skill-gap-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--brand)); transition: width 0.3s ease; }
+.course-list { padding-left: 0; list-style: none; }
+.course-row-adv {
+  display: flex; gap: 0.6rem; align-items: flex-start;
+  padding: 0.55rem 0; border-bottom: 1px dashed #d9e8f4;
+  &:last-child { border-bottom: 0; }
+}
+.course-platform-icon { font-size: 1.4rem; line-height: 1; flex-shrink: 0; margin-top: 0.1rem; }
+.course-meta-adv { flex: 1; display: grid; gap: 0.18rem; }
+.course-title-link {
+  color: #0c5c9a; font-weight: 700; font-size: 0.82rem; text-decoration: none;
+  &:hover { text-decoration: underline; }
+}
+.course-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.tag { border-radius: 999px; padding: 0.14rem 0.42rem; font-size: 0.67rem; font-weight: 800; }
+.tag-platform { background: #e9f2ff; color: #1a5fa3; border: 1px solid #c0d8f5; }
+.tag-duration { background: #f4f0ff; color: #5a3eaa; border: 1px solid #cfc0f5; }
+.tag-level    { background: #f0faff; color: #1979a0; border: 1px solid #b5def5; }
+.course-reason { color: #6a8499; font-size: 0.7rem; line-height: 1.35; }
+.btn-add-course {
+  display: inline-flex; align-items: center; gap: 0.28rem; flex-shrink: 0;
+  border: 1px solid var(--brand); border-radius: 8px;
+  background: linear-gradient(135deg, var(--brand), #0a94d1);
+  color: #fff; font-size: 0.74rem; font-weight: 800; padding: 0.38rem 0.68rem;
+  cursor: pointer; white-space: nowrap; transition: transform 0.15s ease, box-shadow 0.15s ease;
+  &:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(11,121,208,0.28); }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+}
+.btn-spinner {
+  display: inline-block; width: 10px; height: 10px;
+  border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.reco-empty {
+  grid-column: 1 / -1; padding: 2rem; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
+  color: #607d8e; font-size: 0.88rem;
+  border: 1px dashed #c8dce9; border-radius: 14px; background: #f7fbff;
+}
+
+// ── Empty state section ───────────────────────────────────────────────────
+.empty-state-section {
+  margin: 1.5rem 0; padding: 3rem 2rem; border-radius: 20px;
+  border: 2px dashed #c0d9ef; background: linear-gradient(150deg, #f7fbff, #eef7ff);
+  text-align: center; animation: riseIn 0.45s ease both;
+  .empty-state-icon { font-size: 3.5rem; line-height: 1; margin-bottom: 0.8rem; }
+  h3 { margin: 0 0 0.5rem; color: #0d2e44; font-size: 1.3rem; font-family: 'Space Grotesk', sans-serif; }
+  p  { margin: 0 auto 1.5rem; color: #5a7488; font-size: 0.9rem; max-width: 500px; line-height: 1.5; }
+}
+
+// ── Kanban type filter ────────────────────────────────────────────────────
+.kanban-header-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 1rem; flex-wrap: wrap; margin-bottom: 0.7rem;
+}
+.kanban-type-filter {
+  display: flex; gap: 0.36rem; flex-wrap: wrap;
+  button {
+    border: 1px solid #c4d9ea; border-radius: 9px; background: #f4f9ff;
+    color: #3a607a; font-size: 0.74rem; font-weight: 800; padding: 0.38rem 0.72rem;
+    cursor: pointer; transition: all 0.15s ease;
+    &:hover { background: #e4f1fc; }
+    &.active {
+      background: linear-gradient(135deg, var(--brand), var(--accent));
+      color: #fff; border-color: transparent;
+      box-shadow: 0 4px 10px rgba(11,121,208,0.22);
+    }
+  }
+}
+

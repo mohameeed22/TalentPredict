@@ -35,6 +35,15 @@ export class OauthCallbackComponent implements OnInit {
   ngOnInit(): void {
     const provider = (this.route.snapshot.paramMap.get('provider') || '').toLowerCase();
     const code = this.route.snapshot.queryParamMap.get('code');
+    const providerError = this.route.snapshot.queryParamMap.get('error');
+    const providerErrorDescription = this.route.snapshot.queryParamMap.get('error_description');
+
+    if (providerError) {
+      const detail = providerErrorDescription ? ` (${providerErrorDescription})` : '';
+      this.notification.error(`Connexion sociale refusée: ${providerError}${detail}`);
+      this.router.navigateByUrl('/auth/login');
+      return;
+    }
 
     if (!code || !provider) {
       this.notification.error('Code de connexion manquant ou fournisseur inconnu.');
@@ -42,7 +51,9 @@ export class OauthCallbackComponent implements OnInit {
       return;
     }
 
-    const redirectUri = `${window.location.origin}/auth/callback/${provider}`;
+    const redirectUri = provider === 'google' || provider === 'github'
+      ? this.authService.getOAuthRedirectUri(provider)
+      : '';
 
     const request$ = provider === 'google'
       ? this.authService.loginWithGoogle(code, redirectUri)
@@ -62,8 +73,9 @@ export class OauthCallbackComponent implements OnInit {
         this.status.set('Connexion réussie, redirection...');
         this.router.navigateByUrl(redirectUrl);
       },
-      error: () => {
-        this.notification.error('Échec de la connexion sociale.');
+      error: (err) => {
+        const message = err?.error?.message || err?.error?.error || err?.message || 'Échec de la connexion sociale.';
+        this.notification.error(message);
         this.router.navigateByUrl('/auth/login');
       }
     });

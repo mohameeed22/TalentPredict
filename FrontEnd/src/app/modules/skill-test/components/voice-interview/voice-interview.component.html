@@ -1,0 +1,314 @@
+<div class="vi-wrap">
+
+  <!-- ══ HEADER ══════════════════════════════════════════════════ -->
+  <div class="vi-header">
+    <button type="button" class="back-btn" (click)="goBack()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+      Retour
+    </button>
+    <div class="header-title">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+      <h1>Entretien de Découverte</h1>
+    </div>
+    @if (phase() === 'interviewing') {
+      <div class="progress-wrap">
+        <div class="progress-track">
+          <div class="progress-fill" [style.width.%]="progressPct"></div>
+        </div>
+        <span class="progress-label">Turn {{ history().length + 1 }} / {{ maxTurns }}</span>
+      </div>
+    }
+  </div>
+
+  <!-- ══ SETUP ═══════════════════════════════════════════════════ -->
+  @if (phase() === 'setup') {
+    <div class="setup-section">
+      <div class="setup-card">
+        <div class="setup-avatar">🎙️</div>
+        <h2 class="setup-title">Démarrer votre entretien de découverte</h2>
+        <p class="setup-sub">
+          L'IA vous posera quelques questions pour mieux vous connaître, sans enjeu de recrutement.
+          Répondez à voix haute ou par écrit. L'IA générera ensuite une synthèse de votre profil.
+        </p>
+
+        <div class="role-chips">
+          @for (r of roleSuggestions; track r) {
+            <button type="button" class="role-chip" [class.active]="role === r" (click)="role = r">{{ r }}</button>
+          }
+        </div>
+
+        <input type="text" class="text-input" [(ngModel)]="role" placeholder="Ou saisissez votre rôle..." />
+
+        <div class="config-row">
+          <label class="field-label">
+            <span>Niveau</span>
+            <div class="level-pills">
+              @for (lv of levels; track lv) {
+                <button type="button" class="level-pill" [class.active]="level === lv" (click)="level = lv">{{ lv }}</button>
+              }
+            </div>
+          </label>
+
+          <label class="field-label">
+            <span>Langue</span>
+            <select [(ngModel)]="language" class="select-input">
+              <option value="fr">🇫🇷 Français</option>
+              <option value="en">🇬🇧 English</option>
+            </select>
+          </label>
+
+          <label class="field-label">
+            <span>Questions max</span>
+            <input type="number" min="3" max="10" [(ngModel)]="maxTurns" class="num-input" />
+          </label>
+        </div>
+
+        <div class="speech-notice" *ngIf="!speechSupported">
+          ⚠️ Votre navigateur ne supporte pas la reconnaissance vocale. Vous pouvez quand même taper vos réponses.
+        </div>
+
+        <button type="button" class="btn start-btn" [disabled]="!role.trim()" (click)="startInterview()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Lancer la découverte
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ══ INTERVIEWING ═════════════════════════════════════════════ -->
+  @if (phase() === 'interviewing') {
+    <div class="interview-section">
+
+      <!-- AI Interviewer avatar -->
+      <div class="interviewer-card">
+        <div class="ai-avatar" [class.speaking]="isSpeaking()">
+          <span class="avatar-icon">🤖</span>
+          <div class="sound-ring ring-1"></div>
+          <div class="sound-ring ring-2"></div>
+          <div class="sound-ring ring-3"></div>
+        </div>
+        <div class="interviewer-meta">
+          <span class="interviewer-label">Assistant IA</span>
+          @if (currentTopic()) {
+            <span class="topic-chip">{{ currentTopic() }}</span>
+          }
+          @if (currentDifficulty()) {
+            <span class="difficulty-chip" [ngClass]="currentDifficulty()">{{ currentDifficulty() }}</span>
+          }
+        </div>
+      </div>
+
+      <!-- Question bubble -->
+      @if (loading()) {
+        <div class="question-bubble loading-bubble">
+          <div class="dots-loader">
+            <span></span><span></span><span></span>
+          </div>
+          <p>L'IA prépare la prochaine question…</p>
+        </div>
+      } @else {
+        <div class="question-bubble">
+          <p class="question-text">{{ currentQuestion() }}</p>
+          @if (ttsSupported) {
+            <button type="button" class="replay-btn" (click)="replayQuestion()" [class.active]="isSpeaking()">
+              🔊 Réécouter
+            </button>
+          }
+        </div>
+      }
+
+      @if (error()) {
+        <div class="error-card"><p>{{ error() }}</p></div>
+      }
+
+      <!-- Answer area -->
+      @if (!loading()) {
+        <div class="answer-section">
+          <div class="answer-header">
+            <span class="answer-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              </svg>
+              Votre réponse
+            </span>
+            <span class="word-count">{{ wordCount }} mots</span>
+          </div>
+
+          <textarea
+            class="answer-textarea"
+            rows="6"
+            [(ngModel)]="currentAnswer"
+            placeholder="Parlez ou tapez votre réponse ici…"
+          ></textarea>
+
+          <div class="answer-actions">
+            @if (speechSupported) {
+              <button
+                type="button"
+                class="btn mic-btn"
+                [class.listening]="isListening()"
+                (click)="toggleListen()">
+                @if (isListening()) {
+                  <span class="mic-pulse"></span> ● Écoute en cours…
+                } @else {
+                  🎙️ Parler
+                }
+              </button>
+            }
+            <button
+              type="button"
+              class="btn submit-btn"
+              [disabled]="!currentAnswer.trim() || loading()"
+              (click)="submitAnswer()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+              Valider ma réponse
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Turn history -->
+      @if (history().length > 0) {
+        <div class="history-panel">
+          <h4>Historique de l'échange</h4>
+          @for (turn of history(); track $index; let i = $index) {
+            <div class="history-turn">
+              <div class="turn-header">
+                <span class="turn-num">Q{{ i + 1 }}</span>
+                @if (turn.topic) { <span class="turn-topic">{{ turn.topic }}</span> }
+                @if (turn.scores) {
+                  <span class="turn-avg-score" [ngClass]="getScoreClass(turnAvgScore(turn.scores))">
+                    {{ turnAvgScore(turn.scores) }}/100
+                  </span>
+                }
+              </div>
+              <p class="turn-q">{{ turn.question }}</p>
+              <p class="turn-a">{{ turn.answer }}</p>
+              @if (turn.feedback) {
+                <p class="turn-feedback">💡 {{ turn.feedback }}</p>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ══ EVALUATING ═══════════════════════════════════════════════ -->
+  @if (phase() === 'evaluating') {
+    <div class="state-card eval-card">
+      <div class="big-spinner"></div>
+      <p class="state-title">Analyse de votre réponse…</p>
+      <p class="state-sub">L'IA évalue la pertinence, la profondeur et la clarté de votre réponse.</p>
+    </div>
+  }
+
+  <!-- ══ RESULTS ══════════════════════════════════════════════════ -->
+  @if (phase() === 'results' && summary()) {
+    <div class="results-section">
+
+      <!-- Overall summary section -->
+      <div class="overall-card">
+        <div class="overall-text">
+          <h2>Synthèse de Découverte</h2>
+        </div>
+      </div>
+
+      <!-- Avg scores per dimension -->
+      @if (summary()['avg_scores']) {
+        <div class="scores-grid">
+          @for (entry of scoreEntries(summary()['avg_scores']); track entry.key) {
+            <div class="score-card">
+              <span class="score-emoji">{{ entry.icon }}</span>
+              <div class="score-bar-wrap">
+                <div class="score-bar-bg">
+                  <div class="score-bar-fill" [ngClass]="getScoreClass(entry.value)" [style.width.%]="entry.value"></div>
+                </div>
+                <span class="score-val" [ngClass]="getScoreClass(entry.value)">{{ entry.value }}</span>
+              </div>
+              <span class="score-name">{{ entry.label }}</span>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Feedback grid -->
+      <div class="feedback-grid">
+        @if (summary()['strengths']?.length) {
+          <div class="feedback-card strengths-card">
+            <h3>✅ Points forts</h3>
+            <ul>
+              @for (s of summary()['strengths']; track s) { <li>{{ s }}</li> }
+            </ul>
+          </div>
+        }
+        @if (summary()['areas_for_improvement']?.length) {
+          <div class="feedback-card improve-card">
+            <h3>📈 Axes d'amélioration</h3>
+            <ul>
+              @for (a of summary()['areas_for_improvement']; track a) { <li>{{ a }}</li> }
+            </ul>
+          </div>
+        }
+      </div>
+
+      @if (summary()['summary_paragraph']) {
+        <div class="summary-card">
+          <h3>🧠 Synthèse de l'Assistant IA</h3>
+          <p>{{ summary()['summary_paragraph'] }}</p>
+        </div>
+      }
+
+      @if (summary()['culture_fit_notes']) {
+        <div class="culture-card">
+          <span class="culture-icon">🧬</span>
+          <div>
+            <h3>Adéquation culturelle</h3>
+            <p>{{ summary()['culture_fit_notes'] }}</p>
+          </div>
+        </div>
+      }
+
+      <!-- Per-turn breakdown -->
+      <div class="turns-breakdown">
+        <h3>Détail des {{ history().length }} questions</h3>
+        @for (turn of history(); track $index; let i = $index) {
+          <div class="turn-detail">
+            <div class="turn-detail-header">
+              <strong>Q{{ i + 1 }}: {{ turn.question }}</strong>
+              @if (turn.scores) {
+                <span class="turn-avg-score" [ngClass]="getScoreClass(turnAvgScore(turn.scores))">
+                  {{ turnAvgScore(turn.scores) }}/100
+                </span>
+              }
+            </div>
+            <p class="turn-a">{{ turn.answer }}</p>
+            @if (turn.feedback) { <p class="turn-feedback">💡 {{ turn.feedback }}</p> }
+            @if (turn.red_flags?.length) {
+              <p class="red-flag">⚠️ {{ turn.red_flags!.join(' • ') }}</p>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="result-actions">
+        <button type="button" class="btn retry-btn" (click)="reset()">
+          🔄 Nouvelle découverte
+        </button>
+        <button type="button" class="btn back-btn-alt" (click)="goToMesResultats()">
+          Voir mon Profil Global →
+        </button>
+      </div>
+    </div>
+  }
+
+</div>

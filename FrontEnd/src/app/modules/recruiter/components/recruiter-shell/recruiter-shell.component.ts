@@ -36,11 +36,6 @@ export class RecruiterShellComponent implements OnInit {
       path: '/recruiter/fraud',
       label: 'Alertes fraude',
       description: 'Detection et verification'
-    },
-    {
-      path: '/recruiter/interview',
-      label: 'Entretien',
-      description: 'Questions ciblees'
     }
   ];
 

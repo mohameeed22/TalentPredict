@@ -13,10 +13,14 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import com.talentpredict.modules.auth.dto.AuthDto;
+import com.talentpredict.modules.auth.entities.EmailVerificationToken;
 import com.talentpredict.modules.auth.entities.PasswordResetToken;
 import com.talentpredict.modules.auth.entities.RefreshToken;
+import com.talentpredict.modules.auth.entities.TwoFactorCode;
+import com.talentpredict.modules.auth.repositories.EmailVerificationTokenRepository;
 import com.talentpredict.modules.auth.repositories.PasswordResetTokenRepository;
 import com.talentpredict.modules.auth.repositories.RefreshTokenRepository;
 import com.talentpredict.modules.user.entities.User;
@@ -37,10 +41,12 @@ public class AuthServiceImpl implements IAuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final AuditLogService auditLogService;
     private final JwtService jwtService;
     private final SmsService smsService;
+    private final TwoFactorService twoFactorService;
 
     @Value("${frontend.base-url:http://localhost:4200}")
     private String frontendBaseUrl;
@@ -50,6 +56,9 @@ public class AuthServiceImpl implements IAuthService {
 
     @Value("${security.login.lock-duration-minutes:15}")
     private long lockDurationMinutes;
+
+    @Value("${auth.email-verification.expiration-minutes:1440}")
+    private long emailVerificationExpirationMinutes;
 
     /** Optional: injected only if mail is configured. Won't fail if absent. */
     @Autowired(required = false)
@@ -73,13 +82,23 @@ public class AuthServiceImpl implements IAuthService {
         user.setEmail(request.getEmail());
         user.setPhoneNumber(request.getPhoneNumber());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setEmailVerified(false);
+        user.setEmailVerifiedAt(null);
+        user.setTwoFactorEnabled(false);
+        user.setTwoFactorMethod("NONE");
 
         // Set role from request — default to USER for safety
         User.Role role = (request.getRole() != null) ? request.getRole() : User.Role.USER;
         user.setRole(role);
 
         log.info("Creating user for {} with role={}", request.getEmail(), role);
-        return userRepository.save(user);
+        User created = userRepository.save(user);
+        try {
+            sendVerificationEmail(created);
+        } catch (RuntimeException ex) {
+            log.warn("Unable to send verification email to {}", created.getEmail(), ex);
+        }
+        return created;
     }
 
     @Override
@@ -289,5 +308,104 @@ public class AuthServiceImpl implements IAuthService {
         log.info("Password successfully reset for account: {}", user.getEmail());
         auditLogService.logPasswordReset(user, "127.0.0.1");
         return "Mot de passe mis à jour avec succès !";
+    }
+
+    @Transactional
+    public void ensureTwoFactorForLogin(User user, String twoFactorCode) {
+        if (!Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
+            return;
+        }
+
+        if (!StringUtils.hasText(twoFactorCode)) {
+            twoFactorService.sendCode(user, TwoFactorCode.Purpose.LOGIN);
+            throw new IllegalArgumentException(
+                    "2FA code sent to your email. Enter the 6-digit code to complete login.");
+        }
+
+        twoFactorService.validateCodeOrThrow(user, TwoFactorCode.Purpose.LOGIN, twoFactorCode.trim());
+    }
+
+    @Transactional
+    public String resendVerificationEmail(String email) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return "If your account exists, a verification email was sent.";
+        }
+
+        User user = userOpt.get();
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
+            return "This email is already verified.";
+        }
+
+        sendVerificationEmail(user);
+        return "Verification email sent.";
+    }
+
+    @Transactional
+    public String verifyEmailToken(String token) {
+        EmailVerificationToken verificationToken = emailVerificationTokenRepository.findByToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid verification link."));
+
+        if (verificationToken.isUsed()) {
+            throw new IllegalArgumentException("This verification link has already been used.");
+        }
+
+        if (verificationToken.isExpired()) {
+            throw new IllegalArgumentException("This verification link has expired.");
+        }
+
+        User user = verificationToken.getUser();
+        user.setEmailVerified(true);
+        user.setEmailVerifiedAt(Instant.now());
+        userRepository.save(user);
+
+        verificationToken.setUsed(true);
+        emailVerificationTokenRepository.save(verificationToken);
+
+        auditLogService.logCustomEvent(
+                user,
+                "EMAIL_VERIFIED",
+                "127.0.0.1",
+                "Email address verified successfully",
+                null,
+                null);
+        return "Email verified successfully. You can now log in.";
+    }
+
+    private void sendVerificationEmail(User user) {
+        emailVerificationTokenRepository.deleteByUser(user);
+
+        String token = UUID.randomUUID().toString();
+        LocalDateTime expiry = LocalDateTime.now().plusMinutes(emailVerificationExpirationMinutes);
+        EmailVerificationToken verificationToken = EmailVerificationToken.builder()
+                .token(token)
+                .user(user)
+                .expiryDate(expiry)
+                .used(false)
+                .build();
+
+        emailVerificationTokenRepository.save(verificationToken);
+
+        String verifyLink = frontendBaseUrl + "/auth/verify-email?token=" + token;
+        if (mailSender != null) {
+            try {
+                SimpleMailMessage mail = new SimpleMailMessage();
+                mail.setTo(user.getEmail());
+                mail.setSubject("TalentPredict - Verify your email");
+                mail.setText(
+                        "Hello " + user.getFirstName() + ",\n\n"
+                                + "Please verify your email by clicking the link below:\n"
+                                + verifyLink + "\n\n"
+                                + "This link expires in " + emailVerificationExpirationMinutes + " minutes.\n\n"
+                                + "- TalentPredict Team");
+                mailSender.send(mail);
+                log.info("Verification email sent to {}", user.getEmail());
+                return;
+            } catch (RuntimeException ex) {
+                log.warn("Failed to send verification email to {}", user.getEmail(), ex);
+            }
+        }
+
+        log.info("Mail not configured - EMAIL VERIFICATION TOKEN for {}: {}", user.getEmail(), verifyLink);
     }
 }

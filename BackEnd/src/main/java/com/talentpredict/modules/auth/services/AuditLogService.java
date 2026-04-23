@@ -114,4 +114,25 @@ public class AuditLogService {
         saveAudit(audit);
         log.info("Audit: MFA_ENABLED for user {}", user.getEmail());
     }
+
+    @Transactional
+    public void logCustomEvent(
+            User user,
+            String eventType,
+            String ipAddress,
+            String details,
+            String userAgent,
+            String deviceId) {
+        AuditLog audit = AuditLog.builder()
+                .user(user)
+                .email(user != null ? user.getEmail() : null)
+                .eventType(eventType)
+                .ipAddress(ipAddress)
+                .userAgent(userAgent)
+                .deviceId(deviceId)
+                .details(details)
+                .build();
+        saveAudit(audit);
+        log.info("Audit: {} for user {}", eventType, user != null ? user.getEmail() : "unknown");
+    }
 }

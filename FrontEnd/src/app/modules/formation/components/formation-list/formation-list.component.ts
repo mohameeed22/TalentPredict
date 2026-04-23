@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FormationService } from '../../services/formation.service';
@@ -16,6 +16,9 @@ import {
 } from '../../../career/services/career.service';
 import { catchError, map, of } from 'rxjs';
 import { forkJoin } from 'rxjs';
+import { BiometricsService } from '../../../skill-test/services/biometrics.service';
+import { ProctoringService } from '../../../skill-test/services/proctoring.service';
+import { TestApiService } from '../../../skill-test/services/test-api.service';
 
 type DeadlineRiskLevel = 'on-track' | 'at-risk' | 'late';
 
@@ -56,12 +59,15 @@ interface MiniQuizQuestion {
   templateUrl: './formation-list.component.html',
   styleUrl: './formation-list.component.scss'
 })
-export class FormationListComponent implements OnInit {
+export class FormationListComponent implements OnInit, OnDestroy {
   private formationService = inject(FormationService);
   private authService = inject(AuthService);
   private skillsService = inject(SkillsService);
   private softSkillsService = inject(SoftSkillsService);
   private careerService = inject(CareerService);
+  private biometrics = inject(BiometricsService);
+  private proctoring = inject(ProctoringService);
+  private testApi = inject(TestApiService);
   private currentUserId = '';
 
   readonly kanbanColumns: KanbanColumn[] = [
@@ -113,6 +119,8 @@ export class FormationListComponent implements OnInit {
   miniQuizSubmitting = signal<Record<string, boolean>>({});
   miniQuizMessage = signal<string | null>(null);
   miniQuizError = signal<string | null>(null);
+  miniQuizFraudVerdicts = signal<Record<string, Record<string, any>>>({});
+  currentUserGamification = signal<{ xp: number; level: number } | null>(null);
 
   certificateUploadingId = signal<string | null>(null);
   certificateMessage = signal<string | null>(null);
@@ -136,6 +144,12 @@ export class FormationListComponent implements OnInit {
   courseActionError = signal<string | null>(null);
   courseActionSuccess = signal<string | null>(null);
   private softWeakSkillSet = new Set<string>();
+
+  // ── Recommendation filters ──────────────────────────────────────────────
+  recoFilterSkill = signal<string>('ALL');
+  recoFilterPriority = signal<string>('ALL');
+  recoFilterPlatform = signal<string>('ALL');
+  kanbanTypeFilter = signal<string>('ALL');
 
   targetRole = 'Software Engineer';
   experienceLevel: 'beginner' | 'junior' | 'mid' | 'senior' = 'junior';
@@ -293,9 +307,36 @@ export class FormationListComponent implements OnInit {
       this.currentUserId = String(currentUser.id);
       this.loadWeeklyGoalState(this.currentUserId);
     }
+    if (this.currentUserId) {
+      this.initializeLearningPlanDefaults();
+      this.loadFormations();
 
-    this.initializeLearningPlanDefaults();
-    this.loadFormations();
+      this.authService.fetchMyProfile().subscribe({
+        next: (profile) => {
+          if (profile.xp != null && profile.level != null) {
+            this.currentUserGamification.set({ xp: profile.xp, level: profile.level });
+          }
+        },
+        error: () => {} // fail silently
+      });
+    } else {
+      this.error.set("Utilisateur non identifié. Impossible de charger l'espace d'apprentissage.");
+      this.loading.set(false);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this._stopFraudMonitoring();
+  }
+
+  private _startFraudMonitoring(): void {
+    this.biometrics.start();
+    void this.proctoring.start();
+  }
+
+  private _stopFraudMonitoring(): void {
+    this.biometrics.stop();
+    this.proctoring.stop();
   }
 
   loadFormations(): void {
@@ -339,6 +380,92 @@ export class FormationListComponent implements OnInit {
 
   autoReplan(): void {
     this.requestLearningPlan(true);
+  }
+
+  // ── Recommendation filter helpers ───────────────────────────────────────
+
+  hasNoFormations(): boolean {
+    return !this.loading() && this.formations().length === 0;
+  }
+
+  get filteredRecoFormations(): CareerLearningPlanResponse['formations'] {
+    const plan = this.learningPlan();
+    if (!plan) return [];
+    let result = plan.formations;
+    const skill = this.recoFilterSkill();
+    const priority = this.recoFilterPriority();
+    const platform = this.recoFilterPlatform();
+    if (skill !== 'ALL') result = result.filter(f => f.skill.toLowerCase() === skill.toLowerCase());
+    if (priority !== 'ALL') result = result.filter(f => f.priority === priority);
+    if (platform !== 'ALL') result = result.filter(f => f.courses.some(c => c.platform.toLowerCase().includes(platform.toLowerCase())));
+    return result;
+  }
+
+  recoUniqueSkills(): string[] {
+    return [...new Set((this.learningPlan()?.formations || []).map(f => f.skill))];
+  }
+
+  recoUniquePlatforms(): string[] {
+    const plan = this.learningPlan();
+    if (!plan) return [];
+    const platforms = new Set<string>();
+    plan.formations.forEach(f => f.courses.forEach(c => platforms.add(c.platform)));
+    return [...platforms];
+  }
+
+  recoTotalCourses(): number {
+    return (this.learningPlan()?.formations || []).reduce((sum, f) => sum + f.courses.length, 0);
+  }
+
+  priorityBadgeClass(priority: string): string {
+    if (priority === 'critical') return 'priority-critical';
+    if (priority === 'high') return 'priority-high';
+    if (priority === 'medium') return 'priority-medium';
+    return 'priority-low';
+  }
+
+  priorityLabel(priority: string): string {
+    if (priority === 'critical') return '🔴 Critique';
+    if (priority === 'high') return '🟠 Haute';
+    if (priority === 'medium') return '🟡 Moyenne';
+    return '🟢 Faible';
+  }
+
+  platformIcon(platform: string): string {
+    const p = platform.toLowerCase();
+    if (p.includes('udemy')) return '🎓';
+    if (p.includes('coursera')) return '📚';
+    if (p.includes('linkedin')) return '💼';
+    if (p.includes('edx')) return '🏫';
+    if (p.includes('youtube')) return '▶️';
+    if (p.includes('docs') || p.includes('official')) return '📖';
+    return '🌐';
+  }
+
+  formationsEnCoursCount(): number {
+    return this.formations().filter(f =>
+      f.statut === StatutFormation.EN_COURS || f.statut === StatutFormation.ACCEPTEE
+    ).length;
+  }
+
+  formationsTermineesCount(): number {
+    return this.formations().filter(f => f.statut === StatutFormation.TERMINEE).length;
+  }
+
+  overallProgressPct(): number {
+    const all = this.formations();
+    if (!all.length) return 0;
+    const total = all.reduce((sum, f) => sum + (f.progression ?? 0), 0);
+    return Math.round(total / all.length);
+  }
+
+  formationsByStatusFiltered(status: StatutFormation): FormationResponse[] {
+    const typeFilter = this.kanbanTypeFilter();
+    return this.formations().filter(f => {
+      if (f.statut !== status) return false;
+      if (typeFilter === 'ALL') return true;
+      return f.type?.toString().includes(typeFilter);
+    });
   }
 
   startCoursePractice(
@@ -440,6 +567,7 @@ export class FormationListComponent implements OnInit {
     }));
 
     if (!currentlyOpen) {
+      this._startFraudMonitoring();
       this.miniQuizAnswers.update((answers) => {
         const existing = answers[formation.id];
         if (existing && existing.length === questions.length) {
@@ -497,6 +625,10 @@ export class FormationListComponent implements OnInit {
     );
     const score = Math.round((correctAnswers / questions.length) * 100);
 
+    const biometricSnapshot = this.biometrics.snapshot();
+    const proctoringSnapshot = this.proctoring.snapshot();
+    this._stopFraudMonitoring();
+
     this.setMiniQuizSubmittingState(formation.id, true);
     this.miniQuizError.set(null);
     this.miniQuizMessage.set(null);
@@ -511,8 +643,30 @@ export class FormationListComponent implements OnInit {
       next: (updated) => {
         this.upsertUpdatedFormation(updated);
         const finalScore = updated.miniTestScore ?? score;
+
+        // Trigger asynchronous fraud verification
+        this.testApi.checkFraud({
+          candidateId: this.currentUserId,
+          testType: 'mini_quiz',
+          fraudContext: { biometrics: { ...biometricSnapshot, proctoring: proctoringSnapshot } }
+        }).subscribe({
+          next: (res: any) => {
+            this.miniQuizFraudVerdicts.update(v => ({ ...v, [formation.id]: res }));
+          },
+          error: () => {} // we swallow errors here so as not to interrupt user flow
+        });
+
         if (updated.miniTestPassed) {
           this.miniQuizMessage.set(`Mini-test réussi (${finalScore}%). Vous pouvez maintenant téléverser le certificat.`);
+          // Re-fetch profile to get updated XP
+          this.authService.fetchMyProfile().subscribe({
+            next: (profile) => {
+              if (profile.xp != null && profile.level != null) {
+                this.currentUserGamification.set({ xp: profile.xp, level: profile.level });
+              }
+            },
+            error: () => {}
+          });
         } else {
           this.miniQuizError.set(`Mini-test complété (${finalScore}%). Reprenez le cours puis réessayez.`);
         }
@@ -1030,13 +1184,13 @@ export class FormationListComponent implements OnInit {
     const totalGap = Math.max(1,
       plan.skill_gap_analysis.breakdown.reduce((sum, item) => sum + Math.max(0, item.gap), 0)
     );
-    const skillGap = Math.max(0, formation.required_level - formation.current_level);
+    const skillGap = Math.max(0, (formation.required_level || 0) - (formation.current_level || 0));
     if (skillGap <= 0) {
       return 0.5;
     }
 
     const perCourseShare = 1 / Math.max(1, formation.courses.length);
-    const durationFactor = Math.min(1.35, Math.max(0.65, (course.duration_hours || 1) / 8));
+    const durationFactor = Math.min(1.35, Math.max(0.65, (Number(course.duration_hours) || 1) / 8));
     const levelFactor = course.level === 'advanced'
       ? 1.12
       : course.level === 'beginner'
@@ -1059,14 +1213,15 @@ export class FormationListComponent implements OnInit {
       return 0;
     }
 
-    const gap = Math.max(0, formation.required_level - formation.current_level);
-    if (gap === 0) {
-      return formation.required_level;
+    const currentGap = Math.max(0, (formation.required_level || 0) - (formation.current_level || 0));
+    if (currentGap === 0) {
+      return formation.required_level || 0;
     }
 
-    const durationFactor = Math.min(1.25, Math.max(0.75, (course.duration_hours || 1) / 8));
+    const gap = formation.gap || currentGap;
+    const durationFactor = Math.min(1.25, Math.max(0.75, (Number(course.duration_hours) || 1) / 8));
     const projectedDelta = Math.max(0.4, Math.min(gap, (gap / Math.max(1, formation.courses.length)) * durationFactor));
-    const projectedLevel = Math.min(formation.required_level, formation.current_level + projectedDelta);
+    const projectedLevel = Math.min(formation.required_level || 0, (formation.current_level || 0) + projectedDelta);
     return Math.round(projectedLevel * 10) / 10;
   }
 
@@ -1605,11 +1760,14 @@ export class FormationListComponent implements OnInit {
         };
       });
 
+      const current_level = this.toNumber(item['current_level'], matchingGap?.current_level ?? 0);
+      const required_level = this.toNumber(item['required_level'], matchingGap?.required_level ?? 0);
       return {
         skill,
         priority: this.normalizePriority(this.asString(item['priority'])),
-        current_level: this.toNumber(item['current_level'], matchingGap?.current_level ?? 0),
-        required_level: this.toNumber(item['required_level'], matchingGap?.required_level ?? 0),
+        current_level,
+        required_level,
+        gap: Math.max(0, required_level - current_level),
         courses: courses.length
           ? courses
           : this.fallbackCoursesForSkill(skill, matchingGap?.current_level ?? this.toNumber(item['current_level'], 0))
@@ -1623,6 +1781,7 @@ export class FormationListComponent implements OnInit {
         priority: gap.priority,
         current_level: gap.current_level,
         required_level: gap.required_level,
+        gap: gap.gap,
         courses: this.fallbackCoursesForSkill(gap.skill, gap.current_level)
       }));
 

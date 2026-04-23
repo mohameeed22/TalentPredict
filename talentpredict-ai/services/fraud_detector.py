@@ -17,6 +17,7 @@ def collect_signals(
     test_answers: list[dict[str, Any]] | None,
     code_submission: str | None,
     github_activity_years: list[int] | None,
+    biometrics: dict[str, Any] 
 ) -> list[dict[str, Any]]:
     """Build structured fraud signals without LLM."""
     signals: list[dict[str, Any]] = []
@@ -161,3 +162,20 @@ Return ONLY JSON: {{"similarity_risk": "low|medium|high", "reason": "..."}}"""
         return await call_ollama_json(prompt, temperature=0.1, retry_stricter=True)
     except Exception:
         return {"similarity_risk": "low", "reason": "unavailable"}
+
+def score_signals_calibrated(signals: list[dict[str, Any]]) -> dict[str, Any]:
+    """Score signals using a deterministic heuristic algorithm."""
+    score = min(100, len(signals) * 15)
+    risk = "low"
+    if score >= 60:
+        risk = "high"
+    elif score >= 30:
+        risk = "medium"
+        
+    return {
+        "fraud_risk": risk,
+        "fraud_score": score,
+        "score_confidence": 0.5,
+        "signal_contributions": [{"signal": s.get("type"), "weight": 15} for s in signals],
+    }
+

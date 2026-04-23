@@ -14,6 +14,7 @@ export interface AppNotification {
   body: string;
   timestamp: number;
   read: boolean;
+  source: 'local' | 'server';
 }
 
 @Injectable({
@@ -59,18 +60,34 @@ export class NotificationService {
 
   private addAppNotification(type: 'success' | 'error' | 'warning' | 'info', title: string, body: string): void {
     const newNotif: AppNotification = {
-      id: Math.random().toString(36).substring(2, 9),
+      id: `local-${Math.random().toString(36).substring(2, 9)}`,
       type,
       title,
       body,
       timestamp: Date.now(),
-      read: false
+      read: false,
+      source: 'local'
     };
     
     const current = this.appNotifSubject.value;
     const updated = [newNotif, ...current].slice(0, 50); // Keep last 50
     this.appNotifSubject.next(updated);
     this.updateUnreadCount();
+  }
+
+  syncServerNotifications(serverNotifications: AppNotification[]): void {
+    const localNotifications = this.appNotifSubject.value.filter(notification => notification.source === 'local');
+
+    const merged = [...serverNotifications, ...localNotifications]
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 100);
+
+    this.appNotifSubject.next(merged);
+    this.updateUnreadCount();
+  }
+
+  getNotificationById(id: string): AppNotification | undefined {
+    return this.appNotifSubject.value.find(notification => notification.id === id);
   }
 
   markRead(id: string): void {

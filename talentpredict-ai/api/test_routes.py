@@ -10,7 +10,9 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from services.code_challenge_service import evaluate_submission, generate_challenge
-from services.fraud_detector import collect_signals, ollama_fraud_verdict
+from services.fraud_detector import collect_signals, ollama_fraud_verdict, score_signals_calibrated
+from services.github_analyzer import analyze_github_profile
+from services.scenario_simulator import evaluate_scenario_response, generate_soft_skills_scenario
 from services.test_evaluator import evaluate_answers, generate_result_summary
 from services.test_generator import generate_test
 
@@ -36,17 +38,15 @@ def _summary_fallback(skill_scores: dict[str, int], weak_threshold: int = 60) ->
 
 
 def _fraud_fallback(signals: list[dict[str, Any]]) -> dict[str, Any]:
-    score = min(100, len(signals) * 15)
-    if score >= 60:
-        risk = "high"
-    elif score >= 30:
-        risk = "medium"
-    else:
-        risk = "low"
+    calibrated = score_signals_calibrated(signals)
+    risk = str(calibrated.get("fraud_risk", "low"))
+    score = int(calibrated.get("fraud_score", 0))
     return {
         "fraud_risk": risk,
         "fraud_score": score,
+        "score_confidence": calibrated.get("score_confidence", 0.5),
         "flags": signals,
+        "signal_contributions": calibrated.get("signal_contributions", []),
         "recommendation": "manual_review" if risk != "low" else "proceed",
         "explanation": "Heuristic assessment (LLM timeout).",
     }
@@ -143,6 +143,7 @@ async def post_evaluate(body: EvaluateBody) -> dict[str, Any]:
         test_answers=raw,
         code_submission=fc.get("code_submission"),
         github_activity_years=fc.get("github_activity_years"),
+        biometrics=fc.get("biometrics"),          # ← behavioral biometrics from frontend
     )
     try:
         verdict = await asyncio.wait_for(
@@ -202,3 +203,197 @@ async def code_challenge_evaluate(body: CodeEvalBody) -> dict[str, Any]:
             hints_used=body.hints_used,
             time_spent_seconds=body.time_spent_seconds,
         )
+
+
+class GithubAnalyzeBody(BaseModel):
+    username: str
+    claimed_skills: list[str]
+
+
+@router.post("/github/analyze")
+async def github_analyze(body: GithubAnalyzeBody) -> dict[str, Any]:
+    return await analyze_github_profile(body.username, body.claimed_skills)
+
+
+class ScenarioGenerateBody(BaseModel):
+    role: str
+    level: str = "Mid-Level"
+
+
+@router.post("/scenario/generate")
+async def scenario_generate(body: ScenarioGenerateBody) -> dict[str, Any]:
+    return await generate_soft_skills_scenario(body.role, body.level)
+
+
+class ScenarioEvaluateBody(BaseModel):
+    scenario: str
+    response: str
+    fraud_context: dict[str, Any] | None = None
+
+
+@router.post("/scenario/evaluate")
+async def scenario_evaluate(body: ScenarioEvaluateBody) -> dict[str, Any]:
+    result = await evaluate_scenario_response(body.scenario, body.response)
+
+    # ── Fraud detection pipeline (same as skill-test evaluate) ───────────
+    fc = body.fraud_context or {}
+    biometrics = fc.get("biometrics")
+    signals = collect_signals(
+        cv_text=fc.get("cv_text"),
+        cv_claimed_years_by_skill=fc.get("cv_claimed_years_by_skill"),
+        github_first_year_by_skill=fc.get("github_first_year_by_skill"),
+        candidate_skills=list(fc.get("candidate_skills") or []),
+        repos_languages=list(fc.get("repos_languages") or []),
+        test_answers=None,
+        code_submission=None,
+        github_activity_years=fc.get("github_activity_years"),
+        biometrics=biometrics,
+    )
+
+    # Scenario-specific: flag suspiciously short response
+    response_text = (body.response or "").strip()
+    if len(response_text) < 30:
+        signals.append(
+            {
+                "type": "scenario_response_too_short",
+                "description": f"Scenario response is only {len(response_text)} characters — likely not genuine.",
+                "severity": "high",
+            }
+        )
+
+    # Scenario-specific: suspiciously fast submission (< 20s for a scenario)
+    if biometrics and isinstance(biometrics, dict):
+        session_dur = int(biometrics.get("sessionDurationSeconds", 0) or 0)
+        if 0 < session_dur < 20:
+            signals.append(
+                {
+                    "type": "scenario_session_too_fast",
+                    "description": f"Scenario answered in only {session_dur}s — possible pre-written response.",
+                    "severity": "high",
+                }
+            )
+
+    try:
+        verdict = await asyncio.wait_for(
+            ollama_fraud_verdict(signals),
+            timeout=FRAUD_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Scenario fraud verdict timed out, using heuristic fallback")
+        verdict = _fraud_fallback(signals)
+
+    result["fraud_flags"] = verdict.get("flags", signals)
+    result["_fraud_verdict"] = verdict
+    return result
+
+
+# ── Standalone fraud check (used by formation mini-quiz) ─────────────────
+
+class FraudCheckBody(BaseModel):
+    candidate_id: str = ""
+    test_type: str = "mini_quiz"  # mini_quiz | scenario | generic
+    fraud_context: dict[str, Any] | None = None
+
+
+@router.post("/fraud/check")
+async def fraud_check(body: FraudCheckBody) -> dict[str, Any]:
+    """Standalone fraud assessment from biometric/proctoring data only."""
+    fc = body.fraud_context or {}
+    signals = collect_signals(
+        cv_text=None,
+        cv_claimed_years_by_skill=None,
+        github_first_year_by_skill=None,
+        candidate_skills=[],
+        repos_languages=[],
+        test_answers=None,
+        code_submission=None,
+        github_activity_years=None,
+        biometrics=fc.get("biometrics"),
+    )
+
+    try:
+        verdict = await asyncio.wait_for(
+            ollama_fraud_verdict(signals),
+            timeout=FRAUD_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Standalone fraud check timed out, using heuristic fallback")
+        verdict = _fraud_fallback(signals)
+
+    return verdict
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# ▼  AI VOICE INTERVIEW ENDPOINTS
+# ──────────────────────────────────────────────────────────────────────────────
+
+from services.voice_interview import (
+    evaluate_interview_turn,
+    generate_interview_question,
+    generate_interview_summary,
+)
+
+
+class InterviewQuestionRequest(BaseModel):
+    role: str = Field(..., description="Target job role")
+    level: str = Field(default="mid", description="junior|mid|senior")
+    focus_area: str = Field(default="general", description="Technical area or soft skill to focus on")
+    history: list[dict] = Field(default_factory=list, description="Previous Q&A turns")
+    language: str = Field(default="fr", description="fr|en")
+
+
+class InterviewEvalRequest(BaseModel):
+    role: str
+    level: str = "mid"
+    question: str
+    answer: str
+    turn_number: int = 1
+    max_turns: int = 5
+    language: str = "fr"
+
+
+class InterviewSummaryRequest(BaseModel):
+    role: str
+    level: str = "mid"
+    history: list[dict]
+    language: str = "fr"
+
+
+@router.post("/interview/question")
+async def get_interview_question(body: InterviewQuestionRequest):
+    """Generate the next AI voice interview question given conversation history."""
+    question = await generate_interview_question(
+        role=body.role,
+        level=body.level,
+        focus_area=body.focus_area,
+        history=body.history,
+        language=body.language,
+    )
+    return question
+
+
+@router.post("/interview/evaluate-turn")
+async def evaluate_interview_turn_endpoint(body: InterviewEvalRequest):
+    """Evaluate a single spoken answer and return coaching feedback + next action."""
+    result = await evaluate_interview_turn(
+        role=body.role,
+        level=body.level,
+        question=body.question,
+        answer=body.answer,
+        turn_number=body.turn_number,
+        max_turns=body.max_turns,
+        language=body.language,
+    )
+    return result
+
+
+@router.post("/interview/summary")
+async def get_interview_summary(body: InterviewSummaryRequest):
+    """Generate a holistic debrief after all interview turns are complete."""
+    summary = await generate_interview_summary(
+        role=body.role,
+        level=body.level,
+        history=body.history,
+        language=body.language,
+    )
+    return summary

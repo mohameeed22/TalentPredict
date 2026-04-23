@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class PersonalityTestController {
     
     private final PersonalityTestService testService;
+    private final com.talentpredict.modules.ai.services.RecommendationService recommendationService;
 
     @PostMapping("/utilisateur/{userId}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
@@ -32,6 +33,17 @@ public class PersonalityTestController {
             @PathVariable UUID userId,
             @RequestBody PersonalityTestDto.PersonalityTestRequest request) {
         PersonalityTestDto.PersonalityTestResponse test = testService.createTest(userId, request);
+        
+        // Auto-generate recommendations (Task #2)
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                recommendationService.generateRecommendations(userId);
+            } catch (Exception e) {
+                // Log and ignore
+                e.printStackTrace();
+            }
+        });
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(test);
     }
 
