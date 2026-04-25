@@ -9,10 +9,12 @@ import {
   RecruiterCandidateRow
 } from '../../../recruiter/services/recruiter-api.service';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../../environments/environment';
 
-export type CampaignChannel = 'SMS' | 'EMAIL' | 'WHATSAPP';
-export type CampaignStatus = 'DRAFT' | 'SCHEDULED' | 'SENT' | 'FAILED';
-export type LogStatus = 'DELIVERED' | 'FAILED' | 'PENDING';
+export type CampaignChannel = 'SMS' | 'EMAIL' | 'WHATSAPP' | 'IN_APP' | 'BOTH';
+export type CampaignStatus = 'BROUILLON' | 'PLANIFIÉ' | 'ENVOYÉ' | 'ÉCHOUÉ';
+export type LogStatus = 'LIVRÉ' | 'ÉCHOUÉ' | 'EN ATTENTE';
 export type CampaignTargetGroup =
   | 'ALL_EMPLOYEES'
   | 'ACTIVE_EMPLOYEES'
@@ -29,6 +31,7 @@ export interface MessageTemplate {
   id: string;
   name: string;
   channel: CampaignChannel;
+  category: string;
   subject: string;
   body: string;
   variables: string[];
@@ -47,6 +50,9 @@ export interface Campaign {
   scheduledAt: string;
   sentCount: number;
   failedCount: number;
+  openRate?: number;
+  clickRate?: number;
+  isPaused?: boolean;
 }
 
 export interface DeliveryLog {
@@ -57,6 +63,16 @@ export interface DeliveryLog {
   status: LogStatus;
   sentAt: string;
   errorMessage?: string;
+}
+
+export interface DirectMessage {
+  id: string;
+  recipients: string[];
+  subject: string;
+  body: string;
+  channel: string;
+  sentAt: string;
+  readCount: number;
 }
 
 @Component({
@@ -70,16 +86,27 @@ export class CampaignManagerComponent implements OnInit {
   private notificationService = inject(NotificationService);
   private dashboardService = inject(DashboardService);
   private recruiterApiService = inject(RecruiterApiService);
+  private http = inject(HttpClient);
 
-  activeTab = signal<'templates' | 'campaigns' | 'logs'>('templates');
+  activeTab = signal<'templates' | 'campaigns' | 'logs' | 'direct_messages'>('templates');
   loading = signal(false);
   loadError = signal<string | null>(null);
   lastSync = signal('--');
   sendingEmail = signal(false);
-  selectedCandidateId = signal('');
 
-  campaignContextInput = '';
-  targetUrlInput = '';
+  // New Direct Messaging State
+  dmSearchQuery = signal('');
+  dmFilterDept = signal('');
+  dmFilterStatus = signal('');
+  dmSelectedUsers = signal<RecruiterCandidateRow[]>([]);
+  dmChannel = signal<'IN_APP' | 'EMAIL' | 'BOTH'>('IN_APP');
+  dmSubject = signal('');
+  dmBody = signal('');
+  dmSending = signal(false);
+  directMessages = signal<DirectMessage[]>([]);
+
+  // Filters for campaigns
+  campaignFilter = signal<'ALL' | 'BROUILLON' | 'PLANIFIÉ' | 'ENVOYÉ' | 'ÉCHOUÉ'>('ALL');
 
   private sourceEmployees = signal<EmployeeSummary[]>([]);
   private candidateRows = signal<RecruiterCandidateRow[]>([]);
@@ -88,40 +115,43 @@ export class CampaignManagerComponent implements OnInit {
   );
 
   targetGroupOptions: TargetGroupOption[] = [
-    { key: 'ALL_EMPLOYEES', label: 'All Employees' },
-    { key: 'ACTIVE_EMPLOYEES', label: 'Active Employees' },
-    { key: 'PENDING_ASSESSMENT', label: 'Pending Assessments' },
-    { key: 'TRAINING_IN_PROGRESS', label: 'Training In Progress' },
-    { key: 'HIGH_FRAUD_RISK', label: 'High Fraud Risk' }
+    { key: 'ALL_EMPLOYEES', label: 'Tous les employés' },
+    { key: 'ACTIVE_EMPLOYEES', label: 'Employés actifs' },
+    { key: 'PENDING_ASSESSMENT', label: 'Évaluation en attente' },
+    { key: 'TRAINING_IN_PROGRESS', label: 'Formation en cours' },
+    { key: 'HIGH_FRAUD_RISK', label: 'Haut risque de fraude' }
   ];
 
   // ── Template Editor ───────────────────────────────────────────
   templates = signal<MessageTemplate[]>([
     {
       id: 't1',
-      name: 'Test Invitation',
-      channel: 'SMS',
-      subject: '',
-      body: 'Hi {{candidate_name}}, you have been invited to take the TalentPredict skill test for {{job_title}}. Start here: {{test_link}}',
-      variables: ['candidate_name', 'job_title', 'test_link'],
+      name: 'Invitation au test',
+      channel: 'EMAIL',
+      category: 'Test & Évaluation',
+      subject: 'Votre test TalentPredict',
+      body: 'Bonjour {{prenom}}, vous avez été invité à passer le test TalentPredict. Commencez ici: {{lien_test}}',
+      variables: ['prenom', 'lien_test'],
       createdAt: '2026-03-15'
     },
     {
       id: 't2',
-      name: 'Application Update',
+      name: 'Mise à jour Onboarding',
       channel: 'EMAIL',
-      subject: 'Application Update – {{job_title}} at TalentPredict',
-      body: 'Dear {{candidate_name}},\n\nYour application for {{job_title}} has been updated.\n\nNext step: {{next_step}}\nTimeline: {{next_step_date}}\n\nDetails: {{action_link}}\n\nBest regards,\nTalentPredict HR Team',
-      variables: ['candidate_name', 'job_title', 'next_step', 'next_step_date', 'action_link'],
+      category: 'Onboarding',
+      subject: 'Bienvenue chez TalentPredict',
+      body: 'Cher(e) {{prenom}} {{nom}},\n\nVotre profil est prêt.\n\nCordialement,\nL\'équipe RH',
+      variables: ['prenom', 'nom'],
       createdAt: '2026-03-20'
     },
     {
       id: 't3',
-      name: 'Results Notification',
-      channel: 'WHATSAPP',
-      subject: '',
-      body: '🎉 Congratulations {{candidate_name}}! You scored {{score}}% on the {{test_type}} assessment. Our team will be in touch within 48 hours.',
-      variables: ['candidate_name', 'score', 'test_type'],
+      name: 'Rappel de formation',
+      channel: 'IN_APP',
+      category: 'Formation',
+      subject: 'Rappel: Formation en attente',
+      body: 'Bonjour {{prenom}}, n\'oubliez pas de terminer votre formation {{formation}}.',
+      variables: ['prenom', 'formation'],
       createdAt: '2026-04-01'
     }
   ]);
@@ -131,7 +161,8 @@ export class CampaignManagerComponent implements OnInit {
 
   newTemplate: Partial<MessageTemplate> = {
     name: '',
-    channel: 'SMS',
+    channel: 'EMAIL',
+    category: 'Général',
     subject: '',
     body: '',
   };
@@ -139,15 +170,18 @@ export class CampaignManagerComponent implements OnInit {
   // ── Campaigns ─────────────────────────────────────────────────
   campaigns = signal<Campaign[]>([]);
 
+  filteredCampaigns = computed(() => {
+    const f = this.campaignFilter();
+    return f === 'ALL' ? this.campaigns() : this.campaigns().filter(c => c.status === f);
+  });
+
   totalRecipients = computed(() => this.campaigns().reduce((sum, c) => sum + c.recipientCount, 0));
   totalSent = computed(() => this.campaigns().reduce((sum, c) => sum + c.sentCount, 0));
   totalFailed = computed(() => this.campaigns().reduce((sum, c) => sum + c.failedCount, 0));
-  scheduledCampaigns = computed(() => this.campaigns().filter(c => c.status === 'SCHEDULED').length);
+  scheduledCampaigns = computed(() => this.campaigns().filter(c => c.status === 'PLANIFIÉ').length);
   deliveryRate = computed(() => {
     const recipients = this.totalRecipients();
-    if (recipients === 0) {
-      return 0;
-    }
+    if (recipients === 0) return 0;
     return Math.round((this.totalSent() / recipients) * 100);
   });
 
@@ -156,7 +190,7 @@ export class CampaignManagerComponent implements OnInit {
   newCampaign: Partial<Campaign> = {
     name: '',
     templateId: '',
-    channel: 'SMS',
+    channel: 'EMAIL',
     targetGroup: 'ALL_EMPLOYEES',
     scheduledAt: ''
   };
@@ -170,10 +204,22 @@ export class CampaignManagerComponent implements OnInit {
     const q = this.logSearch().toLowerCase();
     return q
       ? this.deliveryLogs().filter(l =>
-          l.recipient.toLowerCase().includes(q) ||
-          l.campaignName.toLowerCase().includes(q)
-        )
+        l.recipient.toLowerCase().includes(q) ||
+        l.campaignName.toLowerCase().includes(q)
+      )
       : this.deliveryLogs();
+  });
+
+  // Direct Messaging People Picker
+  dmPeoplePickerResults = computed(() => {
+    const q = this.dmSearchQuery().toLowerCase();
+    const d = this.dmFilterDept().toLowerCase();
+    return this.candidateRows().filter(c => {
+      const matchQ = !q || (c.firstName + ' ' + c.lastName).toLowerCase().includes(q) || c.email.toLowerCase().includes(q);
+      const dept = this.sourceEmployees().find(e => e.id === c.userId)?.department || '';
+      const matchD = !d || dept.toLowerCase().includes(d);
+      return matchQ && matchD;
+    }).slice(0, 50);
   });
 
   ngOnInit(): void {
@@ -181,15 +227,89 @@ export class CampaignManagerComponent implements OnInit {
   }
 
   refreshLiveData(): void {
-    if (this.loading()) {
-      return;
-    }
+    if (this.loading()) return;
     this.loadLiveContext(true);
   }
 
-  // ── Tab ───────────────────────────────────────────────────────
-  setTab(tab: 'templates' | 'campaigns' | 'logs'): void {
+  setTab(tab: 'templates' | 'campaigns' | 'logs' | 'direct_messages'): void {
     this.activeTab.set(tab);
+  }
+
+  // ── DM actions ──────────────────────────────────────────────
+  toggleUserSelection(user: RecruiterCandidateRow): void {
+    const current = this.dmSelectedUsers();
+    if (current.find(u => u.userId === user.userId)) {
+      this.dmSelectedUsers.set(current.filter(u => u.userId !== user.userId));
+    } else {
+      this.dmSelectedUsers.set([...current, user]);
+    }
+  }
+
+  selectAllUsers(): void {
+    this.dmSelectedUsers.set([...this.dmPeoplePickerResults()]);
+  }
+
+  clearSelection(): void {
+    this.dmSelectedUsers.set([]);
+  }
+
+  sendDirectMessage(): void {
+    if (this.dmSelectedUsers().length === 0) {
+      this.notificationService.error('Veuillez sélectionner au moins un destinataire.');
+      return;
+    }
+    if (!this.dmBody().trim()) {
+      this.notificationService.error('Le corps du message ne peut pas être vide.');
+      return;
+    }
+
+    this.dmSending.set(true);
+    const reqs = this.dmSelectedUsers().map(user => {
+      const emp = this.sourceEmployees().find(e => e.id === user.userId);
+      const bodyReplaced = this.dmBody()
+        .replace(/{prenom}/g, user.firstName || '')
+        .replace(/{nom}/g, user.lastName || '')
+        .replace(/{score}/g, (user.realScore || 0).toString());
+
+      if (this.dmChannel() === 'EMAIL' || this.dmChannel() === 'BOTH') {
+        return this.recruiterApiService.sendCampaignEmail({
+          userId: user.userId,
+          candidateUsername: user.email,
+          campaignContext: 'Direct Message',
+          targetUrl: '',
+          subject: this.dmSubject() || 'Message de l\'administration',
+          body: bodyReplaced
+        });
+      } else {
+        // Mocking IN_APP notification
+        return this.http.post(`${environment.apiUrl}/notifications`, {
+          type: 'INFO',
+          title: this.dmSubject() || 'Nouveau message',
+          message: bodyReplaced,
+          targetUserId: user.userId
+        });
+      }
+    });
+
+    forkJoin(reqs).pipe(finalize(() => this.dmSending.set(false))).subscribe({
+      next: () => {
+        this.notificationService.success('Message direct envoyé avec succès!');
+        const dm: DirectMessage = {
+          id: 'dm' + Date.now(),
+          recipients: this.dmSelectedUsers().map(u => u.email),
+          subject: this.dmSubject() || 'Sans objet',
+          body: this.dmBody(),
+          channel: this.dmChannel(),
+          sentAt: new Date().toISOString(),
+          readCount: 0
+        };
+        this.directMessages.update(dms => [dm, ...dms]);
+        this.dmBody.set('');
+        this.dmSubject.set('');
+        this.dmSelectedUsers.set([]);
+      },
+      error: () => this.notificationService.error('Erreur lors de l\'envoi.')
+    });
   }
 
   // ── Template actions ──────────────────────────────────────────
@@ -199,20 +319,32 @@ export class CampaignManagerComponent implements OnInit {
   }
 
   startNewTemplate(): void {
-    this.newTemplate = { name: '', channel: 'SMS', subject: '', body: '' };
+    this.newTemplate = { name: '', channel: 'EMAIL', category: 'Général', subject: '', body: '' };
     this.isCreatingTemplate.set(true);
     this.selectedTemplate.set(null);
   }
 
+  updateTemplateField(field: keyof MessageTemplate, value: any): void {
+    if (this.isCreatingTemplate()) {
+      (this.newTemplate as any)[field] = value;
+    } else {
+      const current = this.selectedTemplate();
+      if (current) {
+        this.selectedTemplate.set({ ...current, [field]: value });
+      }
+    }
+  }
+
   saveNewTemplate(): void {
     if (!this.newTemplate.name || !this.newTemplate.body) {
-      this.notificationService.error('Please fill in the template name and body.');
+      this.notificationService.error('Remplissez le nom et le corps du template.');
       return;
     }
     const t: MessageTemplate = {
       id: 't' + Date.now(),
       name: this.newTemplate.name!,
-      channel: this.newTemplate.channel as CampaignChannel || 'SMS',
+      channel: this.newTemplate.channel as CampaignChannel || 'EMAIL',
+      category: this.newTemplate.category || 'Général',
       subject: this.newTemplate.subject || '',
       body: this.newTemplate.body!,
       variables: this.extractVariables(this.newTemplate.body!),
@@ -221,20 +353,27 @@ export class CampaignManagerComponent implements OnInit {
     this.templates.update(ts => [t, ...ts]);
     this.isCreatingTemplate.set(false);
     this.selectedTemplate.set(t);
-    this.notificationService.success('Template saved successfully!');
+    this.notificationService.success('Template sauvegardé avec succès!');
   }
 
   saveEditedTemplate(): void {
     const t = this.selectedTemplate();
     if (!t) return;
+    t.variables = this.extractVariables(t.body);
     this.templates.update(ts => ts.map(x => x.id === t.id ? t : x));
-    this.notificationService.success('Template updated!');
+    this.notificationService.success('Template mis à jour!');
   }
 
   deleteTemplate(id: string): void {
     this.templates.update(ts => ts.filter(t => t.id !== id));
     if (this.selectedTemplate()?.id === id) this.selectedTemplate.set(null);
-    this.notificationService.success('Template deleted.');
+    this.notificationService.success('Template supprimé.');
+  }
+
+  duplicateTemplate(t: MessageTemplate): void {
+    const dup = { ...t, id: 't' + Date.now(), name: t.name + ' (copie)' };
+    this.templates.update(ts => [dup, ...ts]);
+    this.notificationService.info('Template dupliqué.');
   }
 
   extractVariables(body: string): string[] {
@@ -242,120 +381,12 @@ export class CampaignManagerComponent implements OnInit {
     return [...new Set(matches.map(m => m.replace(/[{}]/g, '')))];
   }
 
-  getContextCandidates(): RecruiterCandidateRow[] {
-    return this.candidateRows();
-  }
-
-  getCandidateDisplayLabel(candidate: RecruiterCandidateRow): string {
-    const fullName = `${candidate.firstName ?? ''} ${candidate.lastName ?? ''}`.trim();
-    return fullName || candidate.email;
-  }
-
-  getCandidateUsername(candidate: RecruiterCandidateRow): string {
-    if (candidate.githubUsername && candidate.githubUsername.trim()) {
-      return candidate.githubUsername.trim();
-    }
-
-    const fullName = `${candidate.firstName ?? ''}.${candidate.lastName ?? ''}`
-      .toLowerCase()
-      .replace(/\s+/g, '.');
-
-    if (fullName.replace(/\./g, '').length > 0) {
-      return fullName;
-    }
-
-    return candidate.email.split('@')[0] || 'candidate';
-  }
-
-  generateBodyFromCampaignContext(): void {
-    const candidate = this.getSelectedCandidate();
-    if (!candidate) {
-      this.notificationService.error('Select a candidate username first.');
-      return;
-    }
-
-    const campaignContext = this.campaignContextInput.trim();
-    if (!campaignContext) {
-      this.notificationService.error('Add campaign context before generating the body.');
-      return;
-    }
-
-    const normalizedUrl = this.normalizeUrl(this.targetUrlInput);
-    if (!normalizedUrl) {
-      this.notificationService.error('Paste a valid URL before generating the body.');
-      return;
-    }
-
-    const username = this.getCandidateUsername(candidate);
-    const subject = this.buildContextSubject(campaignContext);
-    const body = this.buildContextBody(candidate, username, campaignContext, normalizedUrl);
-
-    this.applyGeneratedTemplateContent(subject, body);
-    this.notificationService.success('Message body generated from candidate and campaign context.');
-  }
-
-  sendCampaignEmailToCandidate(): void {
-    if (this.sendingEmail()) {
-      return;
-    }
-
-    const candidate = this.getSelectedCandidate();
-    if (!candidate) {
-      this.notificationService.error('Select a candidate username before sending.');
-      return;
-    }
-
-    const workingTemplate = this.getWorkingTemplate();
-    const subject = workingTemplate?.subject?.trim() || '';
-    const body = workingTemplate?.body?.trim() || '';
-
-    if (!subject || !body) {
-      this.notificationService.error('Generate or write the subject/body before sending email.');
-      return;
-    }
-
-    const campaignContext = this.campaignContextInput.trim();
-    if (!campaignContext) {
-      this.notificationService.error('Campaign context is required to send this email.');
-      return;
-    }
-
-    const normalizedUrl = this.normalizeUrl(this.targetUrlInput);
-    if (!normalizedUrl) {
-      this.notificationService.error('Paste a valid URL before sending email.');
-      return;
-    }
-
-    const request: CampaignEmailRequest = {
-      userId: candidate.userId,
-      candidateUsername: this.getCandidateUsername(candidate),
-      campaignContext,
-      targetUrl: normalizedUrl,
-      subject,
-      body
-    };
-
-    this.sendingEmail.set(true);
-    this.recruiterApiService.sendCampaignEmail(request)
-      .pipe(finalize(() => this.sendingEmail.set(false)))
-      .subscribe({
-        next: response => {
-          const recipient = response.recipientEmail || candidate.email;
-          this.notificationService.success(`Email sent to ${recipient}.`);
-        },
-        error: err => {
-          const message = err?.error?.message || 'Failed to send campaign email.';
-          this.notificationService.error(message);
-        }
-      });
-  }
-
   // ── Campaign actions ──────────────────────────────────────────
   startNewCampaign(): void {
     this.newCampaign = {
       name: '',
       templateId: '',
-      channel: 'SMS',
+      channel: 'EMAIL',
       targetGroup: 'ALL_EMPLOYEES',
       scheduledAt: ''
     };
@@ -364,7 +395,7 @@ export class CampaignManagerComponent implements OnInit {
 
   createCampaign(): void {
     if (!this.newCampaign.name || !this.newCampaign.templateId) {
-      this.notificationService.error('Fill in all required fields.');
+      this.notificationService.error('Remplissez les champs obligatoires.');
       return;
     }
 
@@ -376,10 +407,10 @@ export class CampaignManagerComponent implements OnInit {
       name: this.newCampaign.name!,
       templateId: this.newCampaign.templateId!,
       templateName: tmpl?.name || '—',
-      channel: this.newCampaign.channel as CampaignChannel || 'SMS',
+      channel: this.newCampaign.channel as CampaignChannel || 'EMAIL',
       targetGroup: selectedGroup,
       recipientCount: 0,
-      status: this.newCampaign.scheduledAt ? 'SCHEDULED' : 'DRAFT',
+      status: this.newCampaign.scheduledAt ? 'PLANIFIÉ' : 'BROUILLON',
       scheduledAt: this.newCampaign.scheduledAt || '',
       sentCount: 0,
       failedCount: 0
@@ -387,15 +418,15 @@ export class CampaignManagerComponent implements OnInit {
 
     const hydratedCampaign = this.hydrateCampaign(campaignDraft);
 
-    if (hydratedCampaign.recipientCount === 0) {
-      this.notificationService.error('No recipients found for the selected target group.');
+    if (hydratedCampaign.recipientCount === 0 && campaignDraft.status !== 'BROUILLON') {
+      this.notificationService.error('Attention: Groupe cible vide (0 destinataires).');
       return;
     }
 
     this.campaigns.update(cs => [hydratedCampaign, ...cs]);
     this.rebuildLogs();
     this.isCreatingCampaign.set(false);
-    this.notificationService.success('Campaign created from live user segments.');
+    this.notificationService.success('Campagne créée avec succès.');
   }
 
   cancelCampaignCreate(): void {
@@ -403,57 +434,58 @@ export class CampaignManagerComponent implements OnInit {
   }
 
   launchCampaign(campaignId: string): void {
+    const campaign = this.campaigns().find(c => c.id === campaignId);
+    if (campaign && campaign.recipientCount === 0) {
+      this.notificationService.error('Impossible de lancer: aucun destinataire dans ce groupe.');
+      return;
+    }
+
     this.campaigns.update(cs =>
       cs.map(c => {
-        if (c.id !== campaignId) {
-          return c;
-        }
-
+        if (c.id !== campaignId) return c;
         return this.hydrateCampaign({
           ...c,
-          status: 'SENT',
+          status: 'ENVOYÉ',
           scheduledAt: c.scheduledAt || new Date().toISOString()
         });
       })
     );
 
     this.rebuildLogs();
-    this.notificationService.success('Campaign launched with live recipients.');
+    this.notificationService.success('Campagne lancée.');
+  }
+
+  pauseCampaign(campaignId: string): void {
+    this.campaigns.update(cs =>
+      cs.map(c => {
+        if (c.id !== campaignId) return c;
+        return { ...c, isPaused: !c.isPaused };
+      })
+    );
   }
 
   duplicateCampaign(campaignId: string): void {
     const source = this.campaigns().find(c => c.id === campaignId);
-    if (!source) {
-      return;
-    }
+    if (!source) return;
 
     const duplicate: Campaign = {
       ...source,
       id: `c${Date.now()}`,
-      name: `${source.name} (copy)`,
-      status: 'DRAFT',
+      name: `Copie de ${source.name}`,
+      status: 'BROUILLON',
       sentCount: 0,
       failedCount: 0,
       scheduledAt: ''
     };
 
     this.campaigns.update(cs => [this.hydrateCampaign(duplicate), ...cs]);
-    this.notificationService.info('Campaign duplicated as draft.');
+    this.notificationService.info('Campagne dupliquée comme brouillon.');
   }
 
   getCampaignProgress(campaign: Campaign): number {
-    if (campaign.recipientCount <= 0) {
-      return 0;
-    }
-
-    if (campaign.status === 'SCHEDULED' && campaign.sentCount === 0) {
-      return 15;
-    }
-
-    if (campaign.status === 'DRAFT') {
-      return 6;
-    }
-
+    if (campaign.status === 'BROUILLON') return 0;
+    if (campaign.recipientCount <= 0) return 0;
+    if (campaign.status === 'PLANIFIÉ' && campaign.sentCount === 0) return 0;
     return Math.min(100, Math.round((campaign.sentCount / campaign.recipientCount) * 100));
   }
 
@@ -468,19 +500,19 @@ export class CampaignManagerComponent implements OnInit {
   // ── Helpers ───────────────────────────────────────────────────
   getStatusClass(status: CampaignStatus | LogStatus): string {
     const map: Record<string, string> = {
-      SENT: 'tag-sent', SCHEDULED: 'tag-scheduled', DRAFT: 'tag-draft', FAILED: 'tag-failed',
-      DELIVERED: 'tag-sent', PENDING: 'tag-scheduled'
+      'ENVOYÉ': 'tag-sent', 'PLANIFIÉ': 'tag-scheduled', 'BROUILLON': 'tag-draft', 'ÉCHOUÉ': 'tag-failed',
+      'LIVRÉ': 'tag-sent', 'EN ATTENTE': 'tag-scheduled'
     };
-    return map[status] || '';
+    return map[status] || 'tag-draft';
   }
 
-  getChannelIcon(ch: CampaignChannel): string {
-    return ch === 'SMS' ? '📱' : ch === 'EMAIL' ? '📧' : '💬';
+  getChannelIcon(ch: string): string {
+    return ch === 'SMS' ? '📱' : ch === 'EMAIL' ? '📧' : ch === 'IN_APP' ? '🔔' : '💬';
   }
 
   formatDate(d: string): string {
     if (!d) return '—';
-    return new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    return new Date(d).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   }
 
   getLogCount(status: LogStatus): number {
@@ -502,18 +534,14 @@ export class CampaignManagerComponent implements OnInit {
         next: ({ overview, candidates }) => {
           this.sourceEmployees.set(overview.employees ?? []);
           this.candidateRows.set(candidates);
-          if (!this.selectedCandidateId() || !candidates.some(c => c.userId === this.selectedCandidateId())) {
-            this.selectedCandidateId.set(candidates[0]?.userId ?? '');
-          }
           this.syncCampaignsWithLiveData();
           this.lastSync.set(this.getNowLabel());
           if (showToast) {
-            this.notificationService.success('Campaign manager synced with live user context.');
+            this.notificationService.success('Données synchronisées.');
           }
         },
         error: () => {
-          this.loadError.set('Unable to load live talent context right now.');
-          this.notificationService.error('Campaign manager failed to load live user data.');
+          this.loadError.set('Impossible de charger les données live.');
         }
       });
   }
@@ -524,7 +552,6 @@ export class CampaignManagerComponent implements OnInit {
       this.rebuildLogs();
       return;
     }
-
     this.campaigns.update(campaigns => campaigns.map(campaign => this.hydrateCampaign(campaign)));
     this.rebuildLogs();
   }
@@ -537,52 +564,26 @@ export class CampaignManagerComponent implements OnInit {
     const defaults: Campaign[] = [
       {
         id: 'seed-assessment',
-        name: 'Assessment Completion Nudge',
+        name: 'Relance Finalisation Test',
         templateId: 't1',
-        templateName: 'Test Invitation',
+        templateName: 'Invitation au test',
         channel: 'EMAIL',
         targetGroup: 'PENDING_ASSESSMENT',
         recipientCount: 0,
-        status: 'SCHEDULED',
+        status: 'PLANIFIÉ',
         scheduledAt: new Date(now.getTime() + oneDay).toISOString(),
         sentCount: 0,
         failedCount: 0
       },
       {
-        id: 'seed-training',
-        name: 'Training Progress Pulse',
-        templateId: 't2',
-        templateName: 'Application Update',
-        channel: 'WHATSAPP',
-        targetGroup: 'TRAINING_IN_PROGRESS',
-        recipientCount: 0,
-        status: 'SENT',
-        scheduledAt: now.toISOString(),
-        sentCount: 0,
-        failedCount: 0
-      },
-      {
-        id: 'seed-risk',
-        name: 'Risk Verification Follow-up',
-        templateId: 't3',
-        templateName: 'Results Notification',
-        channel: 'SMS',
-        targetGroup: 'HIGH_FRAUD_RISK',
-        recipientCount: 0,
-        status: 'SCHEDULED',
-        scheduledAt: new Date(now.getTime() + twoDays).toISOString(),
-        sentCount: 0,
-        failedCount: 0
-      },
-      {
         id: 'seed-all',
-        name: 'Monthly Talent Digest',
+        name: 'Newsletter RH Mensuelle',
         templateId: 't2',
-        templateName: 'Application Update',
+        templateName: 'Mise à jour Onboarding',
         channel: 'EMAIL',
         targetGroup: 'ACTIVE_EMPLOYEES',
         recipientCount: 0,
-        status: 'DRAFT',
+        status: 'BROUILLON',
         scheduledAt: '',
         sentCount: 0,
         failedCount: 0
@@ -596,36 +597,28 @@ export class CampaignManagerComponent implements OnInit {
     const recipients = this.getTargetEmployees(campaign.targetGroup);
     const recipientCount = recipients.length;
 
-    if (campaign.status === 'SENT') {
+    if (campaign.status === 'ENVOYÉ') {
       const failedCount = this.estimateFailedRecipients(recipients);
       const sentCount = Math.max(0, recipientCount - failedCount);
       return {
         ...campaign,
         recipientCount,
         sentCount,
-        failedCount
+        failedCount,
+        openRate: Math.round((sentCount * 0.6)), // mock stats
+        clickRate: Math.round((sentCount * 0.2))
       };
     }
 
-    if (campaign.status === 'FAILED') {
-      return {
-        ...campaign,
-        recipientCount,
-        sentCount: 0,
-        failedCount: recipientCount
-      };
+    if (campaign.status === 'ÉCHOUÉ') {
+      return { ...campaign, recipientCount, sentCount: 0, failedCount: recipientCount };
     }
 
-    return {
-      ...campaign,
-      recipientCount,
-      sentCount: 0,
-      failedCount: 0
-    };
+    return { ...campaign, recipientCount, sentCount: 0, failedCount: 0 };
   }
 
   private rebuildLogs(): void {
-    const sentCampaigns = this.campaigns().filter(campaign => campaign.status === 'SENT');
+    const sentCampaigns = this.campaigns().filter(campaign => campaign.status === 'ENVOYÉ');
     const logs: DeliveryLog[] = [];
 
     for (const campaign of sentCampaigns) {
@@ -633,10 +626,10 @@ export class CampaignManagerComponent implements OnInit {
       for (const recipient of recipients) {
         const risk = this.getRiskLevel(recipient.id);
         const status: LogStatus = !recipient.active || risk === 'high'
-          ? 'FAILED'
+          ? 'ÉCHOUÉ'
           : risk === 'medium'
-            ? 'PENDING'
-            : 'DELIVERED';
+            ? 'EN ATTENTE'
+            : 'LIVRÉ';
 
         logs.push({
           id: `${campaign.id}-${recipient.id}`,
@@ -645,27 +638,10 @@ export class CampaignManagerComponent implements OnInit {
           channel: campaign.channel,
           status,
           sentAt: campaign.scheduledAt,
-          errorMessage: status === 'FAILED'
-            ? (!recipient.active ? 'Inactive profile' : 'Flagged as high fraud risk')
+          errorMessage: status === 'ÉCHOUÉ'
+            ? (!recipient.active ? 'Profil inactif' : 'Bloqué par fraude')
             : undefined
         });
-      }
-    }
-
-    if (logs.length === 0) {
-      const scheduled = this.campaigns().find(campaign => campaign.status === 'SCHEDULED');
-      if (scheduled) {
-        const recipients = this.getTargetEmployees(scheduled.targetGroup).slice(0, 20);
-        for (const recipient of recipients) {
-          logs.push({
-            id: `pending-${scheduled.id}-${recipient.id}`,
-            campaignName: scheduled.name,
-            recipient: recipient.email,
-            channel: scheduled.channel,
-            status: 'PENDING',
-            sentAt: ''
-          });
-        }
       }
     }
 
@@ -701,100 +677,17 @@ export class CampaignManagerComponent implements OnInit {
   private getRiskLevel(userId: string): 'high' | 'medium' | 'low' {
     const candidate = this.candidateIndex().get(userId);
     const normalized = (candidate?.fraudRisk ?? '').toLowerCase();
-    if (normalized === 'high') {
-      return 'high';
-    }
-    if (normalized === 'medium') {
-      return 'medium';
-    }
+    if (normalized === 'high') return 'high';
+    if (normalized === 'medium') return 'medium';
     return 'low';
   }
 
   private getNowLabel(): string {
-    return new Date().toLocaleString('en-GB', {
+    return new Date().toLocaleString('fr-FR', {
       day: '2-digit',
       month: 'short',
       hour: '2-digit',
       minute: '2-digit'
     });
-  }
-
-  private getSelectedCandidate(): RecruiterCandidateRow | null {
-    const selectedId = this.selectedCandidateId();
-    if (!selectedId) {
-      return null;
-    }
-    return this.candidateRows().find(candidate => candidate.userId === selectedId) || null;
-  }
-
-  private getWorkingTemplate(): MessageTemplate | Partial<MessageTemplate> | null {
-    if (this.isCreatingTemplate()) {
-      return this.newTemplate;
-    }
-    return this.selectedTemplate();
-  }
-
-  private applyGeneratedTemplateContent(subject: string, body: string): void {
-    if (this.isCreatingTemplate()) {
-      this.newTemplate.subject = subject;
-      this.newTemplate.body = body;
-      return;
-    }
-
-    const current = this.selectedTemplate();
-    if (!current) {
-      return;
-    }
-
-    this.selectedTemplate.set({
-      ...current,
-      subject,
-      body,
-      variables: this.extractVariables(body)
-    });
-  }
-
-  private buildContextSubject(campaignContext: string): string {
-    const summary = campaignContext.replace(/\s+/g, ' ').trim();
-    const truncated = summary.length > 64 ? `${summary.slice(0, 61)}...` : summary;
-    return `TalentPredict Campaign: ${truncated}`;
-  }
-
-  private buildContextBody(
-    candidate: RecruiterCandidateRow,
-    username: string,
-    campaignContext: string,
-    targetUrl: string
-  ): string {
-    const candidateName = this.getCandidateDisplayLabel(candidate);
-    return [
-      `Hi ${candidateName},`,
-      '',
-      `Username: ${username}`,
-      '',
-      'Campaign context:',
-      campaignContext,
-      '',
-      `Reference URL: ${targetUrl}`,
-      '',
-      'Please review the link and proceed with the requested campaign action.',
-      '',
-      'Best regards,',
-      'TalentPredict Admin Team'
-    ].join('\n');
-  }
-
-  private normalizeUrl(input: string): string {
-    const trimmed = input.trim();
-    if (!trimmed) {
-      return '';
-    }
-
-    const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-    try {
-      return new URL(withProtocol).toString();
-    } catch {
-      return '';
-    }
   }
 }

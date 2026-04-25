@@ -212,7 +212,18 @@ class GithubAnalyzeBody(BaseModel):
 
 @router.post("/github/analyze")
 async def github_analyze(body: GithubAnalyzeBody) -> dict[str, Any]:
-    return await analyze_github_profile(body.username, body.claimed_skills)
+    try:
+        return await asyncio.wait_for(
+            analyze_github_profile(body.username, body.claimed_skills),
+            timeout=30.0,
+        )
+    except asyncio.TimeoutError:
+        logger.warning("GitHub analysis timed out for user: %s", body.username)
+        return {
+            "status": "error",
+            "username": body.username,
+            "message": "Analysis timed out. GitHub API or LLM may be slow. Please retry.",
+        }
 
 
 class ScenarioGenerateBody(BaseModel):

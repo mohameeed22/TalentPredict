@@ -19,6 +19,8 @@ import { forkJoin } from 'rxjs';
 import { BiometricsService } from '../../../skill-test/services/biometrics.service';
 import { ProctoringService } from '../../../skill-test/services/proctoring.service';
 import { TestApiService } from '../../../skill-test/services/test-api.service';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 type DeadlineRiskLevel = 'on-track' | 'at-risk' | 'late';
 
@@ -75,6 +77,11 @@ export class FormationListComponent implements OnInit, OnDestroy {
       status: StatutFormation.PROPOSEE,
       title: 'Proposées',
       subtitle: 'Formations suggérées'
+    },
+    {
+      status: StatutFormation.EN_ATTENTE,
+      title: 'En attente',
+      subtitle: 'En attente de validation admin'
     },
     {
       status: StatutFormation.ACCEPTEE,
@@ -144,6 +151,9 @@ export class FormationListComponent implements OnInit, OnDestroy {
   courseActionError = signal<string | null>(null);
   courseActionSuccess = signal<string | null>(null);
   private softWeakSkillSet = new Set<string>();
+
+  // ── Tabs ──────────────────────────────────────────────────────────────
+  activeTab = signal<'VUE_ENSEMBLE' | 'FORMATIONS' | 'KANBAN' | 'PLANNING'>('VUE_ENSEMBLE');
 
   // ── Recommendation filters ──────────────────────────────────────────────
   recoFilterSkill = signal<string>('ALL');
@@ -452,6 +462,26 @@ export class FormationListComponent implements OnInit, OnDestroy {
     return this.formations().filter(f => f.statut === StatutFormation.TERMINEE).length;
   }
 
+  readinessScore(): number {
+    const all = this.formations();
+    if (!all.length) return 0;
+    const total = all.length;
+    const completed = all.filter(f => f.statut === StatutFormation.TERMINEE).length;
+    const miniTestsPassed = all.filter(f => f.miniTestPassed).length;
+    
+    let hoursScore = 0;
+    const weeklyGoal = this.weeklyGoalHours();
+    if (weeklyGoal > 0) {
+       const hoursLogged = this.weeklyHoursThisWeek();
+       hoursScore = Math.min((hoursLogged / weeklyGoal), 1) * 20;
+    }
+
+    const courseScore = (completed / total) * 40;
+    const miniTestScore = (miniTestsPassed / total) * 40;
+
+    return Math.round(courseScore + miniTestScore + hoursScore);
+  }
+
   overallProgressPct(): number {
     const all = this.formations();
     if (!all.length) return 0;
@@ -461,11 +491,42 @@ export class FormationListComponent implements OnInit, OnDestroy {
 
   formationsByStatusFiltered(status: StatutFormation): FormationResponse[] {
     const typeFilter = this.kanbanTypeFilter();
-    return this.formations().filter(f => {
+    let list = this.formations().filter(f => {
       if (f.statut !== status) return false;
       if (typeFilter === 'ALL') return true;
       return f.type?.toString().includes(typeFilter);
     });
+
+    if (status === StatutFormation.PROPOSEE) {
+      const plan = this.learningPlan();
+      if (plan && plan.formations) {
+        plan.formations.forEach(f => {
+          if (f.courses) {
+            f.courses.forEach(c => {
+              const exists = this.formations().some(dbF => dbF.url === c.url || dbF.titre === c.title);
+              if (!exists) {
+                const type = this.resolveFormationType(f.skill);
+                if (typeFilter === 'ALL' || type.toString().includes(typeFilter)) {
+                  list.push({
+                    id: `virtual_${f.skill}_${c.id || c.title}`,
+                    titre: c.title,
+                    description: `Cible: ${f.skill}. ${c.reason || 'Cours suggéré par IA'}`,
+                    type: type,
+                    statut: StatutFormation.PROPOSEE,
+                    duree: Math.max(1, Math.round(Number(c.duration_hours) || 1)),
+                    progression: 0,
+                    dateProposition: new Date(),
+                    fournisseur: c.platform || c.provider,
+                    url: c.url
+                  } as any);
+                }
+              }
+            });
+          }
+        });
+      }
+    }
+    return list;
   }
 
   startCoursePractice(
@@ -489,7 +550,8 @@ export class FormationListComponent implements OnInit, OnDestroy {
       type: this.resolveFormationType(skill),
       duree: Math.max(1, Math.round(Number(course.duration_hours) || 1)),
       fournisseur: course.platform || course.provider,
-      url: course.url
+      url: course.url,
+      statut: StatutFormation.EN_ATTENTE
     }).subscribe({
       next: () => {
         this.courseActionSuccess.set(`Le cours "${course.title}" a été ajouté à vos formations.`);
@@ -517,8 +579,59 @@ export class FormationListComponent implements OnInit, OnDestroy {
   }
 
   topDailyPlan(limit = 7) {
-    return (this.learningPlan()?.daily_plan || []).slice(0, limit);
+    const plan = this.learningPlan()?.daily_plan || [];
+    return plan.slice(0, limit).map((d: any) => ({
+      ...d,
+      formatted_duration: this.formatMinutes(
+         (d.tasks || []).reduce((sum: number, t: any) => sum + (t.duration_minutes || 0), 0)
+      )
+    }));
   }
+
+  private formatMinutes(mins: number): string {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m > 0 ? `${h}h${m}` : `${h}h`;
+  }
+
+  isExportingPdf = signal(false);
+
+  exportToPdf(): void {
+    this.isExportingPdf.set(true);
+    const element = document.querySelector('.formation-list-container') as HTMLElement;
+    if (!element) {
+      this.isExportingPdf.set(false);
+      return;
+    }
+
+    html2canvas(element, { scale: 2 }).then(canvas => {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = 210; 
+      const pageHeight = 297; 
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      pdf.save('Mes_Formations_Roadmap.pdf');
+      this.isExportingPdf.set(false);
+    }).catch(err => {
+      console.error('Erreur PDF:', err);
+      this.isExportingPdf.set(false);
+    });
+  }
+
+
 
   weakSkillBadgeClass(skillName: string): 'soft' | 'tech' {
     return this.isSoftSkill(skillName) ? 'soft' : 'tech';
@@ -891,8 +1004,15 @@ export class FormationListComponent implements OnInit, OnDestroy {
     }
 
     const formation = this.formations().find((item) => item.id === formationId);
-    if (!formation || formation.statut === targetStatus) {
+    if (!formation) {
+      if (formationId.startsWith('virtual_')) {
+         // Cannot just drag virtual cards yet, ignore for now
+         return;
+      }
       return;
+    }
+    if (formation.statut === targetStatus) {
+       return;
     }
 
     this.moveFormationToStatus(formation, targetStatus);
@@ -1268,6 +1388,7 @@ export class FormationListComponent implements OnInit, OnDestroy {
   private nextStatus(current: StatutFormation): StatutFormation | null {
     const flow: StatutFormation[] = [
       StatutFormation.PROPOSEE,
+      StatutFormation.EN_ATTENTE,
       StatutFormation.ACCEPTEE,
       StatutFormation.EN_COURS,
       StatutFormation.TERMINEE
@@ -1282,6 +1403,7 @@ export class FormationListComponent implements OnInit, OnDestroy {
 
   private statusLabel(status: StatutFormation): string {
     if (status === StatutFormation.PROPOSEE) return 'Proposée';
+    if (status === StatutFormation.EN_ATTENTE) return 'En attente';
     if (status === StatutFormation.ACCEPTEE) return 'Acceptée';
     if (status === StatutFormation.EN_COURS) return 'En cours';
     if (status === StatutFormation.TERMINEE) return 'Terminée';

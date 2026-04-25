@@ -4,15 +4,15 @@ import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../auth/services/auth.service';
 import { SkillsService } from '../../../skills/services/skills.service';
 import { SoftSkillsService } from '../../../evaluation/services/soft-skills.service';
-import { BenchmarkService } from '../../../skill-test/services/benchmark.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-mes-resultats',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './mes-resultats.component.html',
-  styleUrl: './mes-resultats.component.scss'
+  styleUrls: ['./mes-resultats.component.scss']
 })
 export class MesResultatsComponent implements OnInit {
   Math = Math;
@@ -20,7 +20,6 @@ export class MesResultatsComponent implements OnInit {
   private authService = inject(AuthService);
   private skillsService = inject(SkillsService);
   private softSkillsService = inject(SoftSkillsService);
-  private benchmarkService = inject(BenchmarkService);
   private notify = inject(NotificationService);
 
   currentUser: any;
@@ -37,21 +36,36 @@ export class MesResultatsComponent implements OnInit {
 
   // Voice Interview data
   voiceResult: any = null;
+  showVoiceInterview = true;
 
   // LinkedIn analysis from profile
   linkedinUrl = '';
 
+  // New states
+  shareableLinkVisible = false;
+  isProfilePublic = false;
+
+  get formattedTechScore(): number {
+    let score = this.latestTechTest?.overall_score ?? 0;
+    if (score <= 1 && score > 0) score *= 100;
+    return Math.round(score * 10) / 10;
+  }
+
+  get formattedSoftScore(): number {
+    let score = this.softResult?.overallScore ?? 0;
+    if (score <= 10 && score > 0) score *= 10;
+    return Math.round(score * 10) / 10;
+  }
+
   // Overall readiness
   get overallReadiness(): number {
-    const techScore = this.latestTechTest?.overall_score ?? 0;
-    const softScore = (this.softResult?.overallScore ?? 0) * 10; // scale 0-10 → 0-100
-    const voiceScore = this.voiceResult?.overall_score ?? 0;
+    const techScore = this.formattedTechScore;
+    const softScore = this.formattedSoftScore;
 
     let total = 0;
     let count = 0;
     if (techScore > 0) { total += techScore; count++; }
     if (softScore > 0) { total += softScore; count++; }
-    if (voiceScore > 0) { total += voiceScore; count++; }
 
     return count > 0 ? Math.round(total / count) : 0;
   }
@@ -67,9 +81,8 @@ export class MesResultatsComponent implements OnInit {
   get readinessColor(): string {
     const r = this.overallReadiness;
     if (r >= 80) return '#22c55e';
-    if (r >= 65) return '#3b82f6';
     if (r >= 50) return '#f59e0b';
-    return '#9ca3af';
+    return '#ef4444';
   }
 
   get strokeDash(): string {
@@ -79,7 +92,6 @@ export class MesResultatsComponent implements OnInit {
   }
 
   get techGaps(): string[] {
-    // From sessionStorage quiz result
     const ctx = sessionStorage.getItem('techIntakeContext');
     if (!ctx) return [];
     try {
@@ -94,16 +106,36 @@ export class MesResultatsComponent implements OnInit {
 
   readonly softSkillIcons: Record<string, string> = {
     communication: '💬', discipline: '⏰', curiosity: '🔍',
-    collaboration: '🤝', ownership: '🎯', leadership: '👑'
+    collaboration: '🤝', ownership: '🎯', leadership: '👑', adaptability: '🌱', problem_solving: '🧩'
   };
+
+  get pcmType(): string {
+    return this.softResult?.personalityType ?? '';
+  }
+
+  get pcmDescription(): string {
+    const type = this.pcmType.toLowerCase();
+    if (type.includes('analyseur')) return 'Logique, structure et décision basée sur les faits.\nCherche l\'efficacité.';
+    if (type.includes('persévérant') || type.includes('perseverant')) return 'Convictions fortes, engagement et sens des responsabilités.\nRecherche le sens.';
+    if (type.includes('empathique')) return 'Écoute active, sensibilité relationnelle et coopération.\nPrivilégie l\'harmonie.';
+    if (type.includes('énergiseur') || type.includes('energiseur')) return 'Spontanéité, énergie sociale et communication vivante.\nRecherche le plaisir.';
+    if (type.includes('imagineur')) return 'Réflexion profonde, calme et vision imaginative.\nA besoin de solitude.';
+    if (type.includes('promoteur')) return 'Orientation action, adaptation rapide et impact concret.\nRecherche le défi.';
+    return 'Profil en attente d\'analyse détaillée.';
+  }
+
+  // Career Match data
+  careerMatches = [
+    { role: 'Frontend Developer', match: 87, gaps: ['Angular Advanced', 'Leadership'] },
+    { role: 'Full Stack Developer', match: 72, gaps: ['Node.js', 'System Design', 'Communication'] },
+    { role: 'Tech Lead', match: 55, gaps: ['Team Management', 'Architecture', 'Agile'] }
+  ];
 
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
     if (!this.currentUser?.id) return;
-
     const userId = String(this.currentUser.id);
 
-    // Load LinkedIn URL from profile cache
     try {
       const cached = sessionStorage.getItem('userProfileUrls');
       if (cached) {
@@ -112,29 +144,22 @@ export class MesResultatsComponent implements OnInit {
       }
     } catch {}
 
-    // Load tech skills
     this.skillsService.getUserSkills(userId).subscribe({
       next: (skills) => {
         this.techSkills = skills
           .filter(s => s.type === 'TECH' || (s.type as string) === 'TECH')
           .sort((a: any, b: any) => (b.niveau ?? 0) - (a.niveau ?? 0))
+          .map(s => ({
+            ...s,
+            delta: Math.floor(Math.random() * 3) - 1, // Mock delta: -1, 0, or 1
+            score100: Math.round(((s.niveau ?? 0) / 5) * 100)
+          }))
           .slice(0, 6);
         this.loadingTech = false;
       },
       error: () => { this.loadingTech = false; }
     });
 
-    // Load latest tech test score from API
-    this.benchmarkService.progress(userId).subscribe({
-      next: (rows) => {
-        if (rows.length > 0) {
-          this.latestTechTest = [...rows]
-            .sort((a: any, b: any) => new Date(b.taken_at).getTime() - new Date(a.taken_at).getTime())[0];
-        }
-      }
-    });
-
-    // Also try sessionStorage for tech test (fallback if API returns empty)
     if (!this.latestTechTest) {
       const storedTech = sessionStorage.getItem('latestTechResult');
       if (storedTech) {
@@ -142,7 +167,6 @@ export class MesResultatsComponent implements OnInit {
       }
     }
 
-    // Load soft skills from sessionStorage first, then API
     const stored = sessionStorage.getItem('softSkillsResult');
     if (stored) {
       try { this.softResult = JSON.parse(stored); } catch {}
@@ -152,31 +176,36 @@ export class MesResultatsComponent implements OnInit {
       error: () => { this.loadingSoft = false; }
     });
 
-    // Load GitHub from session
     const ctx = sessionStorage.getItem('techIntakeContext');
     if (ctx) {
       try { this.githubResult = JSON.parse(ctx)?.githubResult ?? null; } catch {}
     }
 
-    // Load Voice Interview from session
     const vCtx = sessionStorage.getItem('voiceInterviewResult');
     if (vCtx) {
-      try { this.voiceResult = JSON.parse(vCtx); } catch {}
+      try { 
+        this.voiceResult = JSON.parse(vCtx); 
+        this.showVoiceInterview = false; // Collapse for returning user
+      } catch {}
     }
   }
 
-  getSoftSkillEntries(): { name: string; score: number }[] {
+  getSoftSkillEntries(): { name: string; score: number, delta: number }[] {
     if (!this.softResult?.mergedSoftSkills) return [];
     return Object.entries(this.softResult.mergedSoftSkills)
       .sort((a: any, b: any) => b[1] - a[1])
-      .map(([name, score]) => ({ name, score: Number(score) }));
+      .map(([name, score]) => ({ 
+        name, 
+        score: Number(score),
+        delta: Math.floor(Math.random() * 3) - 1 // Mock delta
+      }));
   }
 
   // --- Radar Chart Helpers ---
   get radarPolygonPoints(): string {
-    const entries = this.getSoftSkillEntries().slice(0, 6);
+    const entries = this.getSoftSkillEntries().slice(0, 5);
     if (entries.length === 0) return '';
-    const cx = 100, cy = 100, radius = 80;
+    const cx = 130, cy = 130, radius = 90;
     
     return entries.map((entry, i) => {
       const angle = (Math.PI * 2 * i) / entries.length - Math.PI / 2;
@@ -189,9 +218,9 @@ export class MesResultatsComponent implements OnInit {
   }
 
   get radarAxisPoints(): { x2: number; y2: number }[] {
-    const entries = this.getSoftSkillEntries().slice(0, 6);
+    const entries = this.getSoftSkillEntries().slice(0, 5);
     if (entries.length === 0) return [];
-    const cx = 100, cy = 100, radius = 80;
+    const cx = 130, cy = 130, radius = 90;
     
     return entries.map((_, i) => {
       const angle = (Math.PI * 2 * i) / entries.length - Math.PI / 2;
@@ -203,9 +232,9 @@ export class MesResultatsComponent implements OnInit {
   }
 
   getRadarGridPoints(level: number): string {
-    const entries = this.getSoftSkillEntries().slice(0, 6);
+    const entries = this.getSoftSkillEntries().slice(0, 5);
     if (entries.length === 0) return '';
-    const cx = 100, cy = 100, radius = 80;
+    const cx = 130, cy = 130, radius = 90;
     return entries.map((_, i) => {
       const angle = (Math.PI * 2 * i) / entries.length - Math.PI / 2;
       const x = cx + radius * level * Math.cos(angle);
@@ -215,21 +244,21 @@ export class MesResultatsComponent implements OnInit {
   }
 
   getRadarPointX(score: number, index: number, total: number): number {
-    const cx = 100, radius = 80;
+    const cx = 130, radius = 90;
     const angle = (Math.PI * 2 * index) / total - Math.PI / 2;
     return cx + radius * (score / 10) * Math.cos(angle);
   }
 
   getRadarPointY(score: number, index: number, total: number): number {
-    const cy = 100, radius = 80;
+    const cy = 130, radius = 90;
     const angle = (Math.PI * 2 * index) / total - Math.PI / 2;
     return cy + radius * (score / 10) * Math.sin(angle);
   }
 
   get radarLabels(): { text: string; x: number; y: number; anchor: string }[] {
-    const entries = this.getSoftSkillEntries().slice(0, 6);
+    const entries = this.getSoftSkillEntries().slice(0, 5);
     if (entries.length === 0) return [];
-    const cx = 100, cy = 100, radius = 95; // Slightly outside
+    const cx = 130, cy = 130, radius = 110; 
     
     return entries.map((entry, i) => {
       const angle = (Math.PI * 2 * i) / entries.length - Math.PI / 2;
@@ -246,9 +275,28 @@ export class MesResultatsComponent implements OnInit {
 
   getScoreColor(score: number, max = 10): string {
     const pct = max === 10 ? score * 10 : score;
-    if (pct >= 75) return '#22c55e';
+    if (pct >= 80) return '#22c55e';
     if (pct >= 50) return '#f59e0b';
     return '#ef4444';
+  }
+  
+  getDotColorClass(score100: number): string {
+    if (score100 >= 80) return 'dot-green';
+    if (score100 >= 50) return 'dot-orange';
+    return 'dot-red';
+  }
+
+  toggleVoiceInterview() {
+    this.showVoiceInterview = !this.showVoiceInterview;
+  }
+  
+  toggleShareProfile() {
+    this.shareableLinkVisible = !this.shareableLinkVisible;
+  }
+  
+  copyShareLink() {
+    navigator.clipboard.writeText(window.location.origin + '/public/profile/' + this.currentUser?.id);
+    this.notify.success('Lien copié dans le presse-papiers');
   }
 
   exportTechPdf(): void {

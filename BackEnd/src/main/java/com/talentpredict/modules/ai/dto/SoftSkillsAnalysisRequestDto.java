@@ -28,6 +28,12 @@ public class SoftSkillsAnalysisRequestDto {
     @JsonAlias({"cv_text", "cvText", "extracted_cv_text"})
     private String cvText;
 
+    @JsonAlias({"linkedin_url", "linkedinUrl"})
+    private String linkedinUrl;
+
+    @JsonAlias({"linkedin_content", "linkedinContent"})
+    private String linkedinContent;
+
     // PCM questions — accept both lowercase and uppercase
     // Use Integer (wrapper) instead of primitive int to allow null/missing values
     @JsonAlias({"q1", "Q1"})

@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../auth/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -26,6 +26,9 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   loading = true;
   saving = false;
   error: string | null = null;
+  showPublicPreview = false;
+  generatingBio = false;
+  lastUpdated: string | null = null;
 
   // File upload state
   photoFile: File | null = null;
@@ -33,18 +36,37 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   cvFile: File | null = null;
   cvFileName: string | null = null;
 
+  // Crop modal state
+  showCropModal = false;
+  cropImageSrc: string | null = null;
+
+  // Contract types multi-select
+  readonly CONTRACT_TYPES = ['CDI', 'CDD', 'Freelance', 'Stage', 'Alternance'];
+  readonly DEPARTMENTS = ['Engineering', 'Product', 'Design', 'Data', 'RH', 'Finance', 'Marketing', 'Operations'];
+  readonly DISPONIBILITE_OPTIONS = [
+    'Disponible immédiatement',
+    'Disponible sous 1 mois',
+    'En poste, à l\'écoute',
+    'Non disponible'
+  ];
+
   profileForm!: FormGroup;
   private profileSubscription?: Subscription;
 
   ngOnInit(): void {
     this.profileForm = this.fb.group({
       titreProfessionnel: [''],
-      description: [''],
+      description: ['', [Validators.minLength(20)]],
       experienceAns: [null],
       niveauEtudes: [''],
       lienLinkedin: [''],
       githubUrl: [''],
-      portfolioUrl: ['']
+      portfolioUrl: [''],
+      poste: [''],
+      departementEditable: [''],
+      ville: [''],
+      disponibilite: [''],
+      typeContrat: [[]]
     });
 
     setTimeout(() => {
@@ -85,6 +107,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
           this.profile = profile ?? ({} as ProfileResponse);
           this.patchForm(this.profile);
           this._cacheProfileUrls(this.profile);
+          this.lastUpdated = (profile as any).updatedAt || null;
           this.loading = false;
           this.error = null;
           this.cdr.detectChanges();
@@ -112,9 +135,16 @@ export class UserProfileComponent implements OnInit, OnDestroy {
       niveauEtudes: profile.niveauEtudes ?? '',
       lienLinkedin: profile.lienLinkedin ?? '',
       githubUrl: profile.githubUrl ?? '',
-      portfolioUrl: profile.portfolioUrl ?? ''
+      portfolioUrl: profile.portfolioUrl ?? '',
+      poste: profile.poste ?? '',
+      departementEditable: profile.departementEditable ?? '',
+      ville: profile.ville ?? '',
+      disponibilite: profile.disponibilite ?? '',
+      typeContrat: profile.typeContrat ?? []
     });
   }
+
+  // ========== Photo handling ==========
 
   onPhotoSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -124,14 +154,42 @@ export class UserProfileComponent implements OnInit, OnDestroy {
       this.notificationService.error('Seules les images sont acceptées (JPG, PNG, WebP…)');
       return;
     }
-    this.photoFile = file;
     const reader = new FileReader();
     reader.onload = () => {
-      this.photoPreview = reader.result as string;
+      this.cropImageSrc = reader.result as string;
+      this.showCropModal = true;
       this.cdr.detectChanges();
     };
     reader.readAsDataURL(file);
+    this.photoFile = file;
   }
+
+  confirmCrop(): void {
+    this.photoPreview = this.cropImageSrc;
+    this.showCropModal = false;
+    this.cdr.detectChanges();
+  }
+
+  cancelCrop(): void {
+    this.showCropModal = false;
+    this.cropImageSrc = null;
+    this.photoFile = null;
+    this.cdr.detectChanges();
+  }
+
+  removePhoto(): void {
+    this.photoFile = null;
+    this.photoPreview = null;
+    this.cropImageSrc = null;
+    // Optionally clear the profile photo URL for display
+    if (this.profile) {
+      this.profile = { ...this.profile, urlPhoto: '' };
+    }
+    this.authService.setAvatarUrl('');
+    this.cdr.detectChanges();
+  }
+
+  // ========== CV handling ==========
 
   onCvSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -146,8 +204,12 @@ export class UserProfileComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  // ========== Photo URL ==========
+
   getPhotoUrl(): string {
     if (this.photoPreview) return this.photoPreview;
+    const globalAvatar = this.authService.getAvatarUrl();
+    if (globalAvatar) return globalAvatar;
     if (!this.profile?.urlPhoto) return '';
     return this.authService.getAssetUrl(this.profile.urlPhoto);
   }
@@ -157,11 +219,86 @@ export class UserProfileComponent implements OnInit, OnDestroy {
     return this.authService.getAssetUrl(this.profile.cvUrl);
   }
 
-  resetForm(): void {
-    if (!this.profile) {
-      return;
-    }
+  // ========== Initials avatar ==========
 
+  get initials(): string {
+    const user = this.authService.getCurrentUser();
+    if (!user) return '?';
+    return `${user.prenom?.charAt(0) || ''}${user.nom?.charAt(0) || ''}`.toUpperCase();
+  }
+
+  get initialsColor(): string {
+    const user = this.authService.getCurrentUser();
+    const name = `${user?.prenom || ''}${user?.nom || ''}`;
+    const colors = ['#0f766e', '#1d4ed8', '#7c3aed', '#b45309', '#be123c', '#0ea5e9'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+  }
+
+  // ========== Contract type multi-select ==========
+
+  isContractSelected(type: string): boolean {
+    const current: string[] = this.profileForm.get('typeContrat')?.value || [];
+    return current.includes(type);
+  }
+
+  toggleContract(type: string): void {
+    const current: string[] = [...(this.profileForm.get('typeContrat')?.value || [])];
+    const idx = current.indexOf(type);
+    if (idx === -1) current.push(type);
+    else current.splice(idx, 1);
+    this.profileForm.patchValue({ typeContrat: current });
+  }
+
+  // ========== Bio counter ==========
+
+  get bioLength(): number {
+    return (this.profileForm.get('description')?.value || '').length;
+  }
+
+  get bioTooShort(): boolean {
+    const val = this.profileForm.get('description')?.value || '';
+    return val.length > 0 && val.length < 20;
+  }
+
+  // ========== AI Bio generator ==========
+
+  generateBio(): void {
+    const titre = this.profileForm.get('titreProfessionnel')?.value || '';
+    const exp = this.profileForm.get('experienceAns')?.value || 0;
+    const poste = this.profileForm.get('poste')?.value || '';
+    this.generatingBio = true;
+
+    // Simulate AI generation (replace with real API call when available)
+    setTimeout(() => {
+      const bio = `Professionnel passionné avec ${exp} ans d'expérience en tant que ${titre || poste}. ` +
+        `Je suis à la recherche d'opportunités permettant de combiner expertise technique et impact business. ` +
+        `Orienté résultats, je m'investis dans chaque projet avec rigueur et créativité.`;
+      this.profileForm.patchValue({ description: bio });
+      this.generatingBio = false;
+      this.cdr.detectChanges();
+    }, 1200);
+  }
+
+  // ========== URL normalization ==========
+
+  private normalizeUrl(url: string): string {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return 'https://' + url;
+  }
+
+  // ========== Public preview ==========
+
+  togglePublicPreview(): void {
+    this.showPublicPreview = !this.showPublicPreview;
+  }
+
+  // ========== Form actions ==========
+
+  resetForm(): void {
+    if (!this.profile) return;
     this.patchForm(this.profile);
     this.photoFile = null;
     this.photoPreview = null;
@@ -171,14 +308,26 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   }
 
   saveProfile(): void {
+    if (this.bioTooShort) {
+      this.notificationService.error('La bio doit contenir au moins 20 caractères.');
+      return;
+    }
+
     const user = this.authService.getCurrentUser();
     if (!user) return;
     this.saving = true;
     const userId = String(user.id).trim();
 
-    this.authService.updateProfile(userId, this.profileForm.value).subscribe({
+    // Normalize URLs before saving
+    const formVal = { ...this.profileForm.value };
+    formVal.lienLinkedin = this.normalizeUrl(formVal.lienLinkedin);
+    formVal.githubUrl = this.normalizeUrl(formVal.githubUrl);
+    formVal.portfolioUrl = this.normalizeUrl(formVal.portfolioUrl);
+
+    this.authService.updateProfile(userId, formVal).subscribe({
       next: (updatedProfile) => {
         this.profile = updatedProfile;
+        this.lastUpdated = new Date().toISOString();
         this.doFileUploads(userId);
       },
       error: (err) => {
@@ -193,7 +342,13 @@ export class UserProfileComponent implements OnInit, OnDestroy {
     const uploadPhoto = (next: () => void) => {
       if (this.photoFile) {
         this.authService.uploadProfilePhoto(userId, this.photoFile).subscribe({
-          next: (p) => { this.profile = p; this.photoFile = null; this.photoPreview = null; next(); },
+          next: (p) => {
+            this.profile = p;
+            this.photoFile = null;
+            this.photoPreview = null;
+            // avatarUrl$ is updated inside the service
+            next();
+          },
           error: () => next()
         });
       } else {
@@ -219,12 +374,12 @@ export class UserProfileComponent implements OnInit, OnDestroy {
 
     uploadPhoto(() => {
       uploadCv(() => {
-        // Reload profile so hero card shows updated photo/CV URLs immediately
         this.authService.getProfile(userId).subscribe({
           next: (p) => {
             this.profile = p;
             this.patchForm(p);
             this._cacheProfileUrls(p);
+            this.lastUpdated = new Date().toISOString();
             this.saving = false;
             this.notificationService.success('Profil mis à jour avec succès !');
             this.cdr.detectChanges();
@@ -239,12 +394,6 @@ export class UserProfileComponent implements OnInit, OnDestroy {
     });
   }
 
-  get initials(): string {
-    const user = this.authService.getCurrentUser();
-    if (!user) return '?';
-    return `${user.prenom?.charAt(0) || ''}${user.nom?.charAt(0) || ''}`.toUpperCase();
-  }
-
   goBack(): void {
     this.router.navigate([this.authService.isAdmin() ? '/admin/dashboard' : '/dashboard']);
   }
@@ -253,10 +402,15 @@ export class UserProfileComponent implements OnInit, OnDestroy {
     this.router.navigate(['/competences']);
   }
 
-
-
   goToSecurity(): void {
     this.router.navigate(['/security']);
+  }
+
+  formatLastUpdated(): string {
+    if (!this.lastUpdated) return '';
+    const date = new Date(this.lastUpdated);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
   private _cacheProfileUrls(profile: any): void {

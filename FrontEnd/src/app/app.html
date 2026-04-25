@@ -166,6 +166,14 @@
           </svg>
           <span class="nav-label">Gestion Employés</span>
         </a>
+
+        <a routerLink="/admin/formations" routerLinkActive="active" class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+          </svg>
+          <span class="nav-label">Gestion Formations</span>
+        </a>
       </div>
 
       <div class="nav-section">
@@ -224,7 +232,11 @@
     <!-- Sidebar footer -->
     <div class="sidebar-footer">
       <div class="user-card">
+        @if (avatarUrl()) {
+        <img class="user-avatar-img" [src]="avatarUrl()" alt="Avatar" />
+        } @else {
         <div class="user-avatar">{{ getUserInitials() }}</div>
+        }
         <div class="user-info">
           <span class="user-name">{{ getCurrentUser()?.prenom }} {{ getCurrentUser()?.nom }}</span>
           <span class="user-role">{{ getCurrentRoleLabel() }}</span>

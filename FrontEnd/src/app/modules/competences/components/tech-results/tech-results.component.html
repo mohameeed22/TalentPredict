@@ -1,7 +1,13 @@
 <div class="tr-wrap" id="print-area">
 
-  <!-- ══ HEADER ════════════════════════════════════════════════════════ -->
   <div class="tr-header">
+    <!-- DEBUG PANEL -->
+    <div style="background: #333; color: lime; padding: 10px; font-family: monospace; font-size: 12px;">
+      [DEBUG] GitHubUser: {{ githubResult?.username || 'NULL' }} | 
+      loadingGH: {{ loadingGithubDeep }} | hasGHRes: {{ !!githubDeepResult }} | ghErr: {{ githubDeepResult?.error || 'NONE' }} <br>
+      loadingCV: {{ loadingCvAuthenticity }} | hasCVRes: {{ !!cvAuthenticityResult }} | cvErr: {{ cvAuthenticityResult?.error || 'NONE' }}
+    </div>
+
     <div class="header-left">
       <button type="button" class="back-btn" (click)="retakeTest()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -41,7 +47,7 @@
   </div>
 
   <!-- ══ TAB: OVERVIEW ══════════════════════════════════════════════════ -->
-  @if (activeTab === 'overview') {
+  @if (activeTab === 'overview' || pdfMode) {
   <div class="tab-content">
 
     <!-- Score ring -->
@@ -126,12 +132,49 @@
       </div>
     }
 
+    <!-- CV Authenticity Forensics -->
+    @if (loadingCvAuthenticity) {
+      <div class="section-block loading-state">
+         <span class="spin"></span> Analyse Forensics du CV en cours...
+      </div>
+    }
+    @if (!loadingCvAuthenticity && cvAuthenticityResult) {
+      <div class="section-block" style="background: #1e293b; border: 1px solid #334155; padding: 1.5rem; border-radius: 12px; margin-top: 1.5rem;">
+        <h3 class="sb-title" style="color: #f8fafc; font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+           <span class="icon">🛡️</span> Forensics: Détection d'Authenticité CV
+        </h3>
+        <div style="font-size: 0.9rem;">
+           @if (cvAuthenticityResult.error) {
+             <div style="color: #ef4444;">{{ cvAuthenticityResult.error }}</div>
+           } @else {
+             <p style="margin-bottom: 0.5rem;">
+                <strong style="color: #38bdf8;">Risque global:</strong> 
+                <span [style.color]="cvAuthenticityResult.authenticity_risk === 'high' ? '#ef4444' : (cvAuthenticityResult.authenticity_risk === 'medium' ? '#f59e0b' : '#22c55e')">
+                   {{ cvAuthenticityResult.authenticity_risk | uppercase }}
+                </span>
+             </p>
+             <p style="margin-bottom: 0.5rem;"><strong style="color: #f472b6;">Probabilité IA:</strong> {{ (cvAuthenticityResult.ai_generated_probability * 100) | number:'1.0-0' }}%</p>
+             <p style="color: #cbd5e1;">{{ cvAuthenticityResult.explanation }}</p>
+             
+             @if (cvAuthenticityResult.signals?.length) {
+               <ul style="margin-top: 0.75rem; padding-left: 1.25rem; color: #94a3b8;">
+                  @for (s of cvAuthenticityResult.signals; track s.description) {
+                    <li style="margin-bottom: 0.25rem;">{{ s.description }}</li>
+                  }
+               </ul>
+             }
+           }
+        </div>
+      </div>
+    }
+
   </div>
   }
 
   <!-- ══ TAB: SKILLS ════════════════════════════════════════════════════ -->
-  @if (activeTab === 'skills') {
-  <div class="tab-content">
+  @if (activeTab === 'skills' || pdfMode) {
+  <div class="tab-content" [class.pdf-section]="pdfMode">
+    @if (pdfMode) { <h2 class="pdf-section-title" style="margin-top: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; color: #0f172a;">2. Compétences</h2> }
     @if (quizResult?.skillScores) {
       <div class="skill-grid">
         @for (entry of quizResult.skillScores | keyvalue; track entry.key) {
@@ -167,8 +210,9 @@
   }
 
   <!-- ══ TAB: GITHUB ════════════════════════════════════════════════════ -->
-  @if (activeTab === 'github') {
-  <div class="tab-content">
+  @if (activeTab === 'github' || pdfMode) {
+  <div class="tab-content" [class.pdf-section]="pdfMode">
+    @if (pdfMode) { <h2 class="pdf-section-title" style="margin-top: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; color: #0f172a;">3. Analyse GitHub & Architecturale</h2> }
     @if (githubResult) {
       <div class="gh-summary-card">
         <div class="gh-sh">
@@ -218,6 +262,38 @@
         </div>
       }
 
+      <!-- GITHUB DEEP ANALYSIS FORENSICS -->
+      @if (loadingGithubDeep) {
+        <div class="section-block loading-state" style="margin-top: 1.5rem;">
+           <span class="spin"></span> Analyse Architecturale Profonde en cours...
+        </div>
+      }
+      @if (!loadingGithubDeep && githubDeepResult) {
+        <div class="section-block" style="background: #1e293b; border: 1px solid #334155; padding: 1.5rem; border-radius: 12px; margin-top: 1.5rem;">
+          <h3 class="sb-title" style="color: #f8fafc; font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+             <span class="icon">🐙</span> Forensics: Analyse Architecturale Profonde
+          </h3>
+          <div style="font-size: 0.9rem;">
+            @if (githubDeepResult.error) {
+              <div style="color: #ef4444;">{{ githubDeepResult.error }}</div>
+            } @else {
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                <p><strong style="color: #38bdf8;">Qualité des commits:</strong> {{ githubDeepResult.commit_quality_score ?? 'N/A' }}/100</p>
+                <p><strong style="color: #38bdf8;">Qualité du code (CI/Tests):</strong> {{ githubDeepResult.code_quality_proxy_score ?? 'N/A' }}/100</p>
+                <p><strong style="color: #f472b6;">Impact Projet:</strong> {{ githubDeepResult.project_impact_score ?? 'N/A' }}/100</p>
+                <p><strong style="color: #10b981;">Score Global GitHub:</strong> {{ githubDeepResult.github_score ?? 'N/A' }}/100</p>
+              </div>
+              @if (githubDeepResult.ai_summary) {
+                <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px;">
+                  <strong style="color: #94a3b8; display: block; margin-bottom: 0.5rem;">Résumé IA:</strong>
+                  <p style="color: #cbd5e1; margin: 0;">{{ githubDeepResult.ai_summary }}</p>
+                </div>
+              }
+            }
+          </div>
+        </div>
+      }
+
     } @else {
       <div class="empty-state">
         <p>Aucune analyse GitHub disponible. Retournez à la page d'intake et entrez votre URL GitHub.</p>
@@ -227,8 +303,9 @@
   }
 
   <!-- ══ TAB: GAPS ══════════════════════════════════════════════════════ -->
-  @if (activeTab === 'gaps') {
-  <div class="tab-content">
+  @if (activeTab === 'gaps' || pdfMode) {
+  <div class="tab-content" [class.pdf-section]="pdfMode">
+    @if (pdfMode) { <h2 class="pdf-section-title" style="margin-top: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; color: #0f172a;">4. Écarts de Compétences (Gaps)</h2> }
 
     @if (quizResult?.gapSummary) {
       <div class="gap-summary-banner">{{ quizResult.gapSummary }}</div>

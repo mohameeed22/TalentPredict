@@ -1,0 +1,95 @@
+<div class="admin-formations-container">
+  <header class="page-header">
+    <h2>Gestion des Formations</h2>
+    <p>Approuvez ou rejetez les demandes de formation des utilisateurs.</p>
+  </header>
+
+  @if (isLoading()) {
+    <div class="loading">Chargement...</div>
+  }
+
+  @if (errorMsg()) {
+    <div class="error-card">{{ errorMsg() }}</div>
+  }
+
+  <section class="formations-section">
+    <h3>En attente de validation ({{ pendingFormations().length }})</h3>
+    <table class="formations-table">
+      <thead>
+        <tr>
+          <th>Candidat</th>
+          <th>Formation (Platforme, Durée)</th>
+          <th>Cible</th>
+          <th>Date de demande</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (f of pendingFormations(); track f.id) {
+          <tr>
+            <td><strong>{{ f.candidatName || 'Inconnu' }}</strong></td>
+            <td>
+              <a *ngIf="f.url" [href]="f.url" target="_blank">{{ f.titre }}</a>
+              <span *ngIf="!f.url">{{ f.titre }}</span>
+              <br/>
+              <small>{{ f.fournisseur }} • {{ f.duree }}h</small>
+            </td>
+            <td>{{ f.type }}</td>
+            <td>{{ f.requestedAt ? (f.requestedAt | date:'short') : (f.dateProposition | date:'short') }}</td>
+            <td>
+              <button class="btn-action primary" (click)="toggleSelection(f.id)">Gérer</button>
+            </td>
+          </tr>
+          @if (selectedFormationId() === f.id) {
+            <tr class="action-row">
+              <td colspan="5">
+                <div class="action-panel">
+                  <div class="action-inputs">
+                    <label>
+                      Note Admin (Approbation)
+                      <input type="text" [(ngModel)]="adminNote" placeholder="Ex: Focus sur les chapitres 3-5">
+                    </label>
+                    <label>
+                      Raison du rejet (Optionnel)
+                      <input type="text" [(ngModel)]="rejectionReason" placeholder="Ex: Déjà suivi une formation similaire">
+                    </label>
+                  </div>
+                  <div class="action-buttons">
+                    <button class="btn-approve" (click)="approveFormation(f)">✓ Approuver</button>
+                    <button class="btn-reject" (click)="rejectFormation(f)">✗ Rejeter</button>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          }
+        } @empty {
+          <tr><td colspan="5" class="empty-text">Aucune demande en attente.</td></tr>
+        }
+      </tbody>
+    </table>
+  </section>
+
+  <section class="formations-section" style="margin-top: 2rem;">
+    <h3>Toutes les autres formations</h3>
+    <table class="formations-table">
+      <thead>
+        <tr>
+          <th>Candidat</th>
+          <th>Formation</th>
+          <th>Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (f of otherFormations(); track f.id) {
+          <tr>
+            <td>{{ f.candidatName || 'Inconnu' }}</td>
+            <td>{{ f.titre }}</td>
+            <td><span class="status-badge" [ngClass]="f.statut.toLowerCase()">{{ f.statut }}</span></td>
+          </tr>
+        } @empty {
+          <tr><td colspan="3" class="empty-text">Aucune autre formation.</td></tr>
+        }
+      </tbody>
+    </table>
+  </section>
+</div>

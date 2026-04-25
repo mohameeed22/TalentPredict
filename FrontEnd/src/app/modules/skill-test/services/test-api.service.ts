@@ -7,11 +7,11 @@ import { environment } from '../../../../environments/environment';
 export class TestApiService {
   private http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}`;
-  // Keep UI responsive when AI/model calls take too long.
-  private readonly generateTimeoutMs = 25_000;
-  private readonly evaluateTimeoutMs = 20_000;
-  private readonly codeGenerateTimeoutMs = 20_000;
-  private readonly codeEvaluateTimeoutMs = 20_000;
+  // Keep UI responsive when AI/model calls take too long, but allow enough time for local LLMs (Ollama)
+  private readonly generateTimeoutMs = 60_000;
+  private readonly evaluateTimeoutMs = 60_000;
+  private readonly codeGenerateTimeoutMs = 60_000;
+  private readonly codeEvaluateTimeoutMs = 60_000;
 
   private normalizeCodeChallengeLevel(level?: string, difficulty?: string): string {
     const raw = (level ?? difficulty ?? 'EXPERT').toString().trim();
@@ -136,6 +136,27 @@ export class TestApiService {
   }): Observable<unknown> {
     return this.http.post(`${this.base}/assessment/interview/summary`, body).pipe(
       timeout({ first: this.interviewTimeoutMs })
+    );
+  }
+
+  // ── Advanced Forensics & Analysis ──────────────────────────────────
+  analyzeGithubDeep(body: {
+    github_username: string;
+    candidate_id: string;
+    github_data?: any;
+  }): Observable<unknown> {
+    // We map to the Spring Boot proxy endpoint if available, else directly to Python
+    return this.http.post(`${this.base}/analysis/github-deep`, body).pipe(
+      timeout({ first: this.generateTimeoutMs })
+    );
+  }
+
+  checkCvAuthenticity(body: {
+    candidate_id: string;
+    cv_text: string;
+  }): Observable<unknown> {
+    return this.http.post(`${this.base}/analysis/cv-authenticity`, body).pipe(
+      timeout({ first: this.evaluateTimeoutMs })
     );
   }
 }

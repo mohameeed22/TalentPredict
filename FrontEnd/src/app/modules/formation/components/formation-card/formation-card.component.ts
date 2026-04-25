@@ -16,7 +16,10 @@ export class FormationCardComponent {
   getStatusClass(statut: StatutFormation): string {
     const statusMap: Record<StatutFormation, string> = {
       [StatutFormation.PROPOSEE]: 'status-proposed',
+      [StatutFormation.EN_ATTENTE]: 'status-proposed',
       [StatutFormation.ACCEPTEE]: 'status-proposed',
+      [StatutFormation.REJETEE]: 'status-cancelled',
+      [StatutFormation.PROPOSEE_ADMIN]: 'status-proposed',
       [StatutFormation.EN_COURS]: 'status-in-progress',
       [StatutFormation.TERMINEE]: 'status-completed',
       [StatutFormation.ANNULEE]: 'status-cancelled'
@@ -41,7 +44,10 @@ export class FormationCardComponent {
   getStatusLabel(statut: StatutFormation): string {
     const statusLabels: Record<StatutFormation, string> = {
       [StatutFormation.PROPOSEE]: 'Proposée',
+      [StatutFormation.EN_ATTENTE]: 'En attente',
       [StatutFormation.ACCEPTEE]: 'Acceptée',
+      [StatutFormation.REJETEE]: 'Rejetée',
+      [StatutFormation.PROPOSEE_ADMIN]: 'Recommandée par RH',
       [StatutFormation.EN_COURS]: 'En cours',
       [StatutFormation.TERMINEE]: 'Terminée',
       [StatutFormation.ANNULEE]: 'Annulée'

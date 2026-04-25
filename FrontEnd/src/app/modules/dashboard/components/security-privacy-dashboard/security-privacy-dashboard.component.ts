@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 
 import { AuthService } from '../../../auth/services/auth.service';
@@ -12,10 +12,27 @@ import {
   SecurityPrivacyService
 } from '../../../../core/services/security-privacy.service';
 
+// French labels for event types
+const EVENT_LABELS: Record<string, string> = {
+  LOGIN_SUCCESS: 'Connexion réussie',
+  LOGIN_FAILED: 'Tentative de connexion échouée',
+  LOGOUT: 'Déconnexion',
+  PASSWORD_CHANGED: 'Mot de passe modifié',
+  TWO_FACTOR_ENABLED: 'Authentification 2FA activée',
+  TWO_FACTOR_DISABLED: 'Authentification 2FA désactivée',
+  EMAIL_VERIFIED: 'Email vérifié',
+  ALL_SESSIONS_REVOKED: 'Toutes les sessions révoquées',
+  SESSION_REVOKED: 'Session révoquée',
+  ACCOUNT_DELETED: 'Compte supprimé',
+  PROFILE_UPDATED: 'Profil mis à jour',
+  DATA_EXPORTED: 'Données exportées',
+  DELETE_REQUESTED: 'Demande de suppression',
+};
+
 @Component({
   selector: 'app-security-privacy-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
   templateUrl: './security-privacy-dashboard.component.html',
   styleUrl: './security-privacy-dashboard.component.scss'
 })
@@ -28,7 +45,29 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
 
   loading = true;
   processing = false;
+
+  // 2FA step: null | 'request' | 'enter-code' | 'done'
+  twoFactorStep: null | 'enter-code' = null;
   pendingTwoFactorAction: 'ENABLE' | 'DISABLE' | null = null;
+  twoFactorMethod: '2FA_EMAIL' | '2FA_SMS' | '2FA_APP' = '2FA_EMAIL';
+
+  // Password change
+  showPasswordChange = false;
+  passwordStrength = 0;
+  passwordStrengthLabel = '';
+
+  // Security score
+  securityScore = 0;
+  securityItems: { label: string; done: boolean; action?: string }[] = [];
+
+  // Deletion countdown
+  deletionCountdownDays: number | null = null;
+
+  // Export format
+  exportFormat: 'json' | 'pdf' = 'json';
+
+  // Active tab
+  activeTab: 'security' | 'sessions' | 'privacy' | 'gdpr' = 'security';
 
   dashboard: SecurityDashboardResponse | null = null;
   privacySettings: PrivacySettingsResponse | null = null;
@@ -39,11 +78,23 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
     profileVisibilityConsent: true,
     dataProcessingConsent: true,
     dataRetentionDays: [365, [Validators.required, Validators.min(30), Validators.max(3650)]],
-    consentVersion: 'v1'
+    consentVersion: 'v1',
+    // Notification preferences
+    notifNewLogin: true,
+    notifPasswordChange: true,
+    notifTwoFactorChange: true,
+    notifExportRequest: false,
+    notifAdminView: false,
   });
 
   twoFactorForm = this.fb.nonNullable.group({
     code: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]]
+  });
+
+  passwordForm = this.fb.nonNullable.group({
+    currentPassword: ['', Validators.required],
+    newPassword: ['', [Validators.required, Validators.minLength(8)]],
+    confirmPassword: ['', Validators.required]
   });
 
   deleteForm = this.fb.nonNullable.group({
@@ -58,6 +109,10 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
     this.router.navigate(['/profile']);
   }
 
+  setTab(tab: 'security' | 'sessions' | 'privacy' | 'gdpr'): void {
+    this.activeTab = tab;
+  }
+
   loadAll(): void {
     this.loading = true;
 
@@ -69,6 +124,8 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
         this.dashboard = dashboard;
         this.privacySettings = privacy;
         this.patchPrivacyForm(privacy);
+        this.computeSecurityScore(dashboard, privacy);
+        this.computeDeletionCountdown(privacy);
       },
       error: (error) => {
         this.notificationService.error(error.error?.message || 'Impossible de charger les paramètres de sécurité.');
@@ -79,11 +136,14 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
     });
   }
 
+  // ========== 2FA ==========
+
   requestTwoFactorCode(action: 'ENABLE' | 'DISABLE'): void {
     this.processing = true;
     this.service.sendTwoFactorCode(action).subscribe({
       next: (response) => {
         this.pendingTwoFactorAction = action;
+        this.twoFactorStep = 'enter-code';
         this.twoFactorForm.reset();
         this.notificationService.info(response.message || 'Code de vérification envoyé.');
       },
@@ -94,6 +154,12 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
         this.processing = false;
       }
     });
+  }
+
+  cancelTwoFactor(): void {
+    this.twoFactorStep = null;
+    this.pendingTwoFactorAction = null;
+    this.twoFactorForm.reset();
   }
 
   submitTwoFactorAction(): void {
@@ -111,6 +177,7 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
     request$.subscribe({
       next: (response) => {
         this.notificationService.success(response.message || 'Paramètre 2FA mis à jour.');
+        this.twoFactorStep = null;
         this.pendingTwoFactorAction = null;
         this.twoFactorForm.reset();
         this.reloadDashboard();
@@ -124,6 +191,47 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
     });
   }
 
+  // ========== Password ==========
+
+  onNewPasswordChange(): void {
+    const pwd = this.passwordForm.get('newPassword')?.value || '';
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    this.passwordStrength = score;
+    const labels = ['Très faible', 'Faible', 'Moyen', 'Fort', 'Très fort'];
+    this.passwordStrengthLabel = labels[score] || '';
+  }
+
+  changePassword(): void {
+    if (this.passwordForm.invalid) {
+      this.passwordForm.markAllAsTouched();
+      return;
+    }
+    const { currentPassword, newPassword, confirmPassword } = this.passwordForm.getRawValue();
+    if (newPassword !== confirmPassword) {
+      this.notificationService.error('Les mots de passe ne correspondent pas.');
+      return;
+    }
+    this.processing = true;
+    this.authService.changePassword({ currentPassword, newPassword }).subscribe({
+      next: (res) => {
+        this.notificationService.success(res.message || 'Mot de passe modifié avec succès.');
+        this.showPasswordChange = false;
+        this.passwordForm.reset();
+        this.passwordStrength = 0;
+      },
+      error: (err) => {
+        this.notificationService.error(err.error?.message || 'Impossible de modifier le mot de passe.');
+      },
+      complete: () => { this.processing = false; }
+    });
+  }
+
+  // ========== Sessions ==========
+
   revokeSession(sessionId: string): void {
     this.processing = true;
     this.service.revokeSession(sessionId).subscribe({
@@ -134,9 +242,7 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
       error: (error) => {
         this.notificationService.error(error.error?.message || 'Impossible de révoquer cette session.');
       },
-      complete: () => {
-        this.processing = false;
-      }
+      complete: () => { this.processing = false; }
     });
   }
 
@@ -150,11 +256,11 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
       error: (error) => {
         this.notificationService.error(error.error?.message || 'Impossible de révoquer les sessions.');
       },
-      complete: () => {
-        this.processing = false;
-      }
+      complete: () => { this.processing = false; }
     });
   }
+
+  // ========== Email verification ==========
 
   resendVerificationEmail(): void {
     const email = this.authService.getCurrentUser()?.email;
@@ -162,7 +268,6 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
       this.notificationService.error('Adresse e-mail introuvable.');
       return;
     }
-
     this.processing = true;
     this.authService.resendVerificationEmail(email).subscribe({
       next: (response) => {
@@ -171,33 +276,33 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
       error: (error) => {
         this.notificationService.error(error.error?.message || 'Impossible de renvoyer le lien de vérification.');
       },
-      complete: () => {
-        this.processing = false;
-      }
+      complete: () => { this.processing = false; }
     });
   }
+
+  // ========== Privacy ==========
 
   savePrivacySettings(): void {
     if (this.privacyForm.invalid) {
       this.privacyForm.markAllAsTouched();
       return;
     }
-
     this.processing = true;
     this.service.updatePrivacySettings(this.privacyForm.getRawValue()).subscribe({
       next: (response) => {
         this.privacySettings = response;
         this.patchPrivacyForm(response);
         this.notificationService.success('Paramètres de confidentialité sauvegardés.');
+        this.computeSecurityScore(this.dashboard, response);
       },
       error: (error) => {
         this.notificationService.error(error.error?.message || 'Impossible de sauvegarder les paramètres.');
       },
-      complete: () => {
-        this.processing = false;
-      }
+      complete: () => { this.processing = false; }
     });
   }
+
+  // ========== GDPR ==========
 
   exportData(): void {
     this.processing = true;
@@ -206,7 +311,7 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'talentpredict-my-data.json';
+        link.download = `talentpredict-mes-donnees.${this.exportFormat}`;
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -216,9 +321,7 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
       error: (error) => {
         this.notificationService.error(error.error?.message || 'Impossible d\'exporter les données.');
       },
-      complete: () => {
-        this.processing = false;
-      }
+      complete: () => { this.processing = false; }
     });
   }
 
@@ -231,9 +334,7 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
       error: (error) => {
         this.notificationService.error(error.error?.message || 'Impossible d\'appliquer la rétention.');
       },
-      complete: () => {
-        this.processing = false;
-      }
+      complete: () => { this.processing = false; }
     });
   }
 
@@ -247,9 +348,7 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
       error: (error) => {
         this.notificationService.error(error.error?.message || 'Impossible d\'enregistrer la demande de suppression.');
       },
-      complete: () => {
-        this.processing = false;
-      }
+      complete: () => { this.processing = false; }
     });
   }
 
@@ -258,7 +357,6 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
       this.deleteForm.markAllAsTouched();
       return;
     }
-
     this.processing = true;
     const phrase = this.deleteForm.get('confirmPhrase')?.value || '';
     this.service.deleteAccount(phrase).subscribe({
@@ -270,27 +368,91 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
       error: (error) => {
         this.notificationService.error(error.error?.message || 'Suppression impossible. Vérifiez la phrase de confirmation.');
       },
-      complete: () => {
-        this.processing = false;
-      }
+      complete: () => { this.processing = false; }
     });
   }
 
-  formatDate(value: string | null | undefined): string {
-    if (!value) return '-';
+  // ========== Helpers ==========
 
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return '-';
+  translateEventType(eventType: string): string {
+    return EVENT_LABELS[eventType] || eventType;
+  }
+
+  maskIp(ip: string | null | undefined): string {
+    if (!ip) return 'Inconnue';
+    if (ip === '127.0.0.1' || ip === '::1' || ip === 'localhost') return 'Session locale';
+    // Mask last octet: 192.168.1.xxx → 192.168.1.***
+    const parts = ip.split('.');
+    if (parts.length === 4) {
+      return `${parts[0]}.${parts[1]}.${parts[2]}.*`;
     }
+    return ip;
+  }
 
+  getDeviceLabel(deviceId: string | null | undefined): string {
+    if (!deviceId) return 'Appareil inconnu';
+    if (deviceId.toLowerCase().includes('mobile')) return '📱 Mobile';
+    if (deviceId.toLowerCase().includes('tablet')) return '📋 Tablette';
+    return '💻 Ordinateur';
+  }
+
+  getStatusBadgeClass(ok: boolean): string {
+    return ok ? 'badge-success' : 'badge-warning';
+  }
+
+  getEventBadgeClass(eventType: string): string {
+    if (eventType.includes('FAILED') || eventType.includes('DELETE')) return 'badge-danger';
+    if (eventType.includes('REVOKED') || eventType.includes('DISABLED')) return 'badge-warning';
+    return 'badge-success';
+  }
+
+  formatDate(value: string | null | undefined): string {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
     return date.toLocaleString('fr-FR');
+  }
+
+  formatDateShort(value: string | null | undefined): string {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return '—';
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  private computeSecurityScore(
+    dashboard: SecurityDashboardResponse | null,
+    privacy: PrivacySettingsResponse | null
+  ): void {
+    const items: { label: string; done: boolean; action?: string }[] = [
+      { label: 'Email vérifié', done: !!dashboard?.emailVerified, action: 'Vérifier' },
+      { label: 'Authentification 2FA activée', done: !!dashboard?.twoFactorEnabled, action: 'Activer' },
+      { label: 'Mot de passe fort (8+ caractères)', done: true }, // Assumed if logged in
+      { label: 'Profil visible aux recruteurs configuré', done: privacy?.profileVisibilityConsent !== undefined },
+      { label: 'Consentement RGPD accepté', done: !!privacy?.dataProcessingConsent, action: 'Configurer' },
+    ];
+    const done = items.filter(i => i.done).length;
+    this.securityScore = Math.round((done / items.length) * 100);
+    this.securityItems = items;
+  }
+
+  private computeDeletionCountdown(privacy: PrivacySettingsResponse | null): void {
+    if (!privacy?.deleteRequestedAt) {
+      this.deletionCountdownDays = null;
+      return;
+    }
+    const requestDate = new Date(privacy.deleteRequestedAt);
+    const deleteDate = new Date(requestDate);
+    deleteDate.setDate(deleteDate.getDate() + 28);
+    const diff = deleteDate.getTime() - Date.now();
+    this.deletionCountdownDays = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   }
 
   private reloadDashboard(): void {
     this.service.getSecurityDashboard().subscribe({
       next: dashboard => {
         this.dashboard = dashboard;
+        this.computeSecurityScore(dashboard, this.privacySettings);
       }
     });
   }

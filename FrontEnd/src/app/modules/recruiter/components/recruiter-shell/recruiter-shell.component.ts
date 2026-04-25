@@ -25,6 +25,10 @@ export class RecruiterShellComponent implements OnInit {
   totalCandidates = 0;
   flaggedCandidates = 0;
   highRiskCandidates = 0;
+  
+  averageScore = 0;
+  githubVerifiedCount = 0;
+  cvAnalyzedCount = 0;
 
   readonly tabs: RecruiterTab[] = [
     {
@@ -35,7 +39,7 @@ export class RecruiterShellComponent implements OnInit {
     {
       path: '/recruiter/fraud',
       label: 'Alertes fraude',
-      description: 'Detection et verification'
+      description: 'Détection et vérification'
     }
   ];
 
@@ -56,6 +60,21 @@ export class RecruiterShellComponent implements OnInit {
       this.totalCandidates = candidateRows.length;
       this.flaggedCandidates = alertRows.length;
       this.highRiskCandidates = alertRows.filter(row => this.isHighRisk(row.fraudRisk)).length;
+      
+      const scoredCandidates = candidateRows.filter(c => c.realScore !== null && c.realScore !== undefined);
+      if (scoredCandidates.length > 0) {
+        const sum = scoredCandidates.reduce((acc, c) => {
+           const s = c.realScore!;
+           return acc + (s <= 1 ? s * 100 : s);
+        }, 0);
+        this.averageScore = Math.round(sum / scoredCandidates.length);
+      } else {
+        this.averageScore = 0;
+      }
+      
+      this.githubVerifiedCount = candidateRows.filter(c => !!c.githubUsername && c.githubUsername.trim() !== '' && c.githubUsername.toLowerCase() !== 'mohameeed22').length;
+      this.cvAnalyzedCount = candidateRows.filter(c => !!c.fraudRisk || !!c.latestFraudCaseId).length;
+
       this.loadingOverview = false;
     });
   }

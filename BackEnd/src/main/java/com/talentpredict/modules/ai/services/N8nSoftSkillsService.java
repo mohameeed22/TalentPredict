@@ -356,6 +356,9 @@ public class N8nSoftSkillsService {
         body.put("github_username", r.getGithubUsername()  != null ? r.getGithubUsername()  : "");
         body.put("cv_text",         r.getCvText()          != null ? r.getCvText()          : "");
         body.put("extracted_cv_text", r.getCvText()        != null ? r.getCvText()          : "");
+        // LinkedIn data — enables n8n LinkedIn profile analysis
+        body.put("linkedin_url",     r.getLinkedinUrl()     != null ? r.getLinkedinUrl()     : "");
+        body.put("linkedin_content", r.getLinkedinContent() != null ? r.getLinkedinContent() : "");
         body.put("q1",  valueOrDefault(r.getQ1()));  body.put("q2",  valueOrDefault(r.getQ2()));  body.put("q3",  valueOrDefault(r.getQ3()));
         body.put("q4",  valueOrDefault(r.getQ4()));  body.put("q5",  valueOrDefault(r.getQ5()));  body.put("q6",  valueOrDefault(r.getQ6()));
         body.put("q7",  valueOrDefault(r.getQ7()));  body.put("q8",  valueOrDefault(r.getQ8()));  body.put("q9",  valueOrDefault(r.getQ9()));

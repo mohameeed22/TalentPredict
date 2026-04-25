@@ -70,8 +70,16 @@
       <span class="xp-total">{{ g.xp }} XP total</span>
     </div>
     }
+
+    <div class="tabs-nav" style="display: flex; gap: 16px; margin-top: 24px; border-bottom: 1px solid var(--border-color, #e2e8f0); padding-bottom: 12px;">
+      <button type="button" class="tab-btn" [style.borderBottom]="activeTab() === 'VUE_ENSEMBLE' ? '2px solid var(--primary-color)' : 'none'" [style.color]="activeTab() === 'VUE_ENSEMBLE' ? 'var(--primary-color)' : 'inherit'" (click)="activeTab.set('VUE_ENSEMBLE')" style="background:none; border:none; padding:8px 16px; cursor:pointer; font-weight:600;">Vue d'ensemble</button>
+      <button type="button" class="tab-btn" [style.borderBottom]="activeTab() === 'FORMATIONS' ? '2px solid var(--primary-color)' : 'none'" [style.color]="activeTab() === 'FORMATIONS' ? 'var(--primary-color)' : 'inherit'" (click)="activeTab.set('FORMATIONS')" style="background:none; border:none; padding:8px 16px; cursor:pointer; font-weight:600;">Formations</button>
+      <button type="button" class="tab-btn" [style.borderBottom]="activeTab() === 'KANBAN' ? '2px solid var(--primary-color)' : 'none'" [style.color]="activeTab() === 'KANBAN' ? 'var(--primary-color)' : 'inherit'" (click)="activeTab.set('KANBAN')" style="background:none; border:none; padding:8px 16px; cursor:pointer; font-weight:600;">Kanban</button>
+      <button type="button" class="tab-btn" [style.borderBottom]="activeTab() === 'PLANNING' ? '2px solid var(--primary-color)' : 'none'" [style.color]="activeTab() === 'PLANNING' ? 'var(--primary-color)' : 'inherit'" (click)="activeTab.set('PLANNING')" style="background:none; border:none; padding:8px 16px; cursor:pointer; font-weight:600;">Planning</button>
+    </div>
   </header>
 
+  @if (activeTab() === 'VUE_ENSEMBLE') {
   <section class="learning-plan-card">
     <div class="learning-plan-header">
       <div class="plan-title-wrap">
@@ -80,10 +88,15 @@
         <p>Un plan visuel, orienté impact et adapté à vos faiblesses techniques et soft skills.</p>
       </div>
 
-      <button type="button" class="btn-plan" (click)="generateLearningPlan()"
-        [disabled]="learningPlanLoading() || autoReplanLoading()">
-        {{ learningPlanLoading() ? 'Génération en cours...' : 'Générer mon plan IA' }}
-      </button>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn-secondary" (click)="exportToPdf()" [disabled]="isExportingPdf()">
+          {{ isExportingPdf() ? 'Export en cours...' : 'Export PDF' }}
+        </button>
+        <button type="button" class="btn-plan" (click)="generateLearningPlan()"
+          [disabled]="learningPlanLoading() || autoReplanLoading()">
+          {{ learningPlanLoading() ? 'Génération en cours...' : 'Générer mon plan IA' }}
+        </button>
+      </div>
     </div>
 
     <div class="learning-plan-form">
@@ -132,59 +145,7 @@
       </label>
     </div>
 
-    <section class="weekly-goal-panel">
-      <div class="goal-header">
-        <h4>Weekly learning goals & streaks</h4>
-        <span class="goal-streak">Streak: {{ weeklyStreakWeeks() }} semaine(s)</span>
-      </div>
-
-      <div class="goal-controls">
-        <label>
-          <span>Objectif (heures / semaine)</span>
-          <input type="number" min="1" max="60" step="0.5" [(ngModel)]="weeklyGoalInput" />
-        </label>
-        <button type="button" class="btn-secondary" (click)="saveWeeklyGoal()">Mettre à jour l'objectif</button>
-
-        <label>
-          <span>Heures à logger</span>
-          <input type="number" min="0.25" max="24" step="0.25" [(ngModel)]="weeklyLogInput" />
-        </label>
-        <button type="button" class="btn-secondary" (click)="logWeeklyHours()">Ajouter des heures</button>
-      </div>
-
-      <div class="goal-progress">
-        <div class="goal-progress-track">
-          <div class="goal-progress-fill" [style.width.%]="weeklyGoalProgressPct()"></div>
-        </div>
-        <p>{{ weeklyHoursThisWeek() | number:'1.1-1' }}h / {{ weeklyGoalHours() }}h cette semaine</p>
-      </div>
-
-      @if (weeklyGoalNotice()) {
-      <p class="goal-notice">{{ weeklyGoalNotice() }}</p>
-      }
-
-      @if (weeklyMissedAlert(); as missedAlert) {
-      <p class="goal-alert">{{ missedAlert }}</p>
-      }
-    </section>
-
-    @if (shouldShowAutoReplan()) {
-    <section class="auto-replan-panel">
-      <div>
-        <h4>Auto re-planning recommandé</h4>
-        <p>{{ autoReplanHint() }}</p>
-        <ul class="compact-list" *ngIf="autoReplanReasons().length">
-          @for (reason of autoReplanReasons(); track reason) {
-          <li>{{ reason }}</li>
-          }
-        </ul>
-      </div>
-      <button type="button" class="btn-plan" (click)="autoReplan()"
-        [disabled]="autoReplanLoading() || learningPlanLoading()">
-        {{ autoReplanLoading() ? 'Re-planning...' : 'Regénérer le plan automatiquement' }}
-      </button>
-    </section>
-    }
+    <!-- Planning stuff moved to PLANNING tab -->
 
     @if (detectedWeakSkills().length) {
     <div class="weakness-preview">
@@ -259,7 +220,7 @@
           @for (phase of plan.roadmap; track phase.phase) {
           <li>
             <strong>Phase {{ phase.phase }} · {{ phase.title }}</strong>
-            <div>{{ phase.duration_weeks }} semaines · {{ phase.focus_skills?.join(', ') }}</div>>
+            <div>{{ phase.duration_weeks }} semaines · {{ phase.focus_skills?.join(', ') }}</div>
           </li>
           }
         </ul>
@@ -276,7 +237,30 @@
       </ul>
     </article>
     }
+    }
+  </section>
 
+  <section class="risk-overview-card">
+    <article class="risk-item on-track">
+      <p class="label">On Track</p>
+      <p class="value">{{ onTrackCount() }}</p>
+      <span>Rythme conforme</span>
+    </article>
+    <article class="risk-item at-risk">
+      <p class="label">At Risk</p>
+      <p class="value">{{ atRiskCount() }}</p>
+      <span>Nécessite attention</span>
+    </article>
+    <article class="risk-item late">
+      <p class="label">Late</p>
+      <p class="value">{{ lateCount() }}</p>
+      <span>Retard à corriger</span>
+    </article>
+  </section>
+  } <!-- END VUE_ENSEMBLE -->
+
+  @if (activeTab() === 'FORMATIONS') {
+  <section class="learning-plan-card">
     <!-- ─── Formations Recommandées — Advanced ─────────────────────────── -->
     <article class="plan-box full-width reco-section">
       <div class="reco-header">
@@ -386,13 +370,80 @@
         }
       </div>
     </article>
+    <!-- Empty state when no formations yet -->
+    @if (hasNoFormations()) {
+    <section class="empty-state-section">
+      <div class="empty-state-icon">📚</div>
+      <h3>Démarrez votre parcours de formation</h3>
+      <p>Aucune formation active. Allez dans Vue d'ensemble pour générer votre plan IA et obtenir des recommandations.</p>
+    </section>
+    }
+  </section>
+  } <!-- END FORMATIONS -->
 
+  @if (activeTab() === 'PLANNING') {
+  <section class="learning-plan-card">
+    <section class="weekly-goal-panel">
+      <div class="goal-header">
+        <h4>Weekly learning goals & streaks</h4>
+        <span class="goal-streak">Streak: {{ weeklyStreakWeeks() }} semaine(s)</span>
+      </div>
+
+      <div class="goal-controls">
+        <label>
+          <span>Objectif (heures / semaine)</span>
+          <input type="number" min="1" max="60" step="0.5" [(ngModel)]="weeklyGoalInput" />
+        </label>
+        <button type="button" class="btn-secondary" (click)="saveWeeklyGoal()">Mettre à jour l'objectif</button>
+
+        <label>
+          <span>Heures à logger</span>
+          <input type="number" min="0.25" max="24" step="0.25" [(ngModel)]="weeklyLogInput" />
+        </label>
+        <button type="button" class="btn-secondary" (click)="logWeeklyHours()">Ajouter des heures</button>
+      </div>
+
+      <div class="goal-progress">
+        <div class="goal-progress-track">
+          <div class="goal-progress-fill" [style.width.%]="weeklyGoalProgressPct()"></div>
+        </div>
+        <p>{{ weeklyHoursThisWeek() | number:'1.1-1' }}h / {{ weeklyGoalHours() }}h cette semaine</p>
+      </div>
+
+      @if (weeklyGoalNotice()) {
+      <p class="goal-notice">{{ weeklyGoalNotice() }}</p>
+      }
+
+      @if (weeklyMissedAlert(); as missedAlert) {
+      <p class="goal-alert">{{ missedAlert }}</p>
+      }
+    </section>
+
+    @if (shouldShowAutoReplan()) {
+    <section class="auto-replan-panel">
+      <div>
+        <h4>Auto re-planning recommandé</h4>
+        <p>{{ autoReplanHint() }}</p>
+        <ul class="compact-list" *ngIf="autoReplanReasons().length">
+          @for (reason of autoReplanReasons(); track reason) {
+          <li>{{ reason }}</li>
+          }
+        </ul>
+      </div>
+      <button type="button" class="btn-plan" (click)="autoReplan()"
+        [disabled]="autoReplanLoading() || learningPlanLoading()">
+        {{ autoReplanLoading() ? 'Re-planning...' : 'Regénérer le plan automatiquement' }}
+      </button>
+    </section>
+    }
+
+    @if (learningPlan(); as plan) {
     <article class="plan-box full-width">
       <h4>Plan quotidien (7 premiers jours)</h4>
       <ul class="compact-list daily-plan-list">
         @for (dayPlan of topDailyPlan(); track dayPlan.day) {
         <li>
-          <strong>Jour {{ dayPlan.day }}</strong> · {{ dayPlan.focus_skill }} · {{ dayPlan.estimated_total_hours }}h
+          <strong>Jour {{ dayPlan.day }}</strong> · {{ dayPlan.focus_skill }} · {{ dayPlan.formatted_duration }}
           <ul>
             @for (task of dayPlan.tasks; track task.task) {
             <li>{{ task.task }} ({{ task.duration_minutes }} min)</li>
@@ -404,38 +455,9 @@
     </article>
     }
   </section>
+  } <!-- END PLANNING -->
 
-  <section class="risk-overview-card">
-    <article class="risk-item on-track">
-      <p class="label">On Track</p>
-      <p class="value">{{ onTrackCount() }}</p>
-      <span>Rythme conforme</span>
-    </article>
-    <article class="risk-item at-risk">
-      <p class="label">At Risk</p>
-      <p class="value">{{ atRiskCount() }}</p>
-      <span>Nécessite attention</span>
-    </article>
-    <article class="risk-item late">
-      <p class="label">Late</p>
-      <p class="value">{{ lateCount() }}</p>
-      <span>Retard à corriger</span>
-    </article>
-  </section>
-
-  <!-- Empty state when no formations yet -->
-  @if (hasNoFormations()) {
-  <section class="empty-state-section">
-    <div class="empty-state-icon">📚</div>
-    <h3>Démarrez votre parcours de formation</h3>
-    <p>Aucune formation active. Générez votre plan IA pour obtenir des recommandations personnalisées basées sur vos
-      compétences et objectifs.</p>
-    <button type="button" class="btn-plan" (click)="generateLearningPlan()" [disabled]="learningPlanLoading()">
-      {{ learningPlanLoading() ? 'Génération...' : '✨ Générer mon plan IA' }}
-    </button>
-  </section>
-  }
-
+  @if (activeTab() === 'KANBAN') {
   <section class="kanban-section">
     <div class="kanban-header">
       <div class="kanban-header-row">
@@ -677,4 +699,5 @@
       }
     </div>
   </section>
+  } <!-- END KANBAN -->
 </div>

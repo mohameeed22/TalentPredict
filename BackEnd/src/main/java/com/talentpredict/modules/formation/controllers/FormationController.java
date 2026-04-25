@@ -35,6 +35,13 @@ public class FormationController {
         java.util.List<FormationDto.FormationResponse> formations = formationService.getFormationsByUser(userId);
         return ResponseEntity.ok(formations);
     }
+
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<java.util.List<FormationDto.FormationResponse>> getAllFormations() {
+        java.util.List<FormationDto.FormationResponse> formations = formationService.getAllFormations();
+        return ResponseEntity.ok(formations);
+    }
     
     @GetMapping("/{formationId}")
     @PreAuthorize("hasAnyRole('USER','ADMIN','RECRUITER')")

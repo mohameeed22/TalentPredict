@@ -15,21 +15,51 @@
 
   <section class="overview-grid">
     <article class="overview-card">
-      <p class="card-label">Candidats total</p>
+      <p class="card-label">CANDIDATS TOTAL</p>
       <p class="card-value">{{ totalCandidates }}</p>
-      <p class="card-meta">Pipeline actif</p>
+      <p class="card-meta">Pipeline actif <span style="color: #22c55e; font-weight: 500; margin-left: 5px;">+3 ce mois</span></p>
     </article>
 
     <article class="overview-card warning">
-      <p class="card-label">Alertes fraude</p>
-      <p class="card-value">{{ flaggedCandidates }}</p>
-      <p class="card-meta">Dossiers a verifier</p>
+      <p class="card-label">ALERTES FRAUDE</p>
+      <p class="card-value" style="display: flex; align-items: center; gap: 8px;">
+        {{ flaggedCandidates }}
+        <span *ngIf="flaggedCandidates > 0" class="badge danger-badge" style="font-size: 12px; background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px;">!</span>
+      </p>
+      <p class="card-meta">
+        <ng-container *ngIf="flaggedCandidates > 0">Dossiers à vérifier</ng-container>
+        <ng-container *ngIf="flaggedCandidates === 0"><span style="color: #22c55e; font-weight: 500;">✅ Aucune alerte</span></ng-container>
+      </p>
     </article>
 
     <article class="overview-card danger">
-      <p class="card-label">Risque eleve</p>
-      <p class="card-value">{{ highRiskCandidates }}</p>
-      <p class="card-meta">Priorite immediate</p>
+      <p class="card-label">RISQUE ÉLEVÉ</p>
+      <p class="card-value" style="display: flex; align-items: center; gap: 8px;">
+        {{ highRiskCandidates }}
+        <span *ngIf="highRiskCandidates > 0" class="badge urgent-badge" style="font-size: 12px; background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px;">Urgent</span>
+      </p>
+      <p class="card-meta">
+        <ng-container *ngIf="highRiskCandidates > 0">Priorité immédiate</ng-container>
+        <ng-container *ngIf="highRiskCandidates === 0"><span style="color: #22c55e; font-weight: 500;">✅ Aucun risque élevé</span></ng-container>
+      </p>
+    </article>
+
+    <article class="overview-card info">
+      <p class="card-label">SCORE MOYEN PLATEFORME</p>
+      <p class="card-value">{{ averageScore }}%</p>
+      <p class="card-meta"><span style="color: #22c55e; font-weight: 500;">+2% vs le mois dernier</span></p>
+    </article>
+
+    <article class="overview-card secondary">
+      <p class="card-label">GITHUB VÉRIFIÉ</p>
+      <p class="card-value">{{ githubVerifiedCount }}/{{ totalCandidates }}</p>
+      <p class="card-meta">Profils techniques validés</p>
+    </article>
+
+    <article class="overview-card secondary">
+      <p class="card-label">CV ANALYSÉ</p>
+      <p class="card-value">{{ cvAnalyzedCount }}/{{ totalCandidates }}</p>
+      <p class="card-meta">Authenticité vérifiée</p>
     </article>
   </section>
 

@@ -1,0 +1,133 @@
+.admin-formations-container {
+  padding: 24px;
+  background: var(--surface-color, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h2 {
+  font-size: 1.5rem;
+  color: var(--text-color, #1e293b);
+  margin-bottom: 8px;
+}
+
+.page-header p {
+  color: var(--text-muted, #64748b);
+}
+
+.formations-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.formations-table th,
+.formations-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+  text-align: left;
+}
+
+.formations-table th {
+  background-color: var(--surface-hover, #f8fafc);
+  color: var(--text-muted, #64748b);
+  font-weight: 600;
+}
+
+.action-row td {
+  background-color: var(--surface-hover, #f8fafc);
+  padding: 16px;
+}
+
+.action-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.action-inputs {
+  display: flex;
+  gap: 16px;
+}
+
+.action-inputs label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.action-inputs input {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 6px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-action {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--primary-color, #3b82f6);
+  background: transparent;
+  color: var(--primary-color, #3b82f6);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-approve {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.btn-reject {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.acceptee {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-badge.rejetee {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.status-badge.en_attente {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.proposee {
+  background-color: #e0e7ff;
+  color: #3730a3;
+}

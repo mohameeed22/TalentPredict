@@ -117,6 +117,16 @@ export class CompetencesIntakeComponent implements OnInit {
       this.extractedCvText = extracted.text || '';
       if (!this.extractedCvText.trim()) {
         this.extractionError = 'CV lisible mais aucun texte exploitable extrait.';
+      } else {
+        // Try to auto-detect github URL from CV text
+        const githubMatch = this.extractedCvText.match(/github\.com\/([a-zA-Z0-9-]+)/i);
+        if (githubMatch && githubMatch[1]) {
+          const detectedHandle = githubMatch[1].trim();
+          if (!this.form.get('githubUrl')?.value) {
+            this.form.patchValue({ githubUrl: `https://github.com/${detectedHandle}` });
+            this.notify.success(`Profil GitHub détecté : ${detectedHandle}`);
+          }
+        }
       }
     } catch (err) {
       this.extractionError = `Extraction impossible : ${err instanceof Error ? err.message : String(err)}`;
@@ -140,8 +150,8 @@ export class CompetencesIntakeComponent implements OnInit {
     }
 
     const username = this.githubUsername;
-    if (!username) {
-      this.notify.warning('Veuillez entrer un URL GitHub valide.');
+    if (!username || !/^[a-zA-Z0-9-]+$/.test(username)) {
+      this.notify.warning('Veuillez entrer un nom d\'utilisateur GitHub valide (alphanumérique et tirets uniquement, sans espaces).');
       return;
     }
 
@@ -184,11 +194,22 @@ export class CompetencesIntakeComponent implements OnInit {
   }
 
   launchTest(): void {
-    const userId = this.currentUser?.id ? String(this.currentUser.id) : '';
-    if (!userId) return;
+    // Dynamically fetch user at the moment of click, in case it was loaded late
+    const user = this.authService.getCurrentUser() || this.currentUser;
+    const userId = user?.id ? String(user.id) : '';
+    
+    if (!userId) {
+      this.notify.error('Erreur: Impossible d\'identifier l\'utilisateur pour lancer le test.');
+      return;
+    }
 
-    const skills = this.detectedSkills.length > 0 ? this.detectedSkills : this.existingSkills;
-    const level = this.mapLevelToString((this.currentUser as any)?.level);
+    let skills = this.detectedSkills.length > 0 ? this.detectedSkills : this.existingSkills;
+    if (!skills || skills.length === 0) {
+      // Robust fallback to ensure the AI always has something to generate questions for
+      skills = ['JavaScript', 'Python', 'Architecture Logicielle'];
+    }
+    
+    const level = this.mapLevelToString((user as any)?.level);
 
     // Generate test with detected skills and navigate to quiz
     this.testApi.generateTest({
@@ -254,8 +275,12 @@ export class CompetencesIntakeComponent implements OnInit {
   private normalizeGithubUrl(input: string): string {
     const raw = (input ?? '').trim();
     if (!raw) return '';
-    const cleaned = raw.replace(/^(https?:\/\/)?(www\.)?github\.com\//i, '');
-    return cleaned.split('/')[0].replace(/^@/, '').trim();
+    let username = raw;
+    if (raw.match(/github\.com\//i)) {
+      username = raw.replace(/.*github\.com\//i, '');
+    }
+    username = username.split(/[\/\?#\s]/)[0].replace(/^@/, '').trim();
+    return username;
   }
 
   private mapLevelToString(level?: number): string {

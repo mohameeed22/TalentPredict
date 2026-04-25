@@ -64,10 +64,6 @@ def extract_json_array_or_object(text: str) -> str | None:
     return None
 
 
-def parse_json_lenient(text: str) -> Any:
-    """Parse JSON from raw model output."""
-    raw = extract_json_array_or_object(text) or text.strip()
-    return json.loads(raw)
 
 
 async def call_ollama(

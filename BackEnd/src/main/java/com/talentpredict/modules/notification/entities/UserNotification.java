@@ -50,7 +50,8 @@ public class UserNotification {
         NEW_MATCH,
         SECURITY,
         PRIVACY,
-        SYSTEM
+        SYSTEM,
+        COURSE_APPROVAL
     }
 
     @Id

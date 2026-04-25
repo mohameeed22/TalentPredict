@@ -12,7 +12,10 @@ export enum TypeFormation {
 
 export enum StatutFormation {
   PROPOSEE = 'PROPOSEE',
+  EN_ATTENTE = 'EN_ATTENTE',
   ACCEPTEE = 'ACCEPTEE',
+  REJETEE = 'REJETEE',
+  PROPOSEE_ADMIN = 'PROPOSEE_ADMIN',
   EN_COURS = 'EN_COURS',
   TERMINEE = 'TERMINEE',
   ANNULEE = 'ANNULEE'
@@ -52,6 +55,7 @@ export interface FormationRequest {
   fournisseur?: string;
   dateDebut?: string;
   url?: string;
+  statut?: StatutFormation;
 }
 
 export interface FormationResponse {
@@ -78,6 +82,9 @@ export interface FormationResponse {
   miniTestNotes?: string;
   certificateUrl?: string;
   certificateUploadedAt?: Date;
+  candidatName?: string;
+  requestedAt?: Date;
+  adminNote?: string;
 }
 
 export interface MiniTestSubmissionRequest {

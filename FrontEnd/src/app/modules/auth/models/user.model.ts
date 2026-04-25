@@ -37,6 +37,12 @@ export interface User {
   updatedAt: string;
   xp?: number;
   level?: number;
+  scoreMoyen?: number;
+  testsCount?: number;
+  formationsCount?: number;
+  lastLogin?: string;
+  riskLevel?: string;
+  statut?: string;
 }
 
 /**
@@ -61,6 +67,12 @@ export interface ProfileResponse {
   githubUrl: string;
   cvUrl: string;
   portfolioUrl: string;
+  // New editable fields
+  poste: string;
+  departementEditable: string;
+  ville: string;
+  disponibilite: string;
+  typeContrat: string[];
   // GitHub stats (populated by IA analysis)
   githubRepos: number;
   githubFollowers: number;
@@ -71,6 +83,7 @@ export interface ProfileResponse {
   githubAvatarUrl: string;
   githubName: string;
   aiSummary: string;
+  updatedAt?: string;
 }
 
 export interface ProfileUpdateRequest {
@@ -83,6 +96,11 @@ export interface ProfileUpdateRequest {
   githubUrl?: string;
   cvUrl?: string;
   portfolioUrl?: string;
+  poste?: string;
+  departementEditable?: string;
+  ville?: string;
+  disponibilite?: string;
+  typeContrat?: string[];
 }
 
 export interface UserRequest {

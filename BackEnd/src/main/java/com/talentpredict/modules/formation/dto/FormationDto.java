@@ -17,6 +17,7 @@ public class FormationDto {
         private String fournisseur;
         private String url;
         private LocalDateTime dateDebut;
+        private Formation.StatutFormation statut;
     }
 
     @Data
@@ -38,6 +39,8 @@ public class FormationDto {
     @Data
     public static class FormationResponse {
         private UUID id;
+        private UUID userId;
+        private String candidatName;
         private String titre;
         private String description;
         private Formation.TypeFormation type;
@@ -59,5 +62,7 @@ public class FormationDto {
         private String miniTestNotes;
         private String certificateUrl;
         private LocalDateTime certificateUploadedAt;
+        private LocalDateTime requestedAt;
+        private String adminNote;
     }
 }

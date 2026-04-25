@@ -33,6 +33,7 @@ public class FormationService {
     private final com.talentpredict.modules.user.repositories.UserRepository userRepository;
     private final AuthServiceImpl authServiceImpl;
     private final FileStorageService fileStorageService;
+    private final com.talentpredict.modules.notification.services.NotificationCenterService notificationService;
     
     @Transactional
     public FormationDto.FormationResponse creerFormation(UUID accountId, FormationDto.FormationRequest request) {
@@ -47,7 +48,29 @@ public class FormationService {
         formation.setFournisseur(request.getFournisseur());
         formation.setUrl(request.getUrl());
         formation.setDateDebut(request.getDateDebut());
-        formation.setStatut(Formation.StatutFormation.PROPOSEE);
+        
+        Formation.StatutFormation targetStatut = request.getStatut() != null ? request.getStatut() : Formation.StatutFormation.PROPOSEE;
+        formation.setStatut(targetStatut);
+        if (targetStatut == Formation.StatutFormation.EN_ATTENTE) {
+            formation.setRequestedAt(LocalDateTime.now());
+            notificationService.createCourseApprovalEvent(
+                user,
+                "Demande de formation envoyée",
+                "Votre demande pour " + formation.getTitre() + " est en attente d'approbation",
+                true
+            );
+            // Notify admins
+            userRepository.findAll().stream()
+                .filter(u -> u.getRole() == User.Role.ADMIN)
+                .forEach(admin -> {
+                    notificationService.createCourseApprovalEvent(
+                        admin,
+                        "Nouvelle demande d'approbation",
+                        user.getFirstName() + " a demandé l'approbation pour " + formation.getTitre(),
+                        true
+                    );
+                });
+        }
         
         Formation saved = formationRepository.save(formation);
         return convertToResponse(saved);
@@ -55,6 +78,13 @@ public class FormationService {
     
     public List<FormationDto.FormationResponse> getFormationsByUser(UUID userId) {
         return formationRepository.findByUserId(userId)
+            .stream()
+            .map(this::convertToResponse)
+            .collect(Collectors.toList());
+    }
+
+    public List<FormationDto.FormationResponse> getAllFormations() {
+        return formationRepository.findAll()
             .stream()
             .map(this::convertToResponse)
             .collect(Collectors.toList());
@@ -72,6 +102,47 @@ public class FormationService {
             .orElseThrow(() -> new ResourceNotFoundException("Formation non trouvée avec l'ID: " + formationId));
 
         formation.setStatut(statut);
+
+        if (statut == Formation.StatutFormation.EN_ATTENTE && formation.getRequestedAt() == null) {
+            formation.setRequestedAt(LocalDateTime.now());
+            if (formation.getUser() != null) {
+                notificationService.createCourseApprovalEvent(
+                    formation.getUser(),
+                    "Demande de formation envoyée",
+                    "Votre demande pour " + formation.getTitre() + " est en attente d'approbation",
+                    true
+                );
+                // Notify admins
+                userRepository.findAll().stream()
+                    .filter(u -> u.getRole() == User.Role.ADMIN)
+                    .forEach(admin -> {
+                        notificationService.createCourseApprovalEvent(
+                            admin,
+                            "Nouvelle demande d'approbation",
+                            formation.getUser().getFirstName() + " a demandé l'approbation pour " + formation.getTitre(),
+                            true
+                        );
+                    });
+            }
+        }
+
+        if (statut == Formation.StatutFormation.ACCEPTEE && formation.getUser() != null) {
+             notificationService.createCourseApprovalEvent(
+                formation.getUser(),
+                "✅ Formation approuvée",
+                "Votre demande pour " + formation.getTitre() + " a été approuvée",
+                true
+             );
+        }
+
+        if (statut == Formation.StatutFormation.REJETEE && formation.getUser() != null) {
+             notificationService.createCourseApprovalEvent(
+                formation.getUser(),
+                "❌ Formation rejetée",
+                "Votre demande pour " + formation.getTitre() + " a été rejetée",
+                false
+             );
+        }
 
         if (statut == Formation.StatutFormation.EN_COURS && formation.getDateDebut() == null) {
             formation.setDateDebut(LocalDateTime.now());
@@ -218,6 +289,11 @@ public class FormationService {
     private FormationDto.FormationResponse convertToResponse(Formation formation) {
         FormationDto.FormationResponse response = new FormationDto.FormationResponse();
         response.setId(formation.getId());
+        if (formation.getUser() != null) {
+            response.setUserId(formation.getUser().getId());
+            response.setCandidatName((formation.getUser().getFirstName() != null ? formation.getUser().getFirstName() : "") 
+                + " " + (formation.getUser().getLastName() != null ? formation.getUser().getLastName() : ""));
+        }
         response.setTitre(formation.getTitre());
         response.setDescription(formation.getDescription());
         response.setType(formation.getType());
@@ -239,6 +315,8 @@ public class FormationService {
         response.setMiniTestNotes(formation.getMiniTestNotes());
         response.setCertificateUrl(formation.getCertificateUrl());
         response.setCertificateUploadedAt(formation.getCertificateUploadedAt());
+        response.setRequestedAt(formation.getRequestedAt());
+        response.setAdminNote(formation.getAdminNote());
         return response;
     }
 

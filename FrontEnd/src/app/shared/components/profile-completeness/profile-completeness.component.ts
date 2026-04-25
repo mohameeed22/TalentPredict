@@ -28,8 +28,10 @@ import { ProfileCompletenessService, CompletenessResult, MissingField } from '..
         <div class="completeness-info">
           <h4>Profil complété</h4>
           <p class="completeness-detail">{{ result.filledCount }} / {{ result.totalCount }} champs remplis</p>
-          @if (result.score >= 80) {
-          <p class="completeness-msg success">🎉 Excellent ! Votre profil est presque complet.</p>
+          @if (result.score >= 100) {
+          <p class="completeness-msg success">✅ Profil complet ! Excellent travail.</p>
+          } @else if (result.score >= 80) {
+          <p class="completeness-msg success">🎉 Très bon profil, encore quelques détails !</p>
           } @else if (result.score >= 50) {
           <p class="completeness-msg warning">💡 Continuez à renseigner votre profil !</p>
           } @else {
@@ -50,8 +52,18 @@ import { ProfileCompletenessService, CompletenessResult, MissingField } from '..
         </div>
       </div>
       }
+
+      @if (result.tips && result.tips.length > 0 && result.score < 100) {
+      <div class="tips-section">
+        <span class="tips-label">💡 Conseils :</span>
+        @for (tip of result.tips.slice(0, 2); track tip) {
+        <p class="tip-item">{{ tip }}</p>
+        }
+      </div>
+      }
     </div>
   `,
+
   styles: [`
     .completeness-card {
       background: var(--bg-card);
@@ -156,7 +168,7 @@ import { ProfileCompletenessService, CompletenessResult, MissingField } from '..
       border-top: 1px solid var(--border-light);
     }
 
-    .missing-label {
+    .missing-label, .tips-label {
       font-size: 0.75rem;
       font-weight: 600;
       color: var(--text-muted);
@@ -189,6 +201,21 @@ import { ProfileCompletenessService, CompletenessResult, MissingField } from '..
       transform: translateY(-1px);
     }
 
+    .tips-section {
+      margin-top: 0.875rem;
+      padding: 0.75rem;
+      background: #fffbeb;
+      border-radius: 10px;
+      border: 1px solid #fde68a;
+    }
+
+    .tip-item {
+      margin: 0.35rem 0 0;
+      font-size: 0.8125rem;
+      color: #92400e;
+      line-height: 1.4;
+    }
+
     @media (max-width: 480px) {
       .completeness-top {
         flex-direction: column;
@@ -202,7 +229,7 @@ export class ProfileCompletenessComponent implements OnChanges {
 
   private completenessService = inject(ProfileCompletenessService);
 
-  result: CompletenessResult = { score: 0, filledCount: 0, totalCount: 10, missing: [] };
+  result: CompletenessResult = { score: 0, filledCount: 0, totalCount: 10, missing: [], tips: [] };
 
   readonly circumference = 2 * Math.PI * 52; // r=52
 

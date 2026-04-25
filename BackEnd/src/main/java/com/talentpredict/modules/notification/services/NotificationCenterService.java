@@ -125,6 +125,19 @@ public class NotificationCenterService {
     }
 
     @Transactional
+    public NotificationDto.Response createCourseApprovalEvent(User target, String title, String body, boolean isSuccess) {
+        UserNotification created = createNotification(
+                target,
+                isSuccess ? UserNotification.NotificationType.SUCCESS : UserNotification.NotificationType.WARNING,
+                UserNotification.NotificationCategory.COURSE_APPROVAL,
+                title,
+                body,
+                "/formations",
+                false);
+        return toResponse(created);
+    }
+
+    @Transactional
     public NotificationDto.Response markRead(User user, UUID notificationId) {
         UserNotification notification = userNotificationRepository.findByIdAndUser(notificationId, user)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found."));

@@ -87,6 +87,12 @@ public class Formation {
     @Column(name = "certificate_uploaded_at")
     private LocalDateTime certificateUploadedAt;
 
+    @Column(name = "requested_at")
+    private LocalDateTime requestedAt;
+
+    @Column(name = "admin_note", columnDefinition = "TEXT")
+    private String adminNote;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private TypeFormation type;
@@ -125,7 +131,10 @@ public class Formation {
 
     public enum StatutFormation {
         PROPOSEE,
+        EN_ATTENTE,
         ACCEPTEE,
+        REJETEE,
+        PROPOSEE_ADMIN,
         EN_COURS,
         TERMINEE,
         ANNULEE

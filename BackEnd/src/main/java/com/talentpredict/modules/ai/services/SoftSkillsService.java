@@ -39,12 +39,17 @@ public class SoftSkillsService {
     public SoftSkillsResultDto analyze(SoftSkillsAnalysisRequestDto request, UUID userId) {
         log.info("Starting soft skills analysis for userId={}", userId);
         SoftSkillsResultDto result = n8nService.analyze(request);
-        if (isLikelyN8nFallback(result)) {
-            log.warn("n8n returned an invalid/fallback payload for userId={}", userId);
+        if (isTrulyEmpty(result)) {
+            // Only fail hard when there is absolutely no data at all — not even local PCM scores.
+            log.warn("n8n returned a completely empty payload for userId={} — aborting", userId);
             throw new ResponseStatusException(
                 HttpStatus.BAD_GATEWAY,
-                "Soft skills analysis failed in n8n. Please retry."
+                "Soft skills analysis produced no usable data. Please retry."
             );
+        }
+        // If n8n timed out but local PCM scores are present, log a warning and continue.
+        if (isLikelyN8nFallback(result)) {
+            log.warn("n8n timed out for userId={} — using local PCM fallback scores", userId);
         }
         persist(result, userId);
         return result;
@@ -177,7 +182,7 @@ public class SoftSkillsService {
         }
         if (result.getSourceData() != null) {
             sb.append("SOURCES:\n");
-            for (String key : new String[]{"cv", "github", "pcm"}) {
+            for (String key : new String[]{"cv", "github", "linkedin", "pcm"}) {
                 Object src = result.getSourceData().get(key);
                 Object directScore = result.getSourceData().get(key + "_score");
                 double score = 0;
@@ -283,10 +288,29 @@ public class SoftSkillsService {
         return map.isEmpty() ? null : map;
     }
 
+    /**
+     * Returns true when n8n produced no real AI analysis (missing summary/personality/strengths).
+     * A local PCM fallback with valid scores is NOT considered a full n8n fallback — it still
+     * has real merged_soft_skills data and can be persisted and displayed.
+     */
     private boolean isLikelyN8nFallback(SoftSkillsResultDto result) {
         if (result == null) return true;
         if (Boolean.TRUE.equals(result.getParseError())) return true;
-        return hasNoUsableAnalysisData(result);
+        // It is a fallback only when there is no summary AND no personality type (n8n didn't run).
+        boolean noSummary = result.getSummary() == null || result.getSummary().isBlank();
+        boolean noPersonality = result.getPersonalityType() == null || result.getPersonalityType().isBlank();
+        return noSummary && noPersonality;
+    }
+
+    /**
+     * Returns true when there is absolutely nothing usable — not even local PCM scores.
+     * Used as a hard-fail gate in analyze().
+     */
+    private boolean isTrulyEmpty(SoftSkillsResultDto result) {
+        if (result == null) return true;
+        boolean overallZero = result.getOverallScore() == null || Math.abs(result.getOverallScore()) < 0.001;
+        boolean mergedZero = isAllZeroScores(result.getMergedSoftSkills());
+        return overallZero && mergedZero;
     }
 
     private boolean isLikelyPersistedFallback(SoftSkillsResultDto result) {
@@ -320,7 +344,7 @@ public class SoftSkillsService {
     private boolean isAllZeroSourceScores(Map<String, Object> sourceData) {
         if (sourceData == null || sourceData.isEmpty()) return true;
 
-        for (String key : new String[]{"cv", "github", "pcm"}) {
+        for (String key : new String[]{"cv", "github", "linkedin", "pcm"}) {
             Object nested = sourceData.get(key);
             if (nested instanceof Map<?, ?> nestedMap) {
                 Object nestedScore = nestedMap.get("overall_score");

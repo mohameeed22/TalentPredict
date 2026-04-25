@@ -25,6 +25,9 @@ export class App implements OnInit, OnDestroy {
   /** Signal: true when the user is logged in */
   private authenticated = signal(false);
 
+  /** Signal: avatar URL — updates instantly when profile photo changes */
+  avatarUrl = signal<string>(this.authService.getAvatarUrl());
+
   /**
    * TASK 4: Plain boolean for sidebar open state.
    * Using a plain boolean lets Angular's [style.left] binding update in sync with the DOM.
@@ -76,6 +79,13 @@ export class App implements OnInit, OnDestroy {
     this.subscriptions.push(
       this.authService.currentUser$.subscribe(user => {
         this.authenticated.set(!!user && this.authService.isAuthenticated());
+      })
+    );
+
+    // React to avatar URL changes (photo upload propagates here instantly)
+    this.subscriptions.push(
+      this.authService.avatarUrl$.subscribe(url => {
+        this.avatarUrl.set(url);
       })
     );
   }

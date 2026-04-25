@@ -37,7 +37,8 @@ export const routes: Routes = [
       { path: 'dashboard', loadComponent: () => import('./modules/dashboard/components/admin-dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent) },
       { path: 'campaigns', loadComponent: () => import('./modules/admin/components/campaign-manager/campaign-manager.component').then(m => m.CampaignManagerComponent) },
       { path: 'profile', loadComponent: () => import('./modules/dashboard/components/admin-profile/admin-profile.component').then(m => m.AdminProfileComponent) },
-      { path: 'users', loadComponent: () => import('./modules/admin/components/user-management/user-management.component').then(m => m.UserManagementComponent) }
+      { path: 'users', loadComponent: () => import('./modules/admin/components/user-management/user-management.component').then(m => m.UserManagementComponent) },
+      { path: 'formations', loadComponent: () => import('./modules/admin/components/admin-formation-approval/admin-formation-approval').then(m => m.AdminFormationApproval) }
     ]
   },
   {
@@ -78,6 +79,27 @@ export const routes: Routes = [
           )
       },
       {
+        path: 'progress',
+        loadComponent: () =>
+          import('./modules/skill-test/components/skill-progress/skill-progress.component').then(
+            m => m.SkillProgressComponent
+          )
+      },
+      {
+        path: 'code',
+        loadComponent: () =>
+          import('./modules/skill-test/components/skill-code-challenge/skill-code-challenge.component').then(
+            m => m.SkillCodeChallengeComponent
+          )
+      },
+      {
+        path: 'voice',
+        loadComponent: () =>
+          import('./modules/skill-test/components/voice-interview/voice-interview.component').then(
+            m => m.VoiceInterviewComponent
+          )
+      },
+      {
         path: 'results',
         loadComponent: () =>
           import('./modules/competences/components/tech-results/tech-results.component').then(
@@ -93,68 +115,6 @@ export const routes: Routes = [
       import('./modules/resultats/components/mes-resultats/mes-resultats.component').then(
         m => m.MesResultatsComponent
       )
-  },
-  {
-    path: 'skills',
-    canActivate: [authGuard],
-    children: [
-      { path: 'github', loadComponent: () => import('./modules/skills/components/github-analyzer/github-analyzer.component').then(m => m.GithubAnalyzerComponent) }
-    ]
-  },
-  {
-    path: 'skill-test',
-    canActivate: [authGuard],
-    children: [
-      {
-        path: '',
-        loadComponent: () =>
-          import('./modules/skill-test/components/skill-test-launcher/skill-test-launcher.component').then(
-            m => m.SkillTestLauncherComponent
-          )
-      },
-      {
-        path: 'quiz',
-        loadComponent: () =>
-          import('./modules/skill-test/components/skill-test-quiz/skill-test-quiz.component').then(
-            m => m.SkillTestQuizComponent
-          )
-      },
-      {
-        path: 'progress',
-        loadComponent: () =>
-          import('./modules/skill-test/components/skill-progress/skill-progress.component').then(
-            m => m.SkillProgressComponent
-          )
-      },
-      {
-        path: 'code-challenge',
-        loadComponent: () =>
-          import('./modules/skill-test/components/skill-code-challenge/skill-code-challenge.component').then(
-            m => m.SkillCodeChallengeComponent
-          )
-      },
-      {
-        path: 'github-analyzer',
-        loadComponent: () =>
-          import('./modules/skill-test/components/github-analyzer/github-analyzer.component').then(
-            m => m.GithubAnalyzerComponent
-          )
-      },
-      {
-        path: 'scenario-simulator',
-        loadComponent: () =>
-          import('./modules/skill-test/components/scenario-simulator/scenario-simulator.component').then(
-            m => m.ScenarioSimulatorComponent
-          )
-      },
-      {
-        path: 'voice-interview',
-        loadComponent: () =>
-          import('./modules/skill-test/components/voice-interview/voice-interview.component').then(
-            m => m.VoiceInterviewComponent
-          )
-      }
-    ]
   },
   {
     path: 'recruiter',

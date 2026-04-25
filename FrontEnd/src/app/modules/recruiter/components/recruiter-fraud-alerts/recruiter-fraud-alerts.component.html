@@ -16,23 +16,23 @@
 
   <!-- ══ KPI STRIP ════════════════════════════════════════════════ -->
   <div class="kpi-grid" *ngIf="kpis">
-    <article class="kpi-card">
-      <span class="kpi-label">Précision Top-K</span>
+    <article class="kpi-card" title="Pourcentage de vrais positifs parmi les {{ kpis.labeledCases }} premiers résultats de détection">
+      <span class="kpi-label">Précision Top-K ℹ️</span>
       <strong>{{ formatPercent(kpis.precisionAtTopK) }}</strong>
       <small>{{ kpis.labeledCases }} dossiers labélisés</small>
     </article>
-    <article class="kpi-card">
-      <span class="kpi-label">Faux Positifs</span>
+    <article class="kpi-card" title="Ce pourcentage indique que les alertes actuelles sont non confirmées (suspicions), et non nécessairement fausses.">
+      <span class="kpi-label">Faux Positifs ℹ️</span>
       <strong>{{ formatPercent(kpis.falsePositiveRate) }}</strong>
       <small>Fenêtre courante</small>
     </article>
-    <article class="kpi-card">
-      <span class="kpi-label">Délai moyen revue</span>
-      <strong>{{ kpis.avgReviewTurnaroundHours }}h</strong>
+    <article class="kpi-card" title="Délai entre la détection initiale et la validation finale par un administrateur.">
+      <span class="kpi-label">Délai moyen revue ℹ️</span>
+      <strong>{{ formatHours(kpis.avgReviewTurnaroundHours) }}</strong>
       <small>Du check à la décision</small>
     </article>
-    <article class="kpi-card" *ngIf="calibration">
-      <span class="kpi-label">Seuils conseillés</span>
+    <article class="kpi-card" *ngIf="calibration" title="Seuils de confiance recommandés: M=Medium, H=High, calculés dynamiquement">
+      <span class="kpi-label">Seuils conseillés ℹ️</span>
       <strong>M{{ calibration.suggestedMediumThreshold }} / H{{ calibration.suggestedHighThreshold }}</strong>
       <small>Recalibration feedback</small>
     </article>
@@ -131,13 +131,13 @@
                 class="qa-btn confirm"
                 [class.selected]="reviewDecisionByCase[caseId] === 'CONFIRMED_FRAUD'"
                 (click)="onReviewDecisionChange(caseId, 'CONFIRMED_FRAUD')">
-          🚫 Fraude confirmée
+          ❌ Confirmer fraude
         </button>
         <button type="button"
                 class="qa-btn watch"
                 [class.selected]="reviewDecisionByCase[caseId] === 'MONITORING'"
                 (click)="onReviewDecisionChange(caseId, 'MONITORING')">
-          👁 Monitoring
+          ⚠️ À surveiller
         </button>
         <button type="button"
                 class="qa-btn clear"
@@ -175,6 +175,42 @@
       </div>
 
     </article>
+  </div>
+  
+  <!-- ══ ALERT HISTORY ══════════════════════════════════════════════ -->
+  <div class="alert-history" *ngIf="filteredRows.length > 0">
+    <h3 style="margin-top: 40px; margin-bottom: 20px; font-size: 1.2rem; color: #1e293b;">Historique des alertes (Décisions récentes)</h3>
+    <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+      <thead style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; text-align: left;">
+        <tr>
+          <th style="padding: 12px 16px; font-weight: 600; color: #475569; font-size: 0.85rem;">Candidat</th>
+          <th style="padding: 12px 16px; font-weight: 600; color: #475569; font-size: 0.85rem;">Risque IA</th>
+          <th style="padding: 12px 16px; font-weight: 600; color: #475569; font-size: 0.85rem;">Décision</th>
+          <th style="padding: 12px 16px; font-weight: 600; color: #475569; font-size: 0.85rem;">Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let r of filteredRows">
+          <tr *ngIf="r.fraudReviewStatus && r.fraudReviewStatus !== 'OPEN'" style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 12px 16px; font-size: 0.9rem;">
+              <strong style="color: #0f172a;">{{ r.firstName }} {{ r.lastName }}</strong><br>
+              <small style="color: #64748b;">{{ r.email }}</small>
+            </td>
+            <td style="padding: 12px 16px;">
+              <span class="risk-badge" [ngClass]="getRiskClass(r.fraudRisk)">{{ r.fraudRisk || 'N/A' }}</span>
+            </td>
+            <td style="padding: 12px 16px;">
+              <strong class="review-status-badge" [ngClass]="getReviewClass(r.fraudReviewStatus)">
+                {{ r.fraudReviewStatus }}
+              </strong>
+            </td>
+            <td style="padding: 12px 16px; font-size: 0.85rem; color: #475569; max-width: 250px;">
+              {{ reviewNoteByCase[r.latestFraudCaseId || ''] || '—' }}
+            </td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
   </div>
 
   <!-- ══ EMPTY STATE ═══════════════════════════════════════════════ -->

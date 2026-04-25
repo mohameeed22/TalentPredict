@@ -263,6 +263,8 @@ export class PcmTestComponent implements OnInit {
       email:          profileData.email          || '',
       githubUsername: this.normalizeGithubUsername(profileData.githubUsername || ''),
       cvText:         profileData.cvText         || '',
+      linkedinUrl:    profileData.linkedinUrl    || '',
+      linkedinContent: profileData.linkedinContent || '',
       // Send each answer individually — NEVER use defaults
       q1:  this.answers['q1']  ?? 5,
       q2:  this.answers['q2']  ?? 5,

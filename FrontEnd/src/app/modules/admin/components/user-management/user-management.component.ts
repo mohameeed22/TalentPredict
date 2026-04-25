@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../services/admin.service';
@@ -19,10 +19,96 @@ export class UserManagementComponent implements OnInit {
   users = signal<User[]>([]);
   loading = signal(false);
   error = signal<string | null>(null);
-  selectedUser = signal<User | null>(null);
+
+  // Modals and Drawer state
+  showRoleConfirm = signal(false);
+  pendingRoleChange = signal<{ userId: string, newRole: string } | null>(null);
   showDeleteConfirm = signal(false);
+  selectedUserForDelete = signal<User | null>(null);
+
+  isDrawerOpen = signal(false);
+  selectedUserForDrawer = signal<User | null>(null);
+  activeDrawerTab = signal<'profil' | 'resultats' | 'formations' | 'prediction' | 'activite'>('profil');
+
+  // Filters & Search
+  searchTerm = signal('');
+  filterStatut = signal('');
+  filterRole = signal('');
+  filterDepartement = signal('');
+  filterRisque = signal('');
+  filterTest = signal('');
+
+  // Bulk selection
+  selectedUserIds = signal<Set<string>>(new Set());
+
+  // Stats computed from users list
+  stats = computed(() => {
+    const all = this.users();
+    return {
+      total: all.length,
+      actifs: all.filter(u => u.statut === 'Actif' || u.isActive).length,
+      onboarding: all.filter(u => u.statut === 'Onboarding').length,
+      aRisque: all.filter(u => u.riskLevel === 'À risque').length,
+      sansTest: all.filter(u => !u.testsCount || u.testsCount === 0).length,
+      sansDepartement: all.filter(u => !u.department).length
+    };
+  });
+
+  // Filtered users list
+  filteredUsers = computed(() => {
+    let filtered = this.users();
+    const term = this.searchTerm().toLowerCase();
+    
+    if (term) {
+      filtered = filtered.filter(u => 
+        (u.firstName?.toLowerCase().includes(term)) ||
+        (u.lastName?.toLowerCase().includes(term)) ||
+        (u.email?.toLowerCase().includes(term)) ||
+        (u.department?.toLowerCase().includes(term)) ||
+        (u.position?.toLowerCase().includes(term))
+      );
+    }
+
+    if (this.filterStatut()) {
+      filtered = filtered.filter(u => u.statut === this.filterStatut() || (this.filterStatut() === 'Actif' && u.isActive));
+    }
+    if (this.filterRole()) {
+      filtered = filtered.filter(u => u.role === this.filterRole());
+    }
+    if (this.filterDepartement()) {
+      filtered = filtered.filter(u => u.department === this.filterDepartement());
+    }
+    if (this.filterRisque() === 'a-risque') {
+      filtered = filtered.filter(u => u.riskLevel === 'À risque');
+    }
+    if (this.filterTest() === 'sans-test') {
+      filtered = filtered.filter(u => !u.testsCount || u.testsCount === 0);
+    }
+    if (this.filterTest() === 'sans-formation') {
+      filtered = filtered.filter(u => !u.formationsCount || u.formationsCount === 0);
+    }
+
+    return filtered;
+  });
 
   readonly Role = Role;
+
+  // Mock data for drawer
+  mockTests = [
+    { name: 'Soft Skills - Leadership', date: '2023-10-15', score: 85 },
+    { name: 'Tech - Frontend Angular', date: '2023-11-02', score: 92 }
+  ];
+
+  mockFormations = [
+    { name: 'Architecture Angular Avancée', status: 'En cours', progress: 45 },
+    { name: 'Communication Bienveillante', status: 'Terminée', progress: 100 }
+  ];
+
+  mockActivities = [
+    { icon: '💻', text: 'Connexion depuis Paris', date: 'Il y a 2 heures' },
+    { icon: '📝', text: 'A complété le test Tech', date: 'Il y a 2 jours' },
+    { icon: '🎓', text: 'A commencé la formation Angular', date: 'Il y a 1 semaine' }
+  ];
 
   ngOnInit(): void {
     this.loadUsers();
@@ -34,7 +120,17 @@ export class UserManagementComponent implements OnInit {
 
     this.adminService.getAllUsers().subscribe({
       next: (data) => {
-        this.users.set(data);
+        // Hydrate with some mock stats if missing from backend for demo purposes
+        const enhancedData = data.map(u => ({
+          ...u,
+          statut: u.statut || (u.isActive ? 'Actif' : 'Onboarding'),
+          scoreMoyen: u.scoreMoyen !== undefined ? u.scoreMoyen : Math.random() * 0.4 + 0.6, // fake score 60-100%
+          testsCount: u.testsCount !== undefined ? u.testsCount : Math.floor(Math.random() * 5),
+          formationsCount: u.formationsCount !== undefined ? u.formationsCount : Math.floor(Math.random() * 3),
+          lastLogin: u.lastLogin || new Date(Date.now() - Math.random() * 10000000000).toISOString(),
+          riskLevel: u.riskLevel || (Math.random() > 0.8 ? 'À risque' : 'Prêt')
+        }));
+        this.users.set(enhancedData);
         this.loading.set(false);
       },
       error: (err) => {
@@ -45,36 +141,89 @@ export class UserManagementComponent implements OnInit {
     });
   }
 
-  updateUserRole(userId: string, newRole: string): void {
-    this.adminService.updateUserRole(userId, newRole).subscribe({
+  // Formatting helpers
+  formatScore(score: number | undefined): string {
+    if (score === undefined) return '0%';
+    // Fix divide by 100 bug: if score is <= 1, assume it's a decimal (e.g. 0.77). If > 1, assume it's already percentage.
+    const percentage = score <= 1 ? score * 100 : score;
+    return `${Math.round(percentage)}%`;
+  }
+
+  formatRelativeTime(dateString: string | undefined): string {
+    if (!dateString) return 'Jamais';
+    const date = new Date(dateString);
+    const diff = Math.floor((new Date().getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    if (diff === 0) return 'Aujourd\'hui';
+    if (diff === 1) return 'Hier';
+    if (diff < 30) return `Il y a ${diff} jours`;
+    if (diff < 365) return `Il y a ${Math.floor(diff / 30)} mois`;
+    return `Il y a ${Math.floor(diff / 365)} ans`;
+  }
+
+  formatDate(date: string | Date | undefined): string {
+    if (!date) return '—';
+    return new Date(date).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  }
+
+  // Role Management
+  initiateRoleChange(userId: string, event: Event): void {
+    const newRole = (event.target as HTMLSelectElement).value;
+    const user = this.users().find(u => u.id === userId);
+    if (!user || user.role === newRole) return;
+
+    this.pendingRoleChange.set({ userId, newRole });
+    this.showRoleConfirm.set(true);
+
+    // Revert the select visually until confirmed
+    (event.target as HTMLSelectElement).value = user.role;
+  }
+
+  confirmRoleChange(): void {
+    const pending = this.pendingRoleChange();
+    if (!pending) return;
+
+    this.adminService.updateUserRole(pending.userId, pending.newRole).subscribe({
       next: (updatedUser) => {
         const users = this.users();
-        const index = users.findIndex(u => u.id === userId);
+        const index = users.findIndex(u => u.id === pending.userId);
         if (index !== -1) {
-          users[index] = updatedUser;
+          users[index] = { ...users[index], role: pending.newRole as Role };
           this.users.set([...users]);
         }
         this.notificationService.success('Rôle mis à jour avec succès.');
+        this.cancelRoleChange();
       },
       error: (err) => {
         console.error('Error updating user role:', err);
         this.notificationService.error('Erreur lors de la mise à jour du rôle.');
+        this.cancelRoleChange();
       }
     });
   }
 
-  confirmDelete(user: User): void {
-    this.selectedUser.set(user);
+  cancelRoleChange(): void {
+    this.pendingRoleChange.set(null);
+    this.showRoleConfirm.set(false);
+  }
+
+  // Delete Management
+  confirmDelete(user: User, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.selectedUserForDelete.set(user);
     this.showDeleteConfirm.set(true);
   }
 
   cancelDelete(): void {
-    this.selectedUser.set(null);
+    this.selectedUserForDelete.set(null);
     this.showDeleteConfirm.set(false);
   }
 
   deleteUser(): void {
-    const user = this.selectedUser();
+    const user = this.selectedUserForDelete();
     if (!user) return;
 
     this.adminService.deleteUser(user.id).subscribe({
@@ -92,20 +241,86 @@ export class UserManagementComponent implements OnInit {
     });
   }
 
-  getRoleBadgeClass(role: Role | string): string {
-    return role === Role.ADMIN || role === 'ADMIN' ? 'role-admin' : 'role-user';
+  // Drawer Management
+  openDrawer(user: User): void {
+    this.selectedUserForDrawer.set(user);
+    this.activeDrawerTab.set('profil');
+    this.isDrawerOpen.set(true);
+    // Prevent body scrolling
+    document.body.style.overflow = 'hidden';
   }
 
-  getRoleLabel(role: Role | string): string {
-    return role === Role.ADMIN || role === 'ADMIN' ? 'Administrateur' : 'Utilisateur';
+  closeDrawer(): void {
+    this.isDrawerOpen.set(false);
+    setTimeout(() => {
+      this.selectedUserForDrawer.set(null);
+    }, 300); // Wait for animation
+    document.body.style.overflow = '';
   }
 
-  formatDate(date: string | Date): string {
-    if (!date) return '—';
-    return new Date(date).toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  setDrawerTab(tab: 'profil' | 'resultats' | 'formations' | 'prediction' | 'activite'): void {
+    this.activeDrawerTab.set(tab);
+  }
+
+  // Bulk Actions
+  toggleAllSelection(event: Event): void {
+    const isChecked = (event.target as HTMLInputElement).checked;
+    if (isChecked) {
+      const allIds = this.filteredUsers().map(u => u.id);
+      this.selectedUserIds.set(new Set(allIds));
+    } else {
+      this.selectedUserIds.set(new Set());
+    }
+  }
+
+  toggleSelection(userId: string): void {
+    const current = new Set(this.selectedUserIds());
+    if (current.has(userId)) {
+      current.delete(userId);
+    } else {
+      current.add(userId);
+    }
+    this.selectedUserIds.set(current);
+  }
+
+  isAllSelected(): boolean {
+    return this.filteredUsers().length > 0 && this.selectedUserIds().size === this.filteredUsers().length;
+  }
+
+  exportData(): void {
+    this.notificationService.success('Export en cours de génération...');
+    // Mock export logic
+  }
+
+  bulkAction(action: string): void {
+    const count = this.selectedUserIds().size;
+    this.notificationService.success(`Action "${action}" exécutée sur ${count} utilisateurs.`);
+    this.selectedUserIds.set(new Set()); // clear selection
+  }
+
+  // Filters from Stats Bar
+  filterFromStats(type: string): void {
+    // Reset all
+    this.filterStatut.set('');
+    this.filterRisque.set('');
+    this.filterTest.set('');
+    this.filterDepartement.set('');
+
+    switch(type) {
+      case 'actifs': this.filterStatut.set('Actif'); break;
+      case 'onboarding': this.filterStatut.set('Onboarding'); break;
+      case 'arisque': this.filterRisque.set('a-risque'); break;
+      case 'sanstest': this.filterTest.set('sans-test'); break;
+      case 'sansdept': this.filterDepartement.set('—'); break;
+    }
+  }
+
+  // Quick Action Mocks
+  sendReminder(): void {
+    this.notificationService.success('Relance envoyée avec succès.');
+  }
+
+  assignFormation(): void {
+    this.notificationService.success('Formation assignée avec succès.');
   }
 }

@@ -85,6 +85,15 @@ export class RecruiterFraudAlertsComponent implements OnInit {
     }
     return `${Math.round(value * 100)}%`;
   }
+  
+  formatHours(value: number | null | undefined): string {
+    if (value === null || value === undefined) return 'N/A';
+    const minutes = Math.round(value * 60);
+    if (minutes < 60) return `${minutes} minutes`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins > 0 ? mins + 'm' : ''}`;
+  }
 
   formatFlagLabel(flag: TopFraudFlag): string {
     const type = (flag.type ?? 'signal').replace(/_/g, ' ');
@@ -99,7 +108,7 @@ export class RecruiterFraudAlertsComponent implements OnInit {
   submitReview(row: RecruiterCandidateRow): void {
     const caseId = row.latestFraudCaseId;
     if (!caseId) {
-      this.statusByUser[row.userId] = 'Aucun dossier fraude associe.';
+      this.statusByUser[row.userId] = 'Aucun dossier fraude associé.';
       return;
     }
 
@@ -114,11 +123,11 @@ export class RecruiterFraudAlertsComponent implements OnInit {
       next: (res) => {
         this.reviewSavingByCase[caseId] = false;
         row.fraudReviewStatus = res.reviewStatus;
-        this.statusByUser[row.userId] = `Decision enregistree: ${res.reviewStatus}`;
+        this.statusByUser[row.userId] = `Décision enregistrée: ${res.reviewStatus}`;
       },
       error: (err) => {
         this.reviewSavingByCase[caseId] = false;
-        this.statusByUser[row.userId] = err?.error?.message || 'Echec de la mise a jour de la revue fraude.';
+        this.statusByUser[row.userId] = err?.error?.message || 'Échec de la mise à jour de la revue fraude.';
       }
     });
   }
@@ -126,18 +135,18 @@ export class RecruiterFraudAlertsComponent implements OnInit {
   runFraudCheck(row: RecruiterCandidateRow): void {
     const userId = row.userId;
     this.runningByUser[userId] = true;
-    this.statusByUser[userId] = 'Verification fraude en cours...';
+    this.statusByUser[userId] = 'Vérification fraude en cours...';
 
     this.api.fraudCheck({ candidate_id: userId }).subscribe({
       next: (res) => {
         this.runningByUser[userId] = false;
         const risk = this.pickString(res, ['risk_level', 'risk', 'fraud_risk']) || 'N/A';
-        this.statusByUser[userId] = `Verification terminee. Risque: ${risk}`;
+        this.statusByUser[userId] = `Vérification terminée. Risque: ${risk}`;
         this.loadAlerts();
       },
       error: (err) => {
         this.runningByUser[userId] = false;
-        this.statusByUser[userId] = err?.error?.message || 'Echec de la verification fraude.';
+        this.statusByUser[userId] = err?.error?.message || 'Échec de la vérification fraude.';
       }
     });
   }

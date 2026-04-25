@@ -20,11 +20,11 @@ router = APIRouter(prefix="/api/analysis", tags=["analysis"])
 class GithubDeepBody(BaseModel):
     github_username: str
     candidate_id: str
-
+    github_data: dict[str, Any] | None = None
 
 @router.post("/github-deep")
 async def github_deep(body: GithubDeepBody) -> dict[str, Any]:
-    return await analyze_github_deep(body.github_username, body.candidate_id)
+    return await analyze_github_deep(body.github_username, body.candidate_id, body.github_data)
 
 
 class FraudCheckBody(BaseModel):
@@ -78,8 +78,15 @@ class CvAuthenticityBody(BaseModel):
 @router.post("/cv-authenticity")
 async def cv_authenticity(body: CvAuthenticityBody) -> dict[str, Any]:
     """Run AI-text detection, timeline logic, and style analysis on a CV."""
-    heuristic_signals = collect_cv_signals(body.cv_text)
-    verdict = await ollama_cv_verdict(body.cv_text, heuristic_signals)
-    verdict["candidate_id"] = body.candidate_id
-    verdict["heuristic_signals"] = heuristic_signals
-    return verdict
+    if not body.candidate_id or not body.cv_text:
+        return {"error": "Missing candidate_id or cv_text", "status_code": 400}
+    
+    try:
+        heuristic_signals = collect_cv_signals(body.cv_text)
+        verdict = await ollama_cv_verdict(body.cv_text, heuristic_signals)
+        verdict["candidate_id"] = body.candidate_id
+        verdict["heuristic_signals"] = heuristic_signals
+        return verdict
+    except Exception as e:
+        logger.error(f"Error in cv_authenticity: {e}", exc_info=True)
+        return {"error": "Internal Server Error processing CV authenticity", "details": str(e), "status_code": 500}

@@ -6,7 +6,6 @@ import { Router, RouterLink } from '@angular/router';
 import { forkJoin, of, catchError, Subscription, finalize } from 'rxjs';
 import { TestStateService, McqQuestion } from '../../services/test-state.service';
 import { TestApiService } from '../../services/test-api.service';
-import { BenchmarkService } from '../../services/benchmark.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { BiometricsService } from '../../services/biometrics.service';
 import { ProctoringService } from '../../services/proctoring.service';
@@ -65,7 +64,6 @@ interface McqSubmittedAnswer {
 export class SkillTestQuizComponent implements OnInit, OnDestroy {
   private state = inject(TestStateService);
   private testApi = inject(TestApiService);
-  private benchmarkService = inject(BenchmarkService);
   private router = inject(Router);
   private notify = inject(NotificationService);
   private biometrics = inject(BiometricsService);
@@ -219,75 +217,7 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
   }
 
   exportPdfReport(): void {
-    const userId = this.state.candidateId();
-    if (!userId || this.exportingPdf) {
-      return;
-    }
-
-    this.exportingPdf = true;
-    this.benchmarkService.downloadReportResponse(userId).subscribe({
-      next: response => {
-        void this.handleReportResponse(response);
-      },
-      error: error => {
-        void this.handleReportError(error);
-      }
-    });
-  }
-
-  private async handleReportResponse(response: HttpResponse<Blob>): Promise<void> {
-    try {
-      const fallbackName = `talentpredict-report-${new Date().toISOString().slice(0, 10)}.pdf`;
-      const fileName = this.benchmarkService.resolveReportFileName(response, fallbackName);
-      const payload = response.body;
-
-      if (!payload || payload.size === 0) {
-        this.notify.error('Le rapport genere est vide. Reessayez dans quelques instants.');
-        return;
-      }
-
-      if (!this.benchmarkService.isPdfResponse(response, fileName)) {
-        const message = await this.benchmarkService.extractBlobMessage(
-          payload,
-          'Export PDF indisponible pour le moment.'
-        );
-        this.notify.error(message);
-        return;
-      }
-
-      this.downloadBlob(payload, fileName);
-      this.notify.success('Le rapport PDF a ete telecharge.');
-    } finally {
-      this.exportingPdf = false;
-    }
-  }
-
-  private async handleReportError(error: unknown): Promise<void> {
-    this.exportingPdf = false;
-    const message = await this.benchmarkService.extractErrorMessage(
-      error,
-      'Export PDF indisponible pour le moment.'
-    );
-    this.notify.error(message);
-  }
-
-  private downloadBlob(blob: Blob, fileName: string): void {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const url = window.URL.createObjectURL(blob);
-    const anchor = window.document.createElement('a');
-    anchor.href = url;
-    anchor.download = fileName;
-    anchor.style.display = 'none';
-    window.document.body.appendChild(anchor);
-    anchor.click();
-
-    window.setTimeout(() => {
-      window.URL.revokeObjectURL(url);
-      anchor.remove();
-    }, 1000);
+    this.notify.warning("L'exportation PDF est momentanément indisponible.");
   }
 
   private initializeTimers(): void {
@@ -602,7 +532,10 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
       .sort((a, b) => Number(b[1]) - Number(a[1]));
 
     const strongestSkills = sortedSkills.slice(0, 3).map(([name]) => name);
-    const weakSkills = sortedSkills.filter(([, score]) => Number(score) < 50).slice(0, 3).map(([name]) => name);
+    const weakSkills = sortedSkills
+      .filter(([name, score]) => Number(score) < 50 && !strongestSkills.includes(name))
+      .slice(0, 3)
+      .map(([name]) => name);
     const skillGapAnalysis = this.buildSkillGapAnalysis(skillScores);
     const gapSummary = this.buildGapSummary(skillGapAnalysis);
 
@@ -722,13 +655,9 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
         this.result = this.composeProfessionalResult(mcq, code);
 
         // Persist tech result to sessionStorage so mes-resultats can display it
+        // Persist complete tech result to sessionStorage so mes-resultats can display it fully
         try {
-          sessionStorage.setItem('latestTechResult', JSON.stringify({
-            overall_score: this.result.finalScore,
-            passed: this.result.passed,
-            skill_scores: this.result.skillScores,
-            taken_at: new Date().toISOString()
-          }));
+          sessionStorage.setItem('latestTechResult', JSON.stringify(this.result));
         } catch {}
 
         // Auto-navigate to competences results if in that flow

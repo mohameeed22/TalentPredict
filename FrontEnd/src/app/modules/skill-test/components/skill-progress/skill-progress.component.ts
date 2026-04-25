@@ -3,8 +3,17 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../auth/services/auth.service';
-import { BenchmarkService, CandidateProgressItem } from '../../services/benchmark.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+
+export interface CandidateProgressItem {
+  id?: string;
+  candidate_id?: string;
+  test_type?: string;
+  overall_score?: number;
+  skill_scores?: Record<string, number>;
+  taken_at: string;
+  passed?: boolean;
+}
 
 interface BenchmarkSkillRow {
   skill: string;
@@ -28,7 +37,6 @@ interface BenchmarkOverview {
 })
 export class SkillProgressComponent implements OnInit {
   private auth = inject(AuthService);
-  private benchmarkService = inject(BenchmarkService);
   private notify = inject(NotificationService);
 
   progress: CandidateProgressItem[] = [];
@@ -87,7 +95,7 @@ export class SkillProgressComponent implements OnInit {
     return `${item.skill}-${index}`;
   }
 
-  formatTestType(testType: string | null): string {
+  formatTestType(testType: string | null | undefined): string {
     if (!testType) {
       return 'Evaluation generale';
     }
@@ -133,53 +141,17 @@ export class SkillProgressComponent implements OnInit {
   }
 
   exportPdf(): void {
-    if (!this.userId || this.exportingPdf) {
-      return;
-    }
-
-    this.exportingPdf = true;
-    this.benchmarkService.downloadReportResponse(this.userId).subscribe({
-      next: response => {
-        void this.handleReportResponse(response);
-      },
-      error: error => {
-        void this.handleReportError(error);
-      }
-    });
+    this.notify.warning("L'exportation PDF est momentanément indisponible.");
   }
 
   private loadProgress(): void {
-    this.loadingProgress = true;
-    this.progressError = '';
-
-    this.benchmarkService.progress(this.userId).subscribe({
-      next: p => {
-        this.progress = [...p].sort(
-          (a, b) => new Date(b.taken_at).getTime() - new Date(a.taken_at).getTime()
-        );
-        this.loadingProgress = false;
-      },
-      error: err => {
-        this.loadingProgress = false;
-        this.progressError = err?.error?.message ?? 'Impossible de charger les sessions de test.';
-      }
-    });
+    this.loadingProgress = false;
+    this.progressError = 'Données de progression momentanément indisponibles.';
   }
 
   private loadBenchmark(): void {
-    this.loadingBenchmark = true;
-    this.benchmarkError = '';
-
-    this.benchmarkService.benchmark(this.userId, ['JavaScript', 'React']).subscribe({
-      next: rawBenchmark => {
-        this.benchmark = this.normalizeBenchmark(rawBenchmark);
-        this.loadingBenchmark = false;
-      },
-      error: err => {
-        this.loadingBenchmark = false;
-        this.benchmarkError = err?.error?.message ?? 'Benchmark indisponible pour le moment.';
-      }
-    });
+    this.loadingBenchmark = false;
+    this.benchmarkError = 'Benchmark indisponible pour le moment.';
   }
 
   private normalizeBenchmark(raw: unknown): BenchmarkOverview | null {
@@ -209,60 +181,5 @@ export class SkillProgressComponent implements OnInit {
   private toNumber(value: unknown): number {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
-  }
-
-  private async handleReportResponse(response: HttpResponse<Blob>): Promise<void> {
-    try {
-      const fallbackName = `talentpredict-report-${new Date().toISOString().slice(0, 10)}.pdf`;
-      const fileName = this.benchmarkService.resolveReportFileName(response, fallbackName);
-      const payload = response.body;
-
-      if (!payload || payload.size === 0) {
-        this.notify.error('Le rapport genere est vide. Reessayez dans quelques instants.');
-        return;
-      }
-
-      if (!this.benchmarkService.isPdfResponse(response, fileName)) {
-        const message = await this.benchmarkService.extractBlobMessage(
-          payload,
-          'Impossible de telecharger le PDF pour le moment.'
-        );
-        this.notify.error(message);
-        return;
-      }
-
-      this.triggerDownload(payload, fileName);
-      this.notify.success('Rapport PDF telecharge.');
-    } finally {
-      this.exportingPdf = false;
-    }
-  }
-
-  private async handleReportError(error: unknown): Promise<void> {
-    this.exportingPdf = false;
-    const message = await this.benchmarkService.extractErrorMessage(
-      error,
-      'Impossible de telecharger le PDF.'
-    );
-    this.notify.error(message);
-  }
-
-  private triggerDownload(blob: Blob, fileName: string): void {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const url = window.URL.createObjectURL(blob);
-    const anchor = window.document.createElement('a');
-    anchor.href = url;
-    anchor.download = fileName;
-    anchor.style.display = 'none';
-    window.document.body.appendChild(anchor);
-    anchor.click();
-
-    window.setTimeout(() => {
-      window.URL.revokeObjectURL(url);
-      anchor.remove();
-    }, 1000);
   }
 }

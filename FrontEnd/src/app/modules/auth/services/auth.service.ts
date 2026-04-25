@@ -22,6 +22,25 @@ export class AuthService {
   private userProfileSubject = new BehaviorSubject<User | null>(null);
   public userProfile$ = this.userProfileSubject.asObservable();
 
+  /** Global avatar URL — emits whenever the profile photo changes so all components update instantly */
+  private avatarUrlSubject = new BehaviorSubject<string>(this.getStoredAvatarUrl());
+  public avatarUrl$ = this.avatarUrlSubject.asObservable();
+
+  private getStoredAvatarUrl(): string {
+    try { return localStorage.getItem('avatarUrl') || ''; } catch { return ''; }
+  }
+
+  /** Call this after a photo upload to push the new URL to all subscribers */
+  setAvatarUrl(url: string): void {
+    try { localStorage.setItem('avatarUrl', url); } catch {}
+    this.avatarUrlSubject.next(url);
+  }
+
+  /** Current avatar URL (sync access) */
+  getAvatarUrl(): string {
+    return this.avatarUrlSubject.value;
+  }
+
   // Track if a refresh is in progress to prevent multiple simultaneous refreshes
   private refreshInProgress = false;
   private refreshSubject = new BehaviorSubject<boolean>(false);
@@ -226,7 +245,13 @@ export class AuthService {
   uploadProfilePhoto(userId: string, file: File): Observable<ProfileResponse> {
     const formData = new FormData();
     formData.append('file', file);
-    return this.http.post<ProfileResponse>(`${this.profilesUrl}/accounts/${userId}/upload-photo`, formData);
+    return this.http.post<ProfileResponse>(`${this.profilesUrl}/accounts/${userId}/upload-photo`, formData).pipe(
+      tap(profile => {
+        if (profile?.urlPhoto) {
+          this.setAvatarUrl(this.getAssetUrl(profile.urlPhoto));
+        }
+      })
+    );
   }
 
   /** Upload CV PDF — stores the file, updates cvUrl, analyzes with AI. */

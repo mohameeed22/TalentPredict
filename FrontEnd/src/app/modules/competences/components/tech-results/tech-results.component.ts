@@ -2,9 +2,11 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../auth/services/auth.service';
-import { SkillsService } from '../../../skills/services/skills.service';
-import { BenchmarkService } from '../../../skill-test/services/benchmark.service';
 import { NotificationService } from '../../../../core/services/notification.service';
+import { TestApiService } from '../../../skill-test/services/test-api.service';
+import { SkillsService } from '../../../skills/services/skills.service';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 @Component({
   selector: 'app-tech-results',
@@ -17,8 +19,8 @@ export class TechResultsComponent implements OnInit {
   private router = inject(Router);
   private authService = inject(AuthService);
   private skillsService = inject(SkillsService);
-  private benchmarkService = inject(BenchmarkService);
   private notify = inject(NotificationService);
+  private testApi = inject(TestApiService);
 
   quizResult: any = null;
   githubResult: any = null;
@@ -27,20 +29,83 @@ export class TechResultsComponent implements OnInit {
   recentTests: any[] = [];
   loading = true;
   exportingPdf = false;
+  pdfMode = false;
   activeTab: 'overview' | 'skills' | 'github' | 'gaps' = 'overview';
 
+  // AI Forensics
+  githubDeepResult: any = null;
+  loadingGithubDeep = false;
+  cvAuthenticityResult: any = null;
+  loadingCvAuthenticity = false;
+
   ngOnInit(): void {
-    // Load quiz result from router state or sessionStorage
+    // 1. Load quiz result from router state
     const nav = this.router.getCurrentNavigation();
     this.quizResult = nav?.extras?.state?.['result'] ?? null;
 
-    // Load context from intake
+    // 2. Fall back to sessionStorage (e.g. after page refresh or direct navigation)
+    if (!this.quizResult) {
+      const stored = sessionStorage.getItem('latestTechResult');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          // Load the full quizResult object from the new storage format
+          this.quizResult = parsed;
+          
+          // If the parsed object is missing critical fields (old session format fallback)
+          if (this.quizResult && this.quizResult.finalScore === undefined) {
+            this.quizResult = {
+              finalScore: parsed.overall_score ?? 0,
+              passed: parsed.passed ?? false,
+              skillScores: parsed.skill_scores ?? {},
+              skillGapAnalysis: [],
+              mcqSummary: '',
+              headline: parsed.overall_score >= 60
+                ? 'Profil valide pour un entretien technique avancé.'
+                : 'Des bases présentes, mais un renforcement ciblé est recommandé.',
+            };
+          }
+        } catch { /* ignore parse errors */ }
+      }
+    }
+
+    // 3. Load context from intake
     const ctx = sessionStorage.getItem('techIntakeContext');
     if (ctx) {
       try {
         const parsed = JSON.parse(ctx);
-        this.githubResult = parsed.githubResult ?? null;
+        const aiAnalysis = parsed.aiAnalysis;
+        
+        if (aiAnalysis && !parsed.githubResult) {
+            // Map aiAnalysis to githubResult for backwards compatibility with the UI
+            this.githubResult = {
+                username: aiAnalysis.candidate || parsed.githubUsername,
+                data: {
+                    summary: aiAnalysis.summary,
+                    code_complexity_estimate: "N/A",
+                    verified_skills: aiAnalysis.skills ? aiAnalysis.skills.map((s: any) => ({
+                        skill: s.name,
+                        confidence: s.level || 'Moyen',
+                        evidence: `Source: ${(s.sources || []).join(', ')}`
+                    })) : [],
+                    missing_claimed_skills: aiAnalysis.job_match?.missing_skills || []
+                }
+            };
+        } else {
+            this.githubResult = parsed.githubResult ?? null;
+        }
+        
         this.detectedSkills = parsed.detectedSkills ?? [];
+
+        // Auto-run AI Forensics if we have data
+        if (parsed.cvText && parsed.cvText.length > 50) {
+            this.runCvAuthenticity(parsed.cvText);
+        }
+        
+        const ghUser = this.githubResult?.username || parsed.githubUsername;
+        if (ghUser) {
+            this.runGithubDeepAnalysis(ghUser, aiAnalysis);
+        }
       } catch {}
     }
 
@@ -53,15 +118,17 @@ export class TechResultsComponent implements OnInit {
     const userId = String(user.id);
 
     this.skillsService.getUserSkills(userId).subscribe({
-      next: (skills) => {
+      next: (skills: any[]) => {
         this.techSkills = skills
-          .filter(s => s.type === 'TECH' || (s.type as string) === 'TECH')
+          .filter((s: any) => s.type === 'TECH' || (s.type as string) === 'TECH')
           .sort((a: any, b: any) => (b.niveau ?? 0) - (a.niveau ?? 0));
         this.loading = false;
       },
       error: () => { this.loading = false; }
     });
 
+    // Benchmark history disabled
+    /*
     this.benchmarkService.progress(userId).subscribe({
       next: (rows) => {
         this.recentTests = [...rows]
@@ -69,6 +136,7 @@ export class TechResultsComponent implements OnInit {
           .slice(0, 5);
       }
     });
+    */
   }
 
   get overallScore(): number {
@@ -112,48 +180,49 @@ export class TechResultsComponent implements OnInit {
   exportPdf(): void {
     if (this.exportingPdf) return;
     this.exportingPdf = true;
+    this.pdfMode = true;
+    this.notify.info('Génération du PDF en cours. Veuillez patienter...');
 
-    const user = this.authService.getCurrentUser();
-    if (!user?.id) {
-      this.exportingPdf = false;
-      this.usePrintFallback();
-      return;
-    }
-
-    this.benchmarkService.downloadReportResponse(String(user.id)).subscribe({
-      next: async (response: any) => {
-        try {
-          const payload = response.body;
-          if (payload && payload.size > 0 && this.benchmarkService.isPdfResponse(response, 'report.pdf')) {
-            this.downloadBlob(payload, `talentpredict-tech-${new Date().toISOString().slice(0, 10)}.pdf`);
-            this.notify.success('Rapport PDF téléchargé.');
-          } else {
-            this.usePrintFallback();
-          }
-        } finally {
-          this.exportingPdf = false;
-        }
-      },
-      error: () => {
+    setTimeout(() => {
+      const element = document.getElementById('print-area');
+      if (!element) {
         this.exportingPdf = false;
-        this.usePrintFallback();
+        this.pdfMode = false;
+        this.notify.error('Erreur lors de la génération du PDF.');
+        return;
       }
-    });
-  }
 
-  private usePrintFallback(): void {
-    this.notify.info('Ouverture de la fenêtre d\'impression pour le PDF.');
-    setTimeout(() => window.print(), 300);
-  }
+      html2canvas(element, { scale: 2, useCORS: true, logging: false }).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        
+        // Add footer with app name and export date
+        const pageCount = (pdf.internal as any).getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+          pdf.setPage(i);
+          pdf.setFontSize(10);
+          pdf.setTextColor(100);
+          const footerText = `TalentPredict - Généré le ${new Date().toLocaleDateString('fr-FR')} - Page ${i}/${pageCount}`;
+          pdf.text(footerText, pdfWidth / 2, pdf.internal.pageSize.getHeight() - 10, { align: 'center' });
+        }
 
-  private downloadBlob(blob: Blob, fileName: string): void {
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = fileName;
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { window.URL.revokeObjectURL(url); a.remove(); }, 1000);
+        const candidateName = this.githubResult?.username || 'Candidat';
+        pdf.save(`TalentPredict_Rapport_${candidateName}.pdf`);
+        
+        this.exportingPdf = false;
+        this.pdfMode = false;
+        this.notify.success('PDF exporté avec succès !');
+      }).catch(err => {
+        console.error('PDF Generation Error:', err);
+        this.exportingPdf = false;
+        this.pdfMode = false;
+        this.notify.error('Échec de la génération du PDF.');
+      });
+    }, 500); // Give Angular time to render pdfMode changes
   }
 
   retakeTest(): void { this.router.navigate(['/competences']); }
@@ -163,5 +232,48 @@ export class TechResultsComponent implements OnInit {
     if (score >= 75) return 'high';
     if (score >= 50) return 'mid';
     return 'low';
+  }
+
+  // ── AI Forensics ───────────────────────────────────────────────
+
+  runGithubDeepAnalysis(username: string, aiAnalysis?: any): void {
+    const user = this.authService.getCurrentUser();
+    if (!user || !username) return;
+
+    this.loadingGithubDeep = true;
+    this.testApi.analyzeGithubDeep({
+      github_username: username,
+      candidate_id: user.id,
+      github_data: aiAnalysis || {}
+    }).subscribe({
+      next: (res: any) => {
+        this.githubDeepResult = res;
+        this.loadingGithubDeep = false;
+      },
+      error: (err) => {
+        this.loadingGithubDeep = false;
+        this.githubDeepResult = { error: "Erreur lors de l'analyse profonde: " + (err?.message || "Service injoignable") };
+      }
+    });
+  }
+
+  runCvAuthenticity(cvText: string): void {
+    const user = this.authService.getCurrentUser();
+    if (!user || !cvText) return;
+
+    this.loadingCvAuthenticity = true;
+    this.testApi.checkCvAuthenticity({
+      candidate_id: user.id,
+      cv_text: cvText
+    }).subscribe({
+      next: (res: any) => {
+        this.cvAuthenticityResult = res;
+        this.loadingCvAuthenticity = false;
+      },
+      error: (err) => {
+        this.loadingCvAuthenticity = false;
+        this.cvAuthenticityResult = { error: "Erreur lors de l'analyse du CV: " + (err?.message || "Service injoignable") };
+      }
+    });
   }
 }
