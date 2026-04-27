@@ -12,7 +12,7 @@
   @if (!loading && dashboardData) {
     <!-- Manager Banner -->
     <div class="manager-banner">
-      👁️ Votre profil a été consulté par votre manager — {{ feed[3].date }}
+      👁️ {{ managerBannerMessage }}
     </div>
 
     <!-- ROW 1: HERO -->
@@ -53,12 +53,12 @@
         <span class="stat-label">Streak Hebdo</span>
       </div>
       <div class="stat-box">
-        <span class="stat-val top-rank">Top {{ rangPlateforme }}%</span>
-        <span class="stat-label">Rang Plateforme</span>
+        <span class="stat-val">{{ softSkillsCount }}</span>
+        <span class="stat-label">Soft Skills</span>
       </div>
       <div class="stat-box">
-        <span class="stat-val">{{ competencesMaitrisees }}</span>
-        <span class="stat-label">Comp. Maîtrisées</span>
+        <span class="stat-val">{{ techSkillsCount }}</span>
+        <span class="stat-label">Tech Skills</span>
       </div>
       <div class="stat-box">
         <span class="stat-val">{{ formationsActives }}</span>
@@ -94,15 +94,22 @@
         <div class="match-list">
           @for (match of careerMatches; track match.role; let i = $index) {
             <div class="match-item">
-              <div class="match-info">
-                <h3>{{ match.role }}</h3>
-                <span class="match-score" [class.high]="match.match >= 80" [class.med]="match.match >= 60 && match.match < 80">{{ match.match }}%</span>
+              <div class="match-top">
+                <div class="match-info">
+                  <h3>{{ match.role }}</h3>
+                  <span class="match-score" [class.high]="match.match >= 80" [class.med]="match.match >= 60 && match.match < 80">{{ match.match }}%</span>
+                </div>
+                <button class="btn-sm btn-outline" [routerLink]="match.targetRoute">Voir les gaps</button>
               </div>
+
+              <div class="match-meter">
+                <span class="match-meter-fill" [style.width.%]="match.match"></span>
+              </div>
+
               <div class="match-gaps">
                 <span class="gaps-label">Gaps:</span>
                 @for (gap of match.gaps; track gap) { <span class="gap-tag">{{ gap }}</span> }
               </div>
-              <button class="btn-sm btn-outline">Voir les gaps</button>
             </div>
           }
         </div>
@@ -156,20 +163,24 @@
           <h2>⚡ Skill Momentum</h2>
           <p class="sub-header">Évolution par rapport à la moyenne des 3 derniers tests</p>
         </div>
-        <div class="momentum-list">
-          @for(m of skillMomentum; track m.name) {
-            <div class="momentum-item">
-              <span class="m-name">{{ m.name }}</span>
-              <div class="m-score-box">
-                <span class="m-current">{{ m.current }}</span>
-                <span class="m-delta" [class.up]="m.dir==='up'" [class.down]="m.dir==='down'" [class.flat]="m.dir==='flat'">
-                  {{ m.dir === 'up' ? '↑' : (m.dir === 'down' ? '↓' : '=') }}
-                  {{ m.delta !== 0 ? Math.abs(m.delta) + 'pts' : '' }}
-                </span>
+        @if (skillMomentum.length > 0) {
+          <div class="momentum-list">
+            @for(m of skillMomentum; track m.name) {
+              <div class="momentum-item">
+                <span class="m-name">{{ m.name }}</span>
+                <div class="m-score-box">
+                  <span class="m-current">{{ m.current }}</span>
+                  <span class="m-delta" [class.up]="m.dir==='up'" [class.down]="m.dir==='down'" [class.flat]="m.dir==='flat'">
+                    {{ m.dir === 'up' ? '↑' : (m.dir === 'down' ? '↓' : '=') }}
+                    {{ m.delta !== 0 ? Math.abs(m.delta) + 'pts' : '' }}
+                  </span>
+                </div>
               </div>
-            </div>
-          }
-        </div>
+            }
+          </div>
+        } @else {
+          <p class="empty-text">Pas assez de tests pour calculer la dynamique.</p>
+        }
       </div>
     </div>
 
@@ -180,19 +191,19 @@
         <div class="action-card">
           <div class="ac-icon">📝</div>
           <h3>Passer un test</h3>
-          <p>Évaluez vos compétences React.</p>
+          <p>{{ testActionText }}</p>
           <button class="btn-primary" routerLink="/evaluation/intro">Passer le test</button>
         </div>
         <div class="action-card">
           <div class="ac-icon">📚</div>
           <h3>Continuer la formation</h3>
-          <p>Angular Avancé (60% complété).</p>
+          <p>{{ formationActionText }}</p>
           <button class="btn-primary" routerLink="/formations">Reprendre</button>
         </div>
         <div class="action-card">
           <div class="ac-icon">🎯</div>
           <h3>Pratiquer un skill</h3>
-          <p>Renforcez votre Leadership.</p>
+          <p>{{ skillPracticeText }}</p>
           <button class="btn-outline" routerLink="/competences">Voir les exercices</button>
         </div>
       </div>
@@ -236,14 +247,14 @@
             <div class="form-item">
               <div class="form-info">
                 <h3>{{ form.titre }}</h3>
-                <span class="form-status" [class.en-cours]="form.statut==='en_cours'" [class.terminee]="form.statut==='terminee'">{{ form.statut }}</span>
+                <span class="form-status" [class.en-cours]="isFormationInProgress(form.statut)" [class.terminee]="isFormationCompleted(form.statut)">{{ formatFormationStatus(form.statut) }}</span>
               </div>
               <div class="progress-bar">
                 <div class="progress-fill" [style.width.%]="form.progression" [class.bg-green]="form.progression===100" [class.bg-blue]="form.progression<100"></div>
               </div>
               <div class="form-actions flex-between">
                 <span class="progress-text">{{ form.progression }}%</span>
-                <button class="btn-sm btn-outline">Continuer</button>
+                <button class="btn-sm btn-outline" routerLink="/formations">Continuer</button>
               </div>
             </div>
           }
@@ -280,17 +291,21 @@
         <div class="card-header">
           <h2>🔔 Activité Récente</h2>
         </div>
-        <div class="feed-list">
-          @for(item of feed; track item.text) {
-            <div class="feed-item" [class.highlight]="item.highlight">
-              <span class="feed-icon">{{ item.icon }}</span>
-              <div class="feed-content">
-                <p>{{ item.text }}</p>
-                <small>{{ item.date }}</small>
+        @if (feed.length > 0) {
+          <div class="feed-list">
+            @for(item of feed; track item.text) {
+              <div class="feed-item" [class.highlight]="item.highlight">
+                <span class="feed-icon">{{ item.icon }}</span>
+                <div class="feed-content">
+                  <p>{{ item.text }}</p>
+                  <small>{{ item.date }}</small>
+                </div>
               </div>
-            </div>
-          }
-        </div>
+            }
+          </div>
+        } @else {
+          <p class="empty-text">Aucune activité récente disponible.</p>
+        }
       </div>
     </div>
   }

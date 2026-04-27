@@ -147,7 +147,10 @@ public class AuthController {
     }
 
     @GetMapping("/verify-email")
-    public ResponseEntity<AuthDto.MessageResponse> verifyEmail(@RequestParam("token") String token) {
+    public ResponseEntity<AuthDto.MessageResponse> verifyEmail(@RequestParam(value = "token", required = false) String token) {
+        if (token == null || token.isEmpty()) {
+            return ResponseEntity.badRequest().body(new AuthDto.MessageResponse("Le jeton de vérification est manquant."));
+        }
         try {
             String message = authServiceImpl.verifyEmailToken(token);
             return ResponseEntity.ok(new AuthDto.MessageResponse(message));

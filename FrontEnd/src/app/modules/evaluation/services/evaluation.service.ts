@@ -17,14 +17,14 @@ export class EvaluationService {
 
   submitTest(userId: number | string, request: PersonalityTestRequest): Observable<PersonalityTestResponse> {
     return this.http.post<PersonalityTestResponse>(
-      `${this.baseUrl}/utilisateur/${userId}`,
+      `${this.baseUrl}/accounts/${userId}`,
       request
     );
   }
 
   getUserTests(userId: number | string): Observable<PersonalityTestResponse[]> {
     return this.http.get<PersonalityTestResponse[]>(
-      `${this.baseUrl}/utilisateur/${userId}`
+      `${this.baseUrl}/accounts/${userId}`
     );
   }
 
@@ -34,7 +34,7 @@ export class EvaluationService {
 
   getLatestTest(userId: number | string): Observable<PersonalityTestResponse> {
     return this.http.get<PersonalityTestResponse>(
-      `${this.baseUrl}/utilisateur/${userId}/dernier`
+      `${this.baseUrl}/accounts/${userId}/dernier`
     );
   }
 

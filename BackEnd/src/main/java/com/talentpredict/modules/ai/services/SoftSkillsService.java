@@ -39,17 +39,8 @@ public class SoftSkillsService {
     public SoftSkillsResultDto analyze(SoftSkillsAnalysisRequestDto request, UUID userId) {
         log.info("Starting soft skills analysis for userId={}", userId);
         SoftSkillsResultDto result = n8nService.analyze(request);
-        if (isTrulyEmpty(result)) {
-            // Only fail hard when there is absolutely no data at all — not even local PCM scores.
-            log.warn("n8n returned a completely empty payload for userId={} — aborting", userId);
-            throw new ResponseStatusException(
-                HttpStatus.BAD_GATEWAY,
-                "Soft skills analysis produced no usable data. Please retry."
-            );
-        }
-        // If n8n timed out but local PCM scores are present, log a warning and continue.
         if (isLikelyN8nFallback(result)) {
-            log.warn("n8n timed out for userId={} — using local PCM fallback scores", userId);
+            log.warn("n8n timed out or failed for userId={} — using local PCM fallback scores", userId);
         }
         persist(result, userId);
         return result;
@@ -109,6 +100,33 @@ public class SoftSkillsService {
         return userRepository.findByEmail(email)
             .map(User::getId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found: " + email));
+    }
+
+    public void saveScenarioResult(Map<String, Object> evaluation, UUID userId) {
+        try {
+            User user = findUser(userId);
+            // We append the scenario evaluation to the LATEST prediction instead of creating a new one
+            // or create a dedicated prediction if none exists.
+            List<Prediction> predictions = predictionRepository.findByUserOrderByDatePredictionDesc(user);
+            Prediction prediction;
+            if (predictions.isEmpty()) {
+                prediction = Prediction.builder()
+                    .user(user)
+                    .analyse("SCENARIO_EVALUATION:\n" + objectMapper.writeValueAsString(evaluation))
+                    .statut(Prediction.StatutPrediction.COMPLETEE)
+                    .build();
+            } else {
+                prediction = predictions.get(0);
+                String currentAnalyse = prediction.getAnalyse() != null ? prediction.getAnalyse() : "";
+                if (!currentAnalyse.contains("SCENARIO_EVALUATION:")) {
+                    prediction.setAnalyse(currentAnalyse + "\n\nSCENARIO_EVALUATION:\n" + objectMapper.writeValueAsString(evaluation));
+                }
+            }
+            predictionRepository.save(prediction);
+            log.info("Persisted scenario result for userId={}", userId);
+        } catch (Exception e) {
+            log.error("Error persisting scenario result for userId={}: {}", userId, e.getMessage());
+        }
     }
 
     private void persist(SoftSkillsResultDto result, UUID userId) {
@@ -186,18 +204,31 @@ public class SoftSkillsService {
                 Object src = result.getSourceData().get(key);
                 Object directScore = result.getSourceData().get(key + "_score");
                 double score = 0;
+                String details = "";
                 if (src instanceof Map<?, ?> srcMap) {
                     Object val = srcMap.get("overall_score");
                     if (val != null) {
                         try { score = Double.parseDouble(val.toString()); }
                         catch (NumberFormatException ignored) {}
                     }
+                    Object det = srcMap.get("summary") != null ? srcMap.get("summary") : srcMap.get("details");
+                    if (det != null) details = det.toString();
                 } else if (directScore != null) {
                     try { score = Double.parseDouble(directScore.toString()); }
                     catch (NumberFormatException ignored) {}
                 }
-                sb.append("- ").append(key).append(": ").append(score).append("\n");
+                sb.append("- ").append(key).append(": ").append(score).append(" | ").append(details).append("\n");
             }
+            sb.append("\n");
+        }
+        if (result.getScenarioEvaluation() != null) {
+            sb.append("SCENARIO_EVALUATION:\n");
+            try {
+                sb.append(objectMapper.writeValueAsString(result.getScenarioEvaluation()));
+            } catch (Exception e) {
+                sb.append("{}");
+            }
+            sb.append("\n\n");
         }
         return sb.toString();
     }
@@ -209,6 +240,9 @@ public class SoftSkillsService {
         return sb.toString();
     }
 
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+
+    @SuppressWarnings("unchecked")
     private SoftSkillsResultDto toResultDto(Prediction p) {
         SoftSkillsResultDto dto = new SoftSkillsResultDto();
         if (p.getScoreConfiance() != null) dto.setOverallScore(Math.round(p.getScoreConfiance() * 10 * 10.0) / 10.0);
@@ -227,6 +261,7 @@ public class SoftSkillsService {
             String top3w = extractSection(analyse, "TOP_FAIBLESSES");
             if (top3w != null) dto.setTop3Weaknesses(Arrays.asList(top3w.split(", ")));
             dto.setMergedSoftSkills(parseSkillsSection(analyse));
+            
             String sourcesSection = extractSection(analyse, "SOURCES");
             if (sourcesSection != null) {
                 Map<String, Object> sourceData = new LinkedHashMap<>();
@@ -234,14 +269,28 @@ public class SoftSkillsService {
                     if (!line.startsWith("- ")) continue;
                     String[] kv = line.substring(2).split(": ", 2);
                     if (kv.length != 2) continue;
+                    
+                    String[] scoreAndDetails = kv[1].split(" \\| ", 2);
+                    double score = 0;
+                    String details = "";
                     try {
-                        double score = Double.parseDouble(kv[1].trim());
-                        Map<String, Double> entry = new LinkedHashMap<>();
+                        score = Double.parseDouble(scoreAndDetails[0].trim());
+                        if (scoreAndDetails.length > 1) details = scoreAndDetails[1].trim();
+                        
+                        Map<String, Object> entry = new LinkedHashMap<>();
                         entry.put("overall_score", score);
+                        entry.put("details", details);
                         sourceData.put(kv[0].trim(), entry);
                     } catch (NumberFormatException ignored) {}
                 }
                 if (!sourceData.isEmpty()) dto.setSourceData(sourceData);
+            }
+
+            String scenarioSection = extractSection(analyse, "SCENARIO_EVALUATION");
+            if (scenarioSection != null) {
+                try {
+                    dto.setScenarioEvaluation(objectMapper.readValue(scenarioSection, Map.class));
+                } catch (Exception ignored) {}
             }
         }
         String reco = p.getRecommandationSoft();

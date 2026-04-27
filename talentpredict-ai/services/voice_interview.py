@@ -201,6 +201,8 @@ Write a concise, honest debrief in {language}. Return ONLY valid JSON:
   "recommendation": "strong_hire|hire|borderline|no_hire",
   "strengths": ["...", "..."],
   "areas_for_improvement": ["...", "..."],
+  "communication_style": "...",
+  "confidence_level": "Low|Medium|High",
   "culture_fit_notes": "...",
   "summary_paragraph": "..."
 }}"""
@@ -228,6 +230,8 @@ Write a concise, honest debrief in {language}. Return ONLY valid JSON:
         "recommendation": rec,
         "strengths": [fallback_strength],
         "areas_for_improvement": [fallback_area],
+        "communication_style": "Standard" if language == "fr" else "Standard",
+        "confidence_level": "Medium" if overall >= 50 else "Low",
         "culture_fit_notes": "Évaluation en cours." if language == "fr" else "Assessment pending.",
         "summary_paragraph": fallback_para,
     }

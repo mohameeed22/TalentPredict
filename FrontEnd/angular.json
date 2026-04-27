@@ -40,7 +40,16 @@
             ],
             "scripts": [],
             "ssr": false,
-            "prerender": false
+            "prerender": false,
+            "allowedCommonJsDependencies": [
+              "html2canvas",
+              "canvg",
+              "core-js",
+              "raf",
+              "rgbcolor",
+              "stackblur-canvas",
+              "css-line-break"
+            ]
           },
           "configurations": {
             "production": {

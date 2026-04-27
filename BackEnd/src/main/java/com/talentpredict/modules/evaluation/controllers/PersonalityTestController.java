@@ -17,17 +17,19 @@ import com.talentpredict.modules.evaluation.dto.PersonalityTestDto;
 import com.talentpredict.modules.evaluation.services.PersonalityTestService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 
 @RestController
 @RequestMapping("/api/tests-personnalite")
 @RequiredArgsConstructor
+@Slf4j
 public class PersonalityTestController {
     
     private final PersonalityTestService testService;
     private final com.talentpredict.modules.ai.services.RecommendationService recommendationService;
 
-    @PostMapping("/utilisateur/{userId}")
+    @PostMapping("/accounts/{userId}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<PersonalityTestDto.PersonalityTestResponse> submitTest(
             @PathVariable UUID userId,
@@ -39,22 +41,21 @@ public class PersonalityTestController {
             try {
                 recommendationService.generateRecommendations(userId);
             } catch (Exception e) {
-                // Log and ignore
-                e.printStackTrace();
+                log.error("Failed to generate recommendations for user {}: {}", userId, e.getMessage());
             }
         });
         
         return ResponseEntity.status(HttpStatus.CREATED).body(test);
     }
 
-    @GetMapping("/utilisateur/{userId}")
+    @GetMapping("/accounts/{userId}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<List<PersonalityTestDto.PersonalityTestResponse>> getUserTests(@PathVariable UUID userId) {
         List<PersonalityTestDto.PersonalityTestResponse> tests = testService.getTestsByUser(userId);
         return ResponseEntity.ok(tests);
     }
 
-    @GetMapping("/utilisateur/{userId}/dernier")
+    @GetMapping("/accounts/{userId}/dernier")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<PersonalityTestDto.PersonalityTestResponse> getLatestTest(@PathVariable UUID userId) {
         PersonalityTestDto.PersonalityTestResponse test = testService.getLatestTestByUser(userId);

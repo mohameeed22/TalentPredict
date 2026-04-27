@@ -36,7 +36,7 @@ public class N8nSoftSkillsService {
     private String softSkillsWebhookPath;
 
     /** Hard deadline for the CompletableFuture wrapper (slightly less than socket read timeout). */
-    @Value("${n8n.http.call-timeout-seconds:28}")
+    @Value("${n8n.http.call-timeout-seconds:55}")
     private long callTimeoutSeconds;
 
     private final RestTemplate restTemplate;
@@ -48,6 +48,7 @@ public class N8nSoftSkillsService {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
     }
+
 
     // ----------------------------------------------------------------
     // MAIN ENTRY POINT
@@ -343,6 +344,40 @@ public class N8nSoftSkillsService {
             double avg = result.getMergedSoftSkills().values()
                 .stream().mapToDouble(Double::doubleValue).average().orElse(5.0);
             result.setOverallScore(Math.round(avg * 10.0) / 10.0);
+        }
+
+        // --- NEW FALLBACKS FOR TEXT FIELDS ---
+        if (result.getSummary() == null || result.getSummary().isBlank()) {
+            result.setSummary("Analyse préliminaire basée sur votre test PCM. " +
+                "L'analyse approfondie par IA (CV/GitHub) est en attente ou a été ignorée.");
+        }
+
+        if (result.getPersonalityType() == null || result.getPersonalityType().isBlank()) {
+            result.setPersonalityType("Profil en cours d'analyse");
+        }
+
+        if (result.getPersonalityDescription() == null || result.getPersonalityDescription().isBlank()) {
+            result.setPersonalityDescription("Nous traitons actuellement vos données pour définir votre style comportemental dominant.");
+        }
+
+        if (result.getCareerAdvice() == null || result.getCareerAdvice().isBlank()) {
+            result.setCareerAdvice("Continuez à développer vos compétences transversales et maintenez votre engagement actuel.");
+        }
+
+        if (result.getKeyStrengths() == null || result.getKeyStrengths().isEmpty()) {
+            if (result.getTop3Strengths() != null && !result.getTop3Strengths().isEmpty()) {
+                result.setKeyStrengths(result.getTop3Strengths());
+            } else {
+                result.setKeyStrengths(List.of("Adaptabilité", "Communication", "Esprit d'équipe"));
+            }
+        }
+
+        if (result.getKeyWeaknesses() == null || result.getKeyWeaknesses().isEmpty()) {
+            if (result.getTop3Weaknesses() != null && !result.getTop3Weaknesses().isEmpty()) {
+                result.setKeyWeaknesses(result.getTop3Weaknesses());
+            } else {
+                result.setKeyWeaknesses(List.of("Gestion du stress", "Prise de parole en public"));
+            }
         }
     }
 

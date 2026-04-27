@@ -20,7 +20,7 @@ export class FormationService {
 
   createFormation(userId: number | string, request: FormationRequest): Observable<FormationResponse> {
     return this.http.post<FormationResponse>(
-      `${this.baseUrl}/accounts/${userId}`,
+      `${this.baseUrl}/utilisateur/${userId}`,
       request
     );
   }

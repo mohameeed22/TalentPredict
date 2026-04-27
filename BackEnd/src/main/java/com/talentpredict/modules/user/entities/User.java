@@ -8,11 +8,21 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.talentpredict.modules.ai.entities.Prediction;
-import com.talentpredict.modules.ai.entities.Recommendation;
-import com.talentpredict.modules.evaluation.entities.CompetenceAccount;
+
 import com.talentpredict.modules.evaluation.entities.PersonalityTest;
 import com.talentpredict.modules.formation.entities.Formation;
 import com.talentpredict.modules.skills.entities.Skill;
+import com.talentpredict.modules.notification.entities.UserNotification;
+import com.talentpredict.modules.auth.entities.AuditLog;
+import com.talentpredict.modules.auth.entities.RefreshToken;
+import com.talentpredict.modules.auth.entities.PasswordResetToken;
+import com.talentpredict.modules.auth.entities.EmailVerificationToken;
+import com.talentpredict.modules.auth.entities.TwoFactorCode;
+import com.talentpredict.modules.privacy.entities.UserPrivacySettings;
+import com.talentpredict.modules.assessment.entities.JobMatch;
+import com.talentpredict.modules.assessment.entities.CandidateBadge;
+import com.talentpredict.modules.assessment.entities.CandidateTestResult;
+import com.talentpredict.modules.assessment.entities.FraudCase;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -135,20 +145,72 @@ public class User {
     @JsonIgnore
     @ToString.Exclude
     @Builder.Default
+    private List<UserNotification> notifications = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
+    @Builder.Default
+    private List<AuditLog> auditLogs = new ArrayList<>();
+
+    @OneToMany(mappedBy = "candidate", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
+    @Builder.Default
+    private List<FraudCase> fraudCases = new ArrayList<>();
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
+    private UserPrivacySettings privacySettings;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
+    @Builder.Default
+    private List<TwoFactorCode> twoFactorCodes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
+    @Builder.Default
+    private List<RefreshToken> refreshTokens = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
+    @Builder.Default
+    private List<PasswordResetToken> passwordResetTokens = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
+    @Builder.Default
+    private List<EmailVerificationToken> emailVerificationTokens = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
+    @Builder.Default
+    private List<JobMatch> jobMatches = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
+    @Builder.Default
+    private List<CandidateTestResult> candidateTestResults = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
+    @Builder.Default
+    private List<CandidateBadge> candidateBadges = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    @ToString.Exclude
+    @Builder.Default
     private List<Formation> formations = new ArrayList<>();
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
-    @ToString.Exclude
-    @Builder.Default
-    private List<Recommendation> recommendations = new ArrayList<>();
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
-    @ToString.Exclude
-    @Builder.Default
-    private List<CompetenceAccount> competences = new ArrayList<>();
-
     // audits
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

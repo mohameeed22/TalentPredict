@@ -1,13 +1,6 @@
 <div class="tr-wrap" id="print-area">
 
   <div class="tr-header">
-    <!-- DEBUG PANEL -->
-    <div style="background: #333; color: lime; padding: 10px; font-family: monospace; font-size: 12px;">
-      [DEBUG] GitHubUser: {{ githubResult?.username || 'NULL' }} | 
-      loadingGH: {{ loadingGithubDeep }} | hasGHRes: {{ !!githubDeepResult }} | ghErr: {{ githubDeepResult?.error || 'NONE' }} <br>
-      loadingCV: {{ loadingCvAuthenticity }} | hasCVRes: {{ !!cvAuthenticityResult }} | cvErr: {{ cvAuthenticityResult?.error || 'NONE' }}
-    </div>
-
     <div class="header-left">
       <button type="button" class="back-btn" (click)="retakeTest()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -31,9 +24,6 @@
           </svg>
           Exporter PDF
         }
-      </button>
-      <button type="button" class="btn-summary" (click)="goToMesResultats()">
-        Mes Résultats →
       </button>
     </div>
   </div>
@@ -139,31 +129,51 @@
       </div>
     }
     @if (!loadingCvAuthenticity && cvAuthenticityResult) {
-      <div class="section-block" style="background: #1e293b; border: 1px solid #334155; padding: 1.5rem; border-radius: 12px; margin-top: 1.5rem;">
-        <h3 class="sb-title" style="color: #f8fafc; font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-           <span class="icon">🛡️</span> Forensics: Détection d'Authenticité CV
-        </h3>
-        <div style="font-size: 0.9rem;">
-           @if (cvAuthenticityResult.error) {
-             <div style="color: #ef4444;">{{ cvAuthenticityResult.error }}</div>
-           } @else {
-             <p style="margin-bottom: 0.5rem;">
-                <strong style="color: #38bdf8;">Risque global:</strong> 
-                <span [style.color]="cvAuthenticityResult.authenticity_risk === 'high' ? '#ef4444' : (cvAuthenticityResult.authenticity_risk === 'medium' ? '#f59e0b' : '#22c55e')">
-                   {{ cvAuthenticityResult.authenticity_risk | uppercase }}
-                </span>
-             </p>
-             <p style="margin-bottom: 0.5rem;"><strong style="color: #f472b6;">Probabilité IA:</strong> {{ (cvAuthenticityResult.ai_generated_probability * 100) | number:'1.0-0' }}%</p>
-             <p style="color: #cbd5e1;">{{ cvAuthenticityResult.explanation }}</p>
-             
-             @if (cvAuthenticityResult.signals?.length) {
-               <ul style="margin-top: 0.75rem; padding-left: 1.25rem; color: #94a3b8;">
-                  @for (s of cvAuthenticityResult.signals; track s.description) {
-                    <li style="margin-bottom: 0.25rem;">{{ s.description }}</li>
-                  }
-               </ul>
-             }
-           }
+      <div class="forensics-card">
+        <div class="forensics-header">
+          <div class="forensics-icon-wrap">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <div class="forensics-title-wrap">
+            <h3>Forensics: Audit d'Authenticité CV</h3>
+            <p>Analyse par Intelligence Artificielle des signaux de fraude et de génération.</p>
+          </div>
+          <div class="forensics-risk-badge" [class]="cvAuthenticityResult.authenticity_risk">
+            {{ cvAuthenticityResult.authenticity_risk | uppercase }} RISK
+          </div>
+        </div>
+
+        <div class="forensics-body">
+          <div class="forensics-meter-section">
+            <div class="meter-label">Probabilité de contenu généré par IA</div>
+            <div class="meter-wrap">
+              <div class="meter-bg">
+                <div class="meter-fill" [style.width.%]="cvAuthenticityResult.ai_generated_probability * 100" [class]="cvAuthenticityResult.authenticity_risk"></div>
+              </div>
+              <span class="meter-value">{{ (cvAuthenticityResult.ai_generated_probability * 100) | number:'1.0-0' }}%</span>
+            </div>
+          </div>
+
+          <div class="forensics-explanation">
+            <h4>Analyse Détaillée</h4>
+            <p>{{ cvAuthenticityResult.explanation }}</p>
+          </div>
+
+          @if (cvAuthenticityResult.signals?.length) {
+            <div class="forensics-signals">
+              <h4>Signaux Détectés</h4>
+              <div class="signals-grid">
+                @for (s of cvAuthenticityResult.signals; track s.description) {
+                  <div class="signal-item">
+                    <span class="signal-dot"></span>
+                    {{ s.description }}
+                  </div>
+                }
+              </div>
+            </div>
+          }
         </div>
       </div>
     }
@@ -209,98 +219,133 @@
   </div>
   }
 
-  <!-- ══ TAB: GITHUB ════════════════════════════════════════════════════ -->
-  @if (activeTab === 'github' || pdfMode) {
-  <div class="tab-content" [class.pdf-section]="pdfMode">
-    @if (pdfMode) { <h2 class="pdf-section-title" style="margin-top: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; color: #0f172a;">3. Analyse GitHub & Architecturale</h2> }
-    @if (githubResult) {
-      <div class="gh-summary-card">
-        <div class="gh-sh">
-          <div class="gh-avatar">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
-            </svg>
+      @if (activeTab === 'github' || pdfMode) {
+      <div class="tab-content github-deep-tab" [class.pdf-section]="pdfMode">
+        @if (pdfMode) { <h2 class="pdf-section-title" style="margin-top: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; color: #0f172a;">3. Analyse GitHub & Architecturale</h2> }
+        
+        @if (githubResult) {
+          <div class="gh-summary-card">
+            <div class="gh-sh">
+              <div class="gh-avatar">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+                </svg>
+              </div>
+              <div>
+                <h2>Profil GitHub : {{ githubResult.username }}</h2>
+                <p>{{ githubResult.data?.summary }}</p>
+              </div>
+            </div>
+            @if (githubResult.data?.code_complexity_estimate) {
+              <div class="gh-complexity">
+                Niveau de complexité estimé : <strong>{{ githubResult.data.code_complexity_estimate }}</strong>
+              </div>
+            }
           </div>
-          <div>
-            <h2>{{ githubResult.username }}</h2>
-            <p>{{ githubResult.data?.summary }}</p>
-          </div>
-        </div>
-        @if (githubResult.data?.code_complexity_estimate) {
-          <div class="gh-complexity">
-            Complexité : <strong>{{ githubResult.data.code_complexity_estimate }}</strong>
+
+          <!-- Deep Analysis Results -->
+          @if (loadingGithubDeep) {
+            <div class="section-block loading-state" style="margin-top: 1.5rem;">
+               <div class="pulse-loader"></div>
+               <p>Calcul des métriques architecturales profondes...</p>
+            </div>
+          }
+
+          @if (!loadingGithubDeep && githubDeepResult) {
+            <div class="deep-analysis-card">
+              <div class="card-header-v2">
+                 <div class="icon-v2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
+                 <h3>Rapport d'Architecture Profonde</h3>
+                 <div class="global-gh-score">
+                    Score Global : <strong>{{ githubDeepResult.github_score }}</strong>/100
+                 </div>
+              </div>
+
+              <div class="metrics-grid">
+                <div class="metric-v2">
+                   <span class="m-label">Qualité des Commits</span>
+                   <div class="m-bar"><div class="m-fill" [style.width.%]="githubDeepResult.commit_quality_score"></div></div>
+                   <span class="m-val">{{ githubDeepResult.commit_quality_score }}%</span>
+                </div>
+                <div class="metric-v2">
+                   <span class="m-label">CI/CD & Tests</span>
+                   <div class="m-bar"><div class="m-fill" [style.width.%]="githubDeepResult.code_quality_proxy_score"></div></div>
+                   <span class="m-val">{{ githubDeepResult.code_quality_proxy_score }}%</span>
+                </div>
+                <div class="metric-v2">
+                   <span class="m-label">Impact Projets</span>
+                   <div class="m-bar"><div class="m-fill" [style.width.%]="githubDeepResult.project_impact_score"></div></div>
+                   <span class="m-val">{{ githubDeepResult.project_impact_score }}%</span>
+                </div>
+                <div class="metric-v2">
+                   <span class="m-label">Collaboration</span>
+                   <div class="m-bar"><div class="m-fill" [style.width.%]="githubDeepResult.collaboration_score"></div></div>
+                   <span class="m-val">{{ githubDeepResult.collaboration_score }}%</span>
+                </div>
+              </div>
+
+              @if (githubDeepResult.top_projects?.length) {
+                <div class="projects-section">
+                  <h4>Top Projets & Dépôts Analysés</h4>
+                  <div class="projects-list">
+                    @for (p of githubDeepResult.top_projects; track p.name) {
+                      <div class="project-item">
+                        <div class="p-icon">📦</div>
+                        <div class="p-info">
+                          <span class="p-name">{{ p.name }}</span>
+                          <span class="p-impact">Impact IA : {{ p.impact_score }}%</span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (githubDeepResult.ai_summary) {
+                <div class="narrative-section">
+                  <h4>Résumé de l'Expert IA</h4>
+                  <p>{{ githubDeepResult.ai_summary }}</p>
+                </div>
+              }
+            </div>
+          }
+
+          @if (githubResult.data?.verified_skills?.length) {
+            <div class="section-block" style="margin-top: 1.5rem;">
+              <h3 class="sb-title">✅ Preuves de compétences (Verified Skills)</h3>
+              <div class="vskills-list">
+                @for (s of githubResult.data.verified_skills; track s.skill) {
+                  <div class="vs-item">
+                    <div class="vs-top">
+                      <strong>{{ s.skill }}</strong>
+                      <span class="conf-badge conf-{{ s.confidence.toLowerCase() }}">{{ s.confidence }}</span>
+                    </div>
+                    <p class="vs-ev">{{ s.evidence }}</p>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          @if (githubResult.data?.missing_claimed_skills?.length) {
+            <div class="section-block warning-section" style="margin-top: 1.5rem;">
+              <h3 class="sb-title">⚠️ Décalage GitHub / CV</h3>
+              <div class="missing-chips">
+                @for (s of githubResult.data.missing_claimed_skills; track s) {
+                  <span class="missing-chip">{{ s }}</span>
+                }
+              </div>
+              <p class="hint-text">Ces compétences figurent sur votre CV mais n'ont pas été prouvées par vos commits ou repositories publics.</p>
+            </div>
+          }
+
+        } @else {
+          <div class="empty-state">
+            <p>Aucune analyse GitHub disponible.</p>
           </div>
         }
       </div>
-
-      @if (githubResult.data?.verified_skills?.length) {
-        <div class="section-block">
-          <h3 class="sb-title">✅ Compétences vérifiées</h3>
-          <div class="vskills-list">
-            @for (s of githubResult.data.verified_skills; track s.skill) {
-              <div class="vs-item">
-                <div class="vs-top">
-                  <strong>{{ s.skill }}</strong>
-                  <span class="conf-badge conf-{{ s.confidence.toLowerCase() }}">{{ s.confidence }}</span>
-                </div>
-                <p class="vs-ev">{{ s.evidence }}</p>
-              </div>
-            }
-          </div>
-        </div>
       }
-
-      @if (githubResult.data?.missing_claimed_skills?.length) {
-        <div class="section-block warning-section">
-          <h3 class="sb-title">⚠️ Compétences non trouvées sur GitHub</h3>
-          <div class="missing-chips">
-            @for (s of githubResult.data.missing_claimed_skills; track s) {
-              <span class="missing-chip">{{ s }}</span>
-            }
-          </div>
-          <p class="hint-text">Ces compétences figurent sur votre CV mais n'ont pas été détectées dans vos dépôts publics.</p>
-        </div>
-      }
-
-      <!-- GITHUB DEEP ANALYSIS FORENSICS -->
-      @if (loadingGithubDeep) {
-        <div class="section-block loading-state" style="margin-top: 1.5rem;">
-           <span class="spin"></span> Analyse Architecturale Profonde en cours...
-        </div>
-      }
-      @if (!loadingGithubDeep && githubDeepResult) {
-        <div class="section-block" style="background: #1e293b; border: 1px solid #334155; padding: 1.5rem; border-radius: 12px; margin-top: 1.5rem;">
-          <h3 class="sb-title" style="color: #f8fafc; font-size: 1.1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-             <span class="icon">🐙</span> Forensics: Analyse Architecturale Profonde
-          </h3>
-          <div style="font-size: 0.9rem;">
-            @if (githubDeepResult.error) {
-              <div style="color: #ef4444;">{{ githubDeepResult.error }}</div>
-            } @else {
-              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem;">
-                <p><strong style="color: #38bdf8;">Qualité des commits:</strong> {{ githubDeepResult.commit_quality_score ?? 'N/A' }}/100</p>
-                <p><strong style="color: #38bdf8;">Qualité du code (CI/Tests):</strong> {{ githubDeepResult.code_quality_proxy_score ?? 'N/A' }}/100</p>
-                <p><strong style="color: #f472b6;">Impact Projet:</strong> {{ githubDeepResult.project_impact_score ?? 'N/A' }}/100</p>
-                <p><strong style="color: #10b981;">Score Global GitHub:</strong> {{ githubDeepResult.github_score ?? 'N/A' }}/100</p>
-              </div>
-              @if (githubDeepResult.ai_summary) {
-                <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px;">
-                  <strong style="color: #94a3b8; display: block; margin-bottom: 0.5rem;">Résumé IA:</strong>
-                  <p style="color: #cbd5e1; margin: 0;">{{ githubDeepResult.ai_summary }}</p>
-                </div>
-              }
-            }
-          </div>
-        </div>
-      }
-
-    } @else {
-      <div class="empty-state">
-        <p>Aucune analyse GitHub disponible. Retournez à la page d'intake et entrez votre URL GitHub.</p>
-      </div>
-    }
-  </div>
-  }
 
   <!-- ══ TAB: GAPS ══════════════════════════════════════════════════════ -->
   @if (activeTab === 'gaps' || pdfMode) {

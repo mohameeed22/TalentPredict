@@ -48,19 +48,19 @@ public class PublicProfileController {
         User u = p.getUser();
         List<Skill> skills = skillRepository.findByUserId(u.getId());
         Map<String, Object> out = new HashMap<>();
-        out.put("public_slug", p.getPublicSlug());
-        out.put("first_name", u.getFirstName());
-        out.put("last_name", u.getLastName());
+        out.put("publicSlug", p.getPublicSlug());
+        out.put("firstName", u.getFirstName());
+        out.put("lastName", u.getLastName());
         out.put("title", p.getTitreProfessionnel());
         out.put("bio", p.getDescription());
-        out.put("github_url", p.getGithubUrl());
-        out.put("linkedin_url", p.getLienLinkedin());
-        out.put("real_score", p.getRealScore());
-        out.put("test_passed", p.getTestPassed());
+        out.put("githubUrl", p.getGithubUrl());
+        out.put("linkedinUrl", p.getLienLinkedin());
+        out.put("realScore", p.getRealScore());
+        out.put("testPassed", p.getTestPassed());
         out.put("skills", skills.stream()
                 .map(s -> Map.of(
-                        "name", s.getNom(),
-                "level", s.getNiveau() != null ? s.getNiveau() : Integer.valueOf(0)))
+                        "nom", s.getNom(),
+                        "niveau", s.getNiveau() != null ? s.getNiveau() : Integer.valueOf(0)))
                 .collect(Collectors.toList()));
         return ResponseEntity.ok(out);
     }
@@ -68,8 +68,13 @@ public class PublicProfileController {
     @GetMapping("/badge")
     @Transactional(readOnly = true)
     public ResponseEntity<String> badge(
-            @RequestParam UUID userId,
-            @RequestParam String skill) {
+            @RequestParam(required = false) UUID userId,
+            @RequestParam(required = false) String skill) {
+        if (userId == null || skill == null || skill.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .header(HttpHeaders.CONTENT_TYPE, "text/plain")
+                    .body("Missing userId or skill parameter");
+        }
         var existing = candidateBadgeRepository.findByUser_IdAndSkillIgnoreCase(userId, skill);
         int score = 0;
         if (existing.isPresent() && existing.get().getScore() != null) {

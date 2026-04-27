@@ -14,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import com.talentpredict.shared.security.UserDetailsImpl;
 import java.util.List;
 import java.util.UUID;
 
@@ -63,8 +64,8 @@ public class UserController {
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<User> getUserById(
             @PathVariable UUID userId,
-            @AuthenticationPrincipal User currentUser) {
-        log.info("User {} requesting user {}", currentUser.getId(), userId);
+            @AuthenticationPrincipal(expression = "user") User currentUser) {
+        log.info("User {} requesting user {}", (currentUser != null ? currentUser.getId() : "anonymous"), userId);
         return ResponseEntity.ok(accountService.getUserById(userId, currentUser));
     }
 
@@ -77,8 +78,8 @@ public class UserController {
     public ResponseEntity<User> updateUser(
             @PathVariable UUID userId,
             @Valid @RequestBody UserDto.UpdateRequest request,
-            @AuthenticationPrincipal User currentUser) {
-        log.info("User {} updating user {}", currentUser.getId(), userId);
+            @AuthenticationPrincipal(expression = "user") User currentUser) {
+        log.info("User {} updating user {}", (currentUser != null ? currentUser.getId() : "anonymous"), userId);
         return ResponseEntity.ok(accountService.updateUser(userId, request, currentUser));
     }
 
@@ -90,8 +91,8 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUser(
             @PathVariable UUID userId,
-            @AuthenticationPrincipal User currentUser) {
-        log.info("Admin {} deleting user {}", currentUser.getId(), userId);
+            @AuthenticationPrincipal(expression = "user") User currentUser) {
+        log.info("Admin {} deleting user {}", (currentUser != null ? currentUser.getId() : "anonymous"), userId);
         accountService.deleteUser(userId, currentUser);
         return ResponseEntity.noContent().build();
     }

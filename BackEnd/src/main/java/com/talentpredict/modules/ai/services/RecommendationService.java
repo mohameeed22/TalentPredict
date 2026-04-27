@@ -4,9 +4,8 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.talentpredict.modules.ai.entities.Recommendation;
-import com.talentpredict.modules.ai.entities.RecommendationItem;
-import com.talentpredict.modules.ai.repositories.RecommendationRepository;
+import com.talentpredict.modules.ai.entities.Prediction;
+import com.talentpredict.modules.ai.repositories.PredictionRepository;
 import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.modules.auth.services.AuthServiceImpl;
 import com.talentpredict.modules.skills.entities.Skill;
@@ -19,13 +18,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RecommendationService {
 
-    private final RecommendationRepository recommendationRepository;
+    private final PredictionRepository predictionRepository;
     private final SkillRepository skillRepository;
     private final AuthServiceImpl authService;
-    private final OpenAIService openAIService; // Or OpenRouterService
+    private final OpenAIService openAIService;
 
     @Transactional
-    public Recommendation generateRecommendations(UUID userId) {
+    public Prediction generateRecommendations(UUID userId) {
         User user = authService.getUserById(userId);
         List<Skill> skills = skillRepository.findByUserId(userId);
 
@@ -36,42 +35,20 @@ public class RecommendationService {
 
         String prompt = "Based on the following user profile, generate 3 specific training recommendations. Format as a simple bulleted list.\n" + profileBuilder.toString();
         
-        String aiResponse = openAIService.genererPrediction(prompt); // Reusing existing method for now
+        String aiResponse = openAIService.genererPrediction(prompt);
 
-        Recommendation rec = Recommendation.builder()
+        Prediction prediction = Prediction.builder()
                 .user(user)
-                .titre("Plan de formation IA personnalisé")
-                .description("Recommandations générées automatiquement")
-                .score(0.85)
+                .analyse("AI Generated Recommendations via Personality Test flow")
+                .recommandationSoft(aiResponse)
+                .scoreConfiance(0.85)
+                .statut(Prediction.StatutPrediction.COMPLETEE)
                 .build();
 
-        String[] lines = aiResponse.split("\n");
-        for (String line : lines) {
-            if (line.trim().startsWith("-") || line.trim().startsWith("*")) {
-                RecommendationItem item = RecommendationItem.builder()
-                        .recommendation(rec)
-                        .contenu(line.replaceAll("^[-*]\\s*", "").trim())
-                        .texte(line.replaceAll("^[-*]\\s*", "").trim())
-                        .priorite(1)
-                        .build();
-                rec.getItems().add(item);
-            }
-        }
-        
-        if (rec.getItems().isEmpty()) {
-            RecommendationItem item = RecommendationItem.builder()
-                    .recommendation(rec)
-                    .contenu(aiResponse)
-                    .texte("Recommandation générale")
-                    .priorite(1)
-                    .build();
-            rec.getItems().add(item);
-        }
-
-        return recommendationRepository.save(rec);
+        return predictionRepository.save(prediction);
     }
     
-    public List<Recommendation> getUserRecommendations(UUID userId) {
-        return recommendationRepository.findByUserIdOrderByDateGenerationDesc(userId);
+    public List<Prediction> getUserRecommendations(UUID userId) {
+        return predictionRepository.findByUserIdOrderByDatePredictionDesc(userId);
     }
 }

@@ -58,13 +58,6 @@ public class ProfileController {
     @Autowired
     private OpenRouterService openRouterService;
 
-    @GetMapping("/test-claude")
-    public ResponseEntity<String> testClaude() {
-        String reponse = openRouterService.executePrompt(
-            "Réponds uniquement: {\"message\": \"Claude fonctionne!\"}"
-        );
-        return ResponseEntity.ok(reponse);
-    }
 
     /** GET /api/profiles/users/{id} */
     @GetMapping("/users/{id}")

@@ -247,7 +247,8 @@ export class TestResultsComponent implements OnInit, OnDestroy {
           ?? source?.cv_score
           ?? raw?.cv_score
           ?? 0
-        )
+        ),
+        details: source?.cv?.summary || source?.cv?.details || ''
       },
       github: {
         overall_score: toTenScale(
@@ -255,7 +256,8 @@ export class TestResultsComponent implements OnInit, OnDestroy {
           ?? source?.github_score
           ?? raw?.github_score
           ?? 0
-        )
+        ),
+        details: source?.github?.summary || source?.github?.details || ''
       },
       linkedin: {
         overall_score: toTenScale(
@@ -263,7 +265,8 @@ export class TestResultsComponent implements OnInit, OnDestroy {
           ?? source?.linkedin_score
           ?? raw?.linkedin_score
           ?? 0
-        )
+        ),
+        details: source?.linkedin?.summary || source?.linkedin?.details || ''
       },
       pcm: {
         overall_score: toTenScale(
@@ -271,7 +274,8 @@ export class TestResultsComponent implements OnInit, OnDestroy {
           ?? source?.pcm_score
           ?? raw?.pcm_score
           ?? 0
-        )
+        ),
+        details: source?.pcm?.summary || source?.pcm?.details || ''
       }
     };
 
@@ -291,6 +295,18 @@ export class TestResultsComponent implements OnInit, OnDestroy {
            .sort((a:any, b:any) => a[1] - b[1])
            .slice(0, 3).map(([k]) => k);
 
+    // Scenario Evaluation fallback from sessionStorage if not in raw
+    let scenarioEval = raw.scenarioEvaluation || raw.scenario_evaluation;
+    if (!scenarioEval) {
+      try {
+        const stored = sessionStorage.getItem('softSkillsResult');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          scenarioEval = parsed.scenarioEvaluation;
+        }
+      } catch {}
+    }
+
     return {
       userName:               raw.userName    || raw.user_name    || '',
       userEmail:              raw.userEmail   || raw.user_email   || '',
@@ -307,7 +323,8 @@ export class TestResultsComponent implements OnInit, OnDestroy {
         typeof (raw.trainingRecommendations || raw.training_recommendations) === 'object'
           ? (raw.trainingRecommendations || raw.training_recommendations)
           : {},
-      sourceData:             sourceMapped
+      sourceData:             sourceMapped,
+      scenarioEvaluation:     scenarioEval
     };
   }
 

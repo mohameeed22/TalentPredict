@@ -7,6 +7,8 @@ import { TestApiService } from '../../services/test-api.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { BiometricsService } from '../../services/biometrics.service';
 import { ProctoringService } from '../../services/proctoring.service';
+import { SoftSkillsService } from '../../../evaluation/services/soft-skills.service';
+import { AuthService } from '../../../auth/services/auth.service';
 
 interface ScenarioData {
   scenario_title: string;
@@ -53,6 +55,8 @@ export class ScenarioSimulatorComponent implements OnInit, OnDestroy {
   private cdr      = inject(ChangeDetectorRef);
   private biometrics  = inject(BiometricsService);
   private proctoring  = inject(ProctoringService);
+  private authService = inject(AuthService);
+  private softSkillsService = inject(SoftSkillsService);
 
   // ── Config ─────────────────────────────────────────────────────
   role = '';
@@ -61,7 +65,7 @@ export class ScenarioSimulatorComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     // Pre-fill from user profile if available
-    const user = (this.router as any).injector?.get?.('AuthService')?.getCurrentUser?.() ?? null;
+    const user = this.authService.getUserProfile();
     if (user?.position) this.role = user.position;
   }
 
@@ -180,6 +184,13 @@ export class ScenarioSimulatorComponent implements OnInit, OnDestroy {
         const softData = existing ? JSON.parse(existing) : {};
         softData.scenarioEvaluation = this.evaluation;
         sessionStorage.setItem('softSkillsResult', JSON.stringify(softData));
+
+        // Persist to backend
+        this.softSkillsService.saveScenarioResult(this.evaluation).subscribe({
+          next: () => console.log('[ScenarioSimulator] Result persisted to backend'),
+          error: (e) => console.error('[ScenarioSimulator] Failed to persist result', e)
+        });
+
         this.cdr.markForCheck();
       },
       error: (err: any) => {
@@ -220,7 +231,7 @@ export class ScenarioSimulatorComponent implements OnInit, OnDestroy {
 
   goToSoftResults(): void {
     this._stopFraudMonitoring();
-    void this.router.navigate(['/evaluation/soft-results']);
+    void this.router.navigate(['/evaluation/results']);
   }
 
   ngOnDestroy(): void {

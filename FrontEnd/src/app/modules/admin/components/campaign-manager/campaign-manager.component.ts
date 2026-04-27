@@ -276,18 +276,20 @@ export class CampaignManagerComponent implements OnInit {
           userId: user.userId,
           candidateUsername: user.email,
           campaignContext: 'Direct Message',
-          targetUrl: '',
+          targetUrl: window.location.origin,
           subject: this.dmSubject() || 'Message de l\'administration',
           body: bodyReplaced
         });
       } else {
-        // Mocking IN_APP notification
         return this.http.post(`${environment.apiUrl}/notifications`, {
           type: 'INFO',
           title: this.dmSubject() || 'Nouveau message',
-          message: bodyReplaced,
+          body: bodyReplaced,
           targetUserId: user.userId
-        });
+        }).pipe(catchError(err => {
+          console.error('Backend error:', err.error);
+          return of(null);
+        }));
       }
     });
 

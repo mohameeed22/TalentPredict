@@ -14,6 +14,23 @@ export interface TestSummary {
   summary?: string;
 }
 
+export interface DashboardSkill {
+  id: string;
+  nom: string;
+  type: string;
+  niveau: number;
+  description?: string;
+}
+
+export interface DashboardFormation {
+  id: string;
+  titre: string;
+  statut: string;
+  progression: number;
+  dateProposition?: Date | string;
+  dateDebut?: Date | string;
+}
+
 // Employee dashboard response (matches DashboardDto.Response)
 export interface EmployeeDashboardResponse {
   userId: string;
@@ -27,8 +44,8 @@ export interface EmployeeDashboardResponse {
   nombreFormationsEnCours: number;
   nombreFormationsTerminees: number;
   scoreEvaluationMoyen: number;
-  topSkills: any[];
-  formationsRecentes: any[];
+  topSkills: DashboardSkill[];
+  formationsRecentes: DashboardFormation[];
   testsRecents: TestSummary[];
   dernierePrediction: PredictionResponse | null;
 }

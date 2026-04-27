@@ -1,6 +1,7 @@
  package com.talentpredict.modules.ai.controllers;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -61,6 +62,19 @@ public class SoftSkillsController {
             log.error("Error in reevaluate: {}", e.getMessage(), e);
             throw new ResponseStatusException(
                 HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
+    @PostMapping("/scenario/save")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<Void> saveScenario(@RequestBody Map<String, Object> evaluation) {
+        try {
+            UUID userId = resolveUserId();
+            softSkillsService.saveScenarioResult(evaluation, userId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Error in saveScenario: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

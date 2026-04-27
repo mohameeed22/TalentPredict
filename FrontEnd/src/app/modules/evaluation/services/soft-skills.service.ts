@@ -114,4 +114,8 @@ export class SoftSkillsService {
     );
   }
 
+  saveScenarioResult(evaluation: any): Observable<void> {
+    const url = `${this.api}/scenario/save`;
+    return this.http.post<void>(url, evaluation);
+  }
 }

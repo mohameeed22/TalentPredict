@@ -91,21 +91,103 @@
 
     <!-- Sources -->
     <div class="card">
-      <h2 class="card-title">Sources d'analyse</h2>
-      <div class="sources-row">
+      <h2 class="card-title">Origine de l'Analyse (Pourquoi ce résultat ?)</h2>
+      <p class="card-subtitle" style="color: #64748b; margin-top: -0.5rem; margin-bottom: 1.5rem; font-size: 0.9rem;">
+        Votre score est calculé par une fusion pondérée de ces sources.
+      </p>
+      <div class="sources-row" style="display: flex; flex-wrap: wrap; gap: 1rem;">
         <div class="source-item" *ngFor="let s of [
           {key:'cv', icon:'📄', label:'CV', weight:'25%'},
           {key:'github', icon:'🐙', label:'GitHub', weight:'25%'},
           {key:'linkedin', icon:'💼', label:'LinkedIn', weight:'25%'},
           {key:'pcm', icon:'🧠', label:'PCM', weight:'25%'}
-        ]">
-          <div class="source-icon">{{ s.icon }}</div>
-          <div class="source-label">{{ s.label }}</div>
+        ]" style="flex: 1; min-width: 150px; background: #fff; padding: 1rem; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; align-items: center; text-align: center;">
+          <div class="source-icon" style="font-size: 1.8rem; margin-bottom: 0.5rem;">{{ s.icon }}</div>
+          <div class="source-label" style="font-weight: 600; font-size: 1rem; color: #1e293b;">{{ s.label }}</div>
           <div class="source-score"
-            [style.color]="getScoreColor(getSourceScore(s.key))">
+            [style.color]="getScoreColor(getSourceScore(s.key))" style="font-size: 1.4rem; font-weight: 800; margin: 0.3rem 0;">
             {{ getSourceScore(s.key) }}
           </div>
-          <div class="source-weight">{{ s.weight }}</div>
+          <div class="source-weight" style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">Poids: {{ s.weight }}</div>
+          
+          <!-- Detailed analysis text -->
+          <div class="source-details-inline" *ngIf="result.sourceData[s.key]?.details" style="font-size: 0.8rem; color: #475569; margin-top: 0.8rem; border-top: 1px solid #f1f5f9; padding-top: 0.8rem; line-height: 1.4; text-align: left;">
+            {{ result.sourceData[s.key].details }}
+          </div>
+          <div class="source-details-inline fallback" *ngIf="!result.sourceData[s.key]?.details && getSourceScore(s.key) > 0" style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.8rem; font-style: italic;">
+            Données analysées avec succès pour {{ s.label }}.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scenario Simulator Results -->
+    <div class="card scenario-results-card" *ngIf="result.scenarioEvaluation" style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-left: 5px solid #6366f1; padding: 1.5rem; margin: 1.5rem 0; border-radius: 12px;">
+      <h2 class="card-title" style="color: #1e293b; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 1.4rem;">🎭</span> Résultats du Simulateur de Scénario
+      </h2>
+      <div class="scenario-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+        
+        <!-- Scenario Scores -->
+        <div class="scenario-scores" style="background: #fff; padding: 1.2rem; border-radius: 10px; border: 1px solid #e2e8f0;">
+          <h4 style="margin-bottom: 1rem; color: #475569; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Indicateurs de Performance</h4>
+          <div class="mini-score-row" *ngFor="let s of [
+            {label: 'Empathie', val: result.scenarioEvaluation.scores?.empathy, icon: '❤️'},
+            {label: 'Assertivité', val: result.scenarioEvaluation.scores?.assertiveness, icon: '💪'},
+            {label: 'Pragmatisme', val: result.scenarioEvaluation.scores?.pragmatism, icon: '🎯'},
+            {label: 'Clarté', val: result.scenarioEvaluation.scores?.communication_clarity, icon: '💬'}
+          ]" style="margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem;">
+              <span style="display: flex; align-items: center; gap: 0.4rem; color: #1e293b; font-weight: 500;">
+                <span style="font-size: 1rem;">{{ s.icon }}</span> {{ s.label }}
+              </span>
+              <span style="font-weight: 700; color: #1e293b;">{{ s.val }}%</span>
+            </div>
+            <div style="height: 8px; background: #f1f5f9; border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0;">
+              <div [style.width.%]="s.val" [style.background]="getScoreColor(s.val / 10)" style="height: 100%; transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scenario Feedback -->
+        <div class="scenario-feedback" style="display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <h4 style="margin-bottom: 0.8rem; color: #475569; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Analyse du comportement</h4>
+            <p style="font-size: 1rem; line-height: 1.6; color: #334155; font-style: italic; background: #fff; padding: 1.2rem; border-radius: 10px; border: 1px solid #e2e8f0; position: relative;">
+              <span style="position: absolute; top: -10px; left: 20px; font-size: 2rem; color: #cbd5e1; font-family: serif;">"</span>
+              {{ result.scenarioEvaluation.overall_feedback || result.scenarioEvaluation.overallFeedback }}
+              <span style="position: absolute; bottom: -20px; right: 20px; font-size: 2rem; color: #cbd5e1; font-family: serif;">"</span>
+            </p>
+          </div>
+          <div style="margin-top: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.8rem; background: #e0e7ff; color: #4338ca; padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.9rem; font-weight: 600; border: 1px solid #c7d2fe;">
+              <span style="font-size: 1.2rem;">🏆</span> Profil Dominant : {{ result.scenarioEvaluation.culture_add_profile || result.scenarioEvaluation.cultureAddProfile }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scenario Strengths/Weaknesses -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-top: 2rem; border-top: 1px solid #e2e8f0; padding-top: 1.5rem;">
+        <div style="background: #f0fdf4; padding: 1rem; border-radius: 10px; border: 1px solid #bbf7d0;">
+          <h5 style="color: #166534; margin-bottom: 0.8rem; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
+            <span style="font-size: 1.1rem;">✅</span> Points forts
+          </h5>
+          <ul style="font-size: 0.9rem; padding-left: 1.2rem; color: #14532d; list-style-type: none;">
+            <li *ngFor="let st of (result.scenarioEvaluation.strengths || [])" style="margin-bottom: 0.5rem; position: relative;">
+              <span style="position: absolute; left: -1rem; color: #22c55e;">•</span> {{ st }}
+            </li>
+          </ul>
+        </div>
+        <div style="background: #fffaf5; padding: 1rem; border-radius: 10px; border: 1px solid #fed7aa;">
+          <h5 style="color: #9a3412; margin-bottom: 0.8rem; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
+            <span style="font-size: 1.1rem;">⚠️</span> Axes d'amélioration
+          </h5>
+          <ul style="font-size: 0.9rem; padding-left: 1.2rem; color: #7c2d12; list-style-type: none;">
+            <li *ngFor="let im of (result.scenarioEvaluation.areas_for_improvement || result.scenarioEvaluation.areasForImprovement || [])" style="margin-bottom: 0.5rem; position: relative;">
+              <span style="position: absolute; left: -1rem; color: #f97316;">•</span> {{ im }}
+            </li>
+          </ul>
         </div>
       </div>
     </div>
@@ -171,33 +253,48 @@
 
     <!-- Summary -->
     <div class="card" *ngIf="result.summary">
-      <h2 class="card-title">📝 Analyse</h2>
-      <p class="summary-text">{{ result.summary }}</p>
+      <h2 class="card-title">📝 Analyse (Le "Pourquoi")</h2>
+      <p class="summary-text" style="font-size: 1.05rem; line-height: 1.7; color: #334155;">{{ result.summary }}</p>
     </div>
 
     <!-- CV Authenticity Forensics -->
-    <div class="card" *ngIf="loadingCvAuthenticity">
-       <div style="padding: 1rem; color: #94a3b8; display: flex; align-items: center; gap: 0.5rem;">
-          <span class="spin"></span> Analyse Forensics du CV en cours...
-       </div>
-    </div>
-    <div class="card" *ngIf="!loadingCvAuthenticity && cvAuthenticityResult" style="background: #1e293b; border: 1px solid #334155;">
-      <h2 class="card-title" style="color: #f8fafc; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
-         <span class="icon">🛡️</span> Forensics: Détection d'Authenticité CV
-      </h2>
-      <div style="font-size: 0.95rem;">
-         <p style="margin-bottom: 0.5rem;">
-            <strong style="color: #38bdf8;">Risque global:</strong> 
-            <span [style.color]="cvAuthenticityResult.authenticity_risk === 'high' ? '#ef4444' : (cvAuthenticityResult.authenticity_risk === 'medium' ? '#f59e0b' : '#22c55e')">
-               {{ cvAuthenticityResult.authenticity_risk | uppercase }}
-            </span>
-         </p>
-         <p style="margin-bottom: 0.5rem;"><strong style="color: #f472b6;">Probabilité IA:</strong> {{ (cvAuthenticityResult.ai_generated_probability * 100) | number:'1.0-0' }}%</p>
-         <p style="color: #cbd5e1;">{{ cvAuthenticityResult.explanation }}</p>
-         
-         <ul *ngIf="cvAuthenticityResult.signals?.length" style="margin-top: 0.75rem; padding-left: 1.25rem; color: #94a3b8;">
-            <li *ngFor="let s of cvAuthenticityResult.signals" style="margin-bottom: 0.25rem;">{{ s.description }}</li>
-         </ul>
+    <div class="forensics-card-v2" *ngIf="!loadingCvAuthenticity && cvAuthenticityResult">
+      <div class="forensics-header">
+        <div class="forensics-icon">🛡️</div>
+        <div class="forensics-title">
+          <h3>Forensics: Authenticité du CV</h3>
+          <p>Analyse de la probabilité de génération par IA et de la cohérence du profil.</p>
+        </div>
+        <div class="risk-badge" [class]="cvAuthenticityResult.authenticity_risk">
+          {{ cvAuthenticityResult.authenticity_risk | uppercase }} RISK
+        </div>
+      </div>
+      
+      <div class="forensics-body">
+        <div class="meter-section">
+          <div class="meter-top">
+            <span>Probabilité IA</span>
+            <strong>{{ (cvAuthenticityResult.ai_generated_probability * 100) | number:'1.0-0' }}%</strong>
+          </div>
+          <div class="meter-track">
+            <div class="meter-fill" [style.width.%]="cvAuthenticityResult.ai_generated_probability * 100" [class]="cvAuthenticityResult.authenticity_risk"></div>
+          </div>
+        </div>
+
+        <div class="analysis-narrative">
+          <h4>Verdict de l'Expert IA</h4>
+          <p>{{ cvAuthenticityResult.explanation }}</p>
+        </div>
+
+        <div class="signals-section" *ngIf="cvAuthenticityResult.signals?.length">
+          <h4>Signaux d'Alerte</h4>
+          <div class="signals-grid">
+            <div class="signal-item" *ngFor="let s of cvAuthenticityResult.signals">
+              <span class="dot"></span>
+              {{ s.description }}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -235,14 +332,14 @@
     </div>
 
     <!-- Actions -->
-    <div class="actions-row" style="flex-wrap: wrap; justify-content: center; gap: 1rem;">
-      <button class="btn-primary" (click)="startScenarioSimulator()" style="background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%); border: none; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);">
+    <div class="actions-row" style="flex-wrap: wrap; justify-content: center; gap: 1rem; margin-top: 2rem; padding-bottom: 3rem;">
+      <button class="btn-primary" (click)="startScenarioSimulator()" style="background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%); border: none; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4); padding: 0.8rem 1.5rem; font-weight: 600;">
         🎙️ Simulateur de Scénario IA
       </button>
-      <button class="btn-secondary" (click)="startEvaluation()">
+      <button class="btn-secondary" (click)="startEvaluation()" style="padding: 0.8rem 1.5rem;">
         🔄 Nouvelle évaluation
       </button>
-      <button class="btn-secondary" routerLink="/dashboard">
+      <button class="btn-secondary" routerLink="/dashboard" style="padding: 0.8rem 1.5rem;">
         📊 Dashboard
       </button>
     </div>

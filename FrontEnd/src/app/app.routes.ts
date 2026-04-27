@@ -93,13 +93,6 @@ export const routes: Routes = [
           )
       },
       {
-        path: 'voice',
-        loadComponent: () =>
-          import('./modules/skill-test/components/voice-interview/voice-interview.component').then(
-            m => m.VoiceInterviewComponent
-          )
-      },
-      {
         path: 'results',
         loadComponent: () =>
           import('./modules/competences/components/tech-results/tech-results.component').then(
@@ -148,5 +141,18 @@ export const routes: Routes = [
   { path: 'formations', canActivate: [authGuard], loadComponent: () => import('./modules/formation/components/formation-list/formation-list.component').then(m => m.FormationListComponent) },
   { path: 'jira', canActivate: [authGuard, roleGuard(['ADMIN'])], loadComponent: () => import('./modules/jira/components/jira-tickets/jira-tickets.component').then(m => m.JiraTicketsComponent) },
   { path: 'public/profile/:id', loadComponent: () => import('./modules/user/components/public-profile/public-profile').then(m => m.PublicProfileComponent) },
+  {
+    path: 'skill-test',
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'voice-interview',
+        loadComponent: () =>
+          import('./modules/skill-test/components/voice-interview/voice-interview.component').then(
+            m => m.VoiceInterviewComponent
+          )
+      }
+    ]
+  },
   { path: '**', redirectTo: '/' }
 ];

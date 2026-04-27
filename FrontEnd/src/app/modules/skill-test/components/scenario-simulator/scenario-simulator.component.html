@@ -222,7 +222,7 @@
 
       <!-- Strengths & Improvements -->
       <div class="feedback-grid">
-        @if (evaluation.strengths?.length) {
+        @if (evaluation && evaluation.strengths && evaluation.strengths.length > 0) {
           <div class="feedback-card strengths-card">
             <h3 class="feedback-title">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -237,7 +237,7 @@
             </ul>
           </div>
         }
-        @if (evaluation.areas_for_improvement?.length) {
+        @if (evaluation && evaluation.areas_for_improvement && evaluation.areas_for_improvement.length > 0) {
           <div class="feedback-card improve-card">
             <h3 class="feedback-title">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">

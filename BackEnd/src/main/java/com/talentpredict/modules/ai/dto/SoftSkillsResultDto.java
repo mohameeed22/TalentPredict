@@ -53,4 +53,7 @@ public class SoftSkillsResultDto {
 
     @JsonProperty("parse_error")
     private Boolean parseError;
+
+    @JsonProperty("scenario_evaluation")
+    private Map<String, Object> scenarioEvaluation;
 }

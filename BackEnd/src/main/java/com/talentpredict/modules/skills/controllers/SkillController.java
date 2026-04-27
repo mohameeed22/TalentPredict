@@ -1,27 +1,50 @@
 package com.talentpredict.modules.skills.controllers;
 
-import java.util.UUID;
-
 import com.talentpredict.modules.skills.dto.SkillDto;
+import com.talentpredict.modules.skills.entities.Skill;
+import com.talentpredict.modules.skills.services.SkillService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import com.talentpredict.modules.skills.services.SkillService;
-
-import lombok.RequiredArgsConstructor;
-
+import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/skills")
 @RequiredArgsConstructor
 public class SkillController {
+
     
     private final SkillService skillService;
+
+    @PostMapping("/accounts/{userId}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<SkillDto.Response> creerSkill(
+            @PathVariable UUID userId,
+            @Valid @RequestBody SkillDto.CreateRequest createRequest) {
+        SkillDto.Response response = skillService.creerSkill(userId, createRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/accounts/{userId}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('RECRUITER')")
+    public ResponseEntity<List<SkillDto.Response>> getSkillsByUser(@PathVariable UUID userId) {
+        List<SkillDto.Response> skills = skillService.getSkillsByUser(userId);
+        return ResponseEntity.ok(skills);
+    }
+
+    @GetMapping("/accounts/{userId}/type/{type}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('RECRUITER')")
+    public ResponseEntity<List<SkillDto.Response>> getSkillsByType(
+            @PathVariable UUID userId,
+            @PathVariable Skill.TypeSkill type) {
+        List<SkillDto.Response> skills = skillService.getSkillsByUserAndType(userId, type);
+        return ResponseEntity.ok(skills);
+    }
     
 
     @PutMapping("/{skillId}/valider")

@@ -34,9 +34,14 @@ export class MesResultatsComponent implements OnInit {
   // Soft data
   softResult: any = null;
 
-  // Voice Interview data
+  // Interview data
   voiceResult: any = null;
   showVoiceInterview = true;
+
+  get isLocked(): boolean {
+    // If no voiceResult exists in sessionStorage or from backend, the page is locked
+    return !this.voiceResult;
+  }
 
   // LinkedIn analysis from profile
   linkedinUrl = '';
@@ -59,18 +64,22 @@ export class MesResultatsComponent implements OnInit {
 
   // Overall readiness
   get overallReadiness(): number {
+    if (this.isLocked) return 0;
     const techScore = this.formattedTechScore;
     const softScore = this.formattedSoftScore;
+    const voiceScore = this.voiceResult?.overall_score ?? 0;
 
     let total = 0;
     let count = 0;
     if (techScore > 0) { total += techScore; count++; }
     if (softScore > 0) { total += softScore; count++; }
+    if (voiceScore > 0) { total += voiceScore; count++; }
 
     return count > 0 ? Math.round(total / count) : 0;
   }
 
   get readinessLabel(): string {
+    if (this.isLocked) return 'Complétez votre entretien pour débloquer vos résultats';
     const r = this.overallReadiness;
     if (r >= 80) return 'Prêt pour un entretien senior';
     if (r >= 65) return 'Profil solide — quelques axes à consolider';
@@ -79,6 +88,7 @@ export class MesResultatsComponent implements OnInit {
   }
 
   get readinessColor(): string {
+    if (this.isLocked) return '#94a3b8'; // Slate 400
     const r = this.overallReadiness;
     if (r >= 80) return '#22c55e';
     if (r >= 50) return '#f59e0b';
@@ -126,15 +136,24 @@ export class MesResultatsComponent implements OnInit {
 
   // Career Match data
   careerMatches = [
-    { role: 'Frontend Developer', match: 87, gaps: ['Angular Advanced', 'Leadership'] },
-    { role: 'Full Stack Developer', match: 72, gaps: ['Node.js', 'System Design', 'Communication'] },
-    { role: 'Tech Lead', match: 55, gaps: ['Team Management', 'Architecture', 'Agile'] }
+    { role: 'Frontend Developer', match: 87, gaps: ['Angular Advanced', 'Leadership'], reason: 'Excellente maîtrise de l\'écosystème frontend avec une base technique solide.' },
+    { role: 'Full Stack Developer', match: 72, gaps: ['Node.js', 'System Design', 'Communication'], reason: 'Compétences polyvalentes, nécessite une montée en puissance sur le backend.' },
+    { role: 'Tech Lead', match: 55, gaps: ['Team Management', 'Architecture', 'Agile'], reason: 'Potentiel identifié, mais nécessite plus d\'expérience en gestion d\'équipe.' }
   ];
 
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
     if (!this.currentUser?.id) return;
     const userId = String(this.currentUser.id);
+
+    // 1. Check Voice Interview First (The Lock)
+    const vCtx = sessionStorage.getItem('voiceInterviewResult');
+    if (vCtx) {
+      try { 
+        this.voiceResult = JSON.parse(vCtx); 
+        this.showVoiceInterview = false; 
+      } catch {}
+    }
 
     try {
       const cached = sessionStorage.getItem('userProfileUrls');
@@ -151,7 +170,7 @@ export class MesResultatsComponent implements OnInit {
           .sort((a: any, b: any) => (b.niveau ?? 0) - (a.niveau ?? 0))
           .map(s => ({
             ...s,
-            delta: Math.floor(Math.random() * 3) - 1, // Mock delta: -1, 0, or 1
+            delta: Math.floor(Math.random() * 3) - 1,
             score100: Math.round(((s.niveau ?? 0) / 5) * 100)
           }))
           .slice(0, 6);
@@ -179,14 +198,6 @@ export class MesResultatsComponent implements OnInit {
     const ctx = sessionStorage.getItem('techIntakeContext');
     if (ctx) {
       try { this.githubResult = JSON.parse(ctx)?.githubResult ?? null; } catch {}
-    }
-
-    const vCtx = sessionStorage.getItem('voiceInterviewResult');
-    if (vCtx) {
-      try { 
-        this.voiceResult = JSON.parse(vCtx); 
-        this.showVoiceInterview = false; // Collapse for returning user
-      } catch {}
     }
   }
 

@@ -2,6 +2,7 @@ package com.talentpredict.modules.formation.controllers;
 
 import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,7 +30,17 @@ public class FormationController {
     
     private final FormationService formationService;
     
+    @PostMapping("/utilisateur/{userId}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<FormationDto.FormationResponse> createFormation(
+            @PathVariable UUID userId,
+            @RequestBody FormationDto.FormationRequest request) {
+        FormationDto.FormationResponse response = formationService.creerFormation(userId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
     @GetMapping("/utilisateur/{userId}")
+
     @PreAuthorize("hasAnyRole('USER','ADMIN','RECRUITER')")
     public ResponseEntity<java.util.List<FormationDto.FormationResponse>> getFormationsByUser(@PathVariable UUID userId) {
         java.util.List<FormationDto.FormationResponse> formations = formationService.getFormationsByUser(userId);

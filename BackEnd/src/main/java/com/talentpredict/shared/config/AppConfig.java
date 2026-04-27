@@ -34,7 +34,7 @@ public class AppConfig {
     @Bean("n8nRestTemplate")
     public RestTemplate n8nRestTemplate(
             @Value("${n8n.http.connect-timeout-ms:4000}") long connectTimeoutMs,
-            @Value("${n8n.http.read-timeout-ms:30000}") long readTimeoutMs) {
+            @Value("${n8n.http.read-timeout-ms:60000}") long readTimeoutMs) {
         int safeConnect = (int) Math.max(1000L, Math.min(Integer.MAX_VALUE, connectTimeoutMs));
         int safeRead = (int) Math.max(1000L, Math.min(Integer.MAX_VALUE, readTimeoutMs));
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();

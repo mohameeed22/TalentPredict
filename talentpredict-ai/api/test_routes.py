@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/test", tags=["test"])
 
 SUMMARY_TIMEOUT_SECONDS = 12
-FRAUD_TIMEOUT_SECONDS = 12
+FRAUD_TIMEOUT_SECONDS = 5
 CODE_EVAL_TIMEOUT_SECONDS = 18
 
 

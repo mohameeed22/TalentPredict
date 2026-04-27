@@ -1,15 +1,15 @@
 <div class="mr-wrap" id="mr-print">
 
   <!-- ══ HERO ═══════════════════════════════════════════════════════════ -->
-  <div class="mr-hero hero-gradient">
+  <div class="mr-hero hero-gradient" [class.is-locked]="isLocked">
     <div class="hero-content">
       <div class="hero-badge">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
         </svg>
-        Rapport global
+        Tableau de bord des résultats
       </div>
-      <h1>Mes Résultats</h1>
+      <h1>Votre Profil de Carrière</h1>
       <div class="formula-box">
         <span class="formula-item">Tech: {{ formattedTechScore }}%</span>
         <span class="formula-plus">+</span>
@@ -19,7 +19,7 @@
       </div>
       
       <div class="hero-actions-row">
-        <button class="btn-share" (click)="toggleShareProfile()">
+        <button class="btn-share" (click)="toggleShareProfile()" [disabled]="isLocked">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
             <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
@@ -27,20 +27,6 @@
           Partager mon profil
         </button>
       </div>
-      
-      @if (shareableLinkVisible) {
-        <div class="share-box">
-          <p>Lien public :</p>
-          <div class="share-input-group">
-            <input type="text" [value]="'https://talentpredict.com/public/' + currentUser?.id" readonly>
-            <button (click)="copyShareLink()">Copier</button>
-          </div>
-          <label class="toggle-public">
-            <input type="checkbox" [(ngModel)]="isProfilePublic">
-            Rendre mon profil visible publiquement
-          </label>
-        </div>
-      }
     </div>
 
     <!-- Overall readiness ring -->
@@ -59,303 +45,243 @@
         </div>
       </div>
       <div class="ring-meta">
-        <div class="readiness-badge" [style.background]="readinessColor" style="color: white; font-weight: 600;">
-          Readiness Score
+        <div class="readiness-badge" [style.background]="readinessColor" style="color: white; font-weight: 700;">
+          {{ isLocked ? 'Locked' : 'Readiness Score' }} {{ isLocked ? '🔒' : '✅' }}
         </div>
         <p class="readiness-label">{{ readinessLabel }}</p>
       </div>
     </div>
   </div>
 
-  <!-- ══ VOICE INTERVIEW (DISCOVERY) ════════════════════════ -->
-  <div class="voice-track-wrap">
-    @if (!voiceResult || showVoiceInterview) {
-      <div class="voice-capstone-banner">
-        <div class="vc-icon">🎙️</div>
-        <div class="vc-content">
-          <h3>Entretien de Découverte</h3>
-          <p>Participez à un échange interactif pour que l'IA apprenne à mieux vous connaître.</p>
-        </div>
-        <button type="button" class="btn-voice-start" (click)="goToVoiceInterview()">
-          Démarrer la découverte →
+  <!-- ══ LOCKED STATE OVERLAY ════════════════════════════════════════ -->
+  @if (isLocked) {
+    <div class="locked-cta-card">
+      <div class="lcta-icon">🎙️</div>
+      <div class="lcta-content">
+        <h2>Débloquez vos résultats personnalisés</h2>
+        <p>Complétez votre entretien IA pour obtenir une analyse complète de vos compétences, votre adéquation au marché et vos recommandations de carrière.</p>
+        <button class="btn-primary-glow" (click)="goToVoiceInterview()">
+          Démarrer l'Entretien IA maintenant
         </button>
-        @if (voiceResult) {
-          <button type="button" class="btn-ghost" (click)="toggleVoiceInterview()">Réduire</button>
-        }
       </div>
-    } @else {
-      <div class="voice-result-card" style="cursor: pointer" (click)="toggleVoiceInterview()">
-        <div class="vr-header" style="margin-bottom: 0;">
-          <div class="vr-title">
-            <span class="vr-icon">🎙️</span>
-            <div>
-              <h3 style="margin: 0">Entretien de Découverte Complété</h3>
-              <p style="margin: 0; font-size: 0.85rem">Cliquez pour voir les insights de l'entretien.</p>
+    </div>
+  }
+
+  <div class="results-dashboard-grid" [class.is-blurred]="isLocked">
+    
+    <!-- 1. AI Interview Summary (Top Priority) -->
+    @if (voiceResult) {
+      <div class="summary-section dashboard-card full-width">
+        <div class="card-header">
+          <div class="header-main">
+            <span class="header-icon">🤖</span>
+            <h2>Synthèse de l'Entretien IA</h2>
+          </div>
+          <div class="status-badge completed">Complété ✅</div>
+        </div>
+        
+        <div class="summary-grid">
+          <div class="summary-text-col">
+            <p class="evaluation-para">{{ voiceResult.summary_paragraph }}</p>
+            <div class="insights-row">
+              <div class="insight-item">
+                <span class="insight-label">Style de communication</span>
+                <span class="insight-value">{{ voiceResult.communication_style || 'Professionnel' }}</span>
+              </div>
+              <div class="insight-item">
+                <span class="insight-label">Niveau de confiance</span>
+                <span class="insight-value" [class]="'conf-' + (voiceResult.confidence_level || 'Medium').toLowerCase()">
+                  {{ voiceResult.confidence_level || 'Medium' }}
+                </span>
+              </div>
             </div>
           </div>
-          <button class="btn-ghost" (click)="$event.stopPropagation(); toggleVoiceInterview()">Voir →</button>
+          
+          <div class="summary-lists-col">
+            <div class="list-box strengths">
+              <h4>💪 Points forts clés</h4>
+              <ul>
+                @for (s of voiceResult.strengths; track s) {
+                  <li>{{ s }}</li>
+                }
+              </ul>
+            </div>
+            <div class="list-box improvements">
+              <h4>📈 Axes d'amélioration</h4>
+              <ul>
+                @for (a of voiceResult.areas_for_improvement; track a) {
+                  <li>{{ a }}</li>
+                }
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     }
-  </div>
 
-  <!-- ══ CAREER MATCH ════════════════════════════════════════════════ -->
-  <div class="career-match-section">
-    <h2 class="section-title">🎯 Career Match AI</h2>
-    <div class="cm-grid">
-      @for (cm of careerMatches; track cm.role; let idx = $index) {
-        <div class="cm-card" [class.top-match]="idx === 0">
-          <div class="cm-header">
-            <h3>{{ cm.role }}</h3>
-            <div class="cm-score" [style.color]="getScoreColor(cm.match, 100)">{{ cm.match }}%</div>
-          </div>
-          <p class="cm-gap-title">Gaps à combler :</p>
-          <ul class="cm-gap-list">
-            @for (gap of cm.gaps; track gap) {
-              <li>{{ gap }}</li>
-            }
-          </ul>
-          <button class="btn-cm-action">Voir les formations</button>
+    <!-- 2. Technical Skills Analysis -->
+    <div class="track-card tech-track dashboard-card" [class.locked-ui]="isLocked">
+      <div class="card-header">
+        <div class="header-main">
+          <span class="header-icon tech">💻</span>
+          <h2>Analyse Technique</h2>
         </div>
-      }
-    </div>
-  </div>
-
-  <!-- ══ TWO TRACK CARDS ════════════════════════════════════════════════ -->
-  <div class="tracks-grid">
-
-    <!-- TECH TRACK ─────────────────────────────────────────────────────── -->
-    <div class="track-card tech-track equal-height">
-      <div class="track-header">
-        <div class="track-icon tech-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-          </svg>
-        </div>
-        <div>
-          <h2>Compétences Techniques</h2>
-          <p class="track-sub">Dernier test : {{ (latestTechTest?.taken_at | date:'dd MMM yyyy') ?? 'N/A' }}</p>
+        <div class="status-badge" [class.locked]="isLocked">
+          {{ isLocked ? 'Locked 🔒' : 'Complété ✅' }}
         </div>
       </div>
 
-      @if (loadingTech) {
-        <div class="loading-row"><div class="spinner"></div><span>Chargement…</span></div>
-      } @else if (latestTechTest) {
-        <div class="track-score-wrap">
-          <div class="track-score">
-            <span class="score-big" [style.color]="getScoreColor(formattedTechScore, 100)">
-              {{ formattedTechScore }}%
-            </span>
-            <span class="score-label">Dernier test</span>
-          </div>
-          <div class="score-delta positive">+5pts depuis votre dernier test</div>
+      @if (!isLocked) {
+        <div class="overall-level">
+          Niveau Global : <strong>{{ formattedTechScore >= 80 ? 'Avancé' : (formattedTechScore >= 50 ? 'Intermédiaire' : 'Débutant') }}</strong>
         </div>
-
-        @if (techSkills.length) {
-          <div class="mini-skills">
-            @for (s of techSkills; track s.id) {
-              <div class="ms-item">
-                <span class="ms-name">{{ s.nom }}</span>
-                <div class="ms-dots-wrap">
-                  <div class="ms-dots">
-                    @for (i of [1,2,3,4,5]; track i) {
-                      <span class="dot" [class]="i <= (s.niveau ?? 0) ? getDotColorClass(s.score100) : ''"></span>
-                    }
-                  </div>
-                  <span class="ms-score-num">{{ s.score100 }}/100</span>
-                  
-                  @if (s.delta > 0) {
-                    <span class="delta-arrow up">↑</span>
-                  } @else if (s.delta < 0) {
-                    <span class="delta-arrow down">↓</span>
-                  } @else {
-                    <span class="delta-arrow flat">=</span>
-                  }
-                </div>
+        
+        <div class="mini-skills">
+          @for (s of techSkills; track s.id) {
+            <div class="ms-item">
+              <span class="ms-name">{{ s.nom }}</span>
+              <div class="ms-progress-bar">
+                <div class="progress-fill" [style.width.%]="s.score100" [style.background]="getScoreColor(s.score100, 100)"></div>
               </div>
-            }
-          </div>
-        }
-
-      } @else {
-        <div class="track-empty">
-          <p>Aucun test technique complété.</p>
-          <button type="button" class="btn-track" (click)="goToTech()">
-            Commencer l'évaluation Tech →
-          </button>
-        </div>
-      }
-
-      @if (latestTechTest) {
-        <div class="track-actions">
-          <button type="button" class="btn-pdf btn-pdf-large" (click)="exportTechPdf()">
-            📄 Télécharger le Rapport Tech (PDF)
-          </button>
-          <button type="button" class="btn-retake" (click)="goToTech()">Refaire le test →</button>
-        </div>
-      }
-    </div>
-
-    <!-- SOFT TRACK ─────────────────────────────────────────────────────── -->
-    <div class="track-card soft-track equal-height">
-      <div class="track-header">
-        <div class="track-icon soft-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-        </div>
-        <div>
-          <h2>Soft Skills &amp; Personnalité</h2>
-          <p class="track-sub">Dernier test : Aujourd'hui</p>
-        </div>
-      </div>
-
-      @if (loadingSoft && !softResult) {
-        <div class="loading-row"><div class="spinner"></div><span>Chargement…</span></div>
-      } @else if (softResult) {
-        <div class="track-score-wrap">
-          <div class="track-score">
-            <span class="score-big" [style.color]="getScoreColor(formattedSoftScore, 100)">
-              {{ formattedSoftScore }}%
-            </span>
-            <span class="score-label">Score global</span>
-          </div>
-          <div class="score-delta positive">+2pts depuis votre dernier test</div>
-        </div>
-
-        @if (pcmType) {
-          <div class="pcm-badge-card">
-            <div class="pcm-badge-header">
-              <span class="pcm-icon">🧠</span>
-              <strong>{{ pcmType }}</strong>
-            </div>
-            <p class="pcm-desc">{{ pcmDescription }}</p>
-          </div>
-        }
-
-        <!-- Soft skill bars & Radar Chart -->
-        <div class="soft-visualization-grid">
-          @if (getSoftSkillEntries().length >= 3) {
-            <div class="soft-radar-chart">
-              <svg viewBox="0 0 260 260" width="100%" height="100%">
-                <!-- Background grid -->
-                @for (level of [0.2, 0.4, 0.6, 0.8, 1.0]; track level) {
-                  <polygon 
-                    [attr.points]="getRadarGridPoints(level)"
-                    fill="none" stroke="#e5e7eb" stroke-width="1"/>
-                }
-                <!-- Axes -->
-                @for (axis of radarAxisPoints; track axis.x2) {
-                  <line x1="130" y1="130" [attr.x2]="axis.x2" [attr.y2]="axis.y2" stroke="#e5e7eb" stroke-width="1"/>
-                }
-                <!-- Data Polygon -->
-                <polygon [attr.points]="radarPolygonPoints" fill="rgba(11, 121, 208, 0.2)" stroke="var(--brand)" stroke-width="2"/>
-                
-                <!-- Data Points -->
-                @for (entry of getSoftSkillEntries().slice(0, 5); track entry.name; let i = $index) {
-                  <circle 
-                    [attr.cx]="getRadarPointX(entry.score, i, Math.min(5, getSoftSkillEntries().length))"
-                    [attr.cy]="getRadarPointY(entry.score, i, Math.min(5, getSoftSkillEntries().length))"
-                    r="5" fill="var(--brand)"/>
-                }
-                
-                <!-- Labels -->
-                @for (label of radarLabels; track label.text) {
-                  <text [attr.x]="label.x" [attr.y]="label.y" [attr.text-anchor]="label.anchor" dominant-baseline="middle" font-size="10" fill="#1e293b" font-weight="600">
-                    {{ label.text | titlecase }}
-                  </text>
-                }
-              </svg>
+              <span class="ms-score-num">{{ s.score100 }}%</span>
             </div>
           }
         </div>
-        
-        <div class="benchmarking-row">
-          <p>🌟 <strong>Top 20%</strong> des utilisateurs en Leadership</p>
-        </div>
 
-      } @else {
-        <div class="track-empty">
-          <p>Aucune évaluation soft skills complétée.</p>
-          <button type="button" class="btn-track" (click)="goToSoft()">
-            Commencer l'évaluation PCM →
-          </button>
-        </div>
-      }
-
-      @if (softResult) {
         <div class="track-actions">
-          <button type="button" class="btn-pdf btn-pdf-large soft-pdf" (click)="exportSoftPdf()">
-            📄 Télécharger le Rapport Soft (PDF)
-          </button>
-          <button type="button" class="btn-retake" (click)="goToSoft()">Refaire le test →</button>
+          <button class="btn-secondary" (click)="goToTech()">Refaire l'évaluation</button>
         </div>
       }
     </div>
 
-  </div>
+    <!-- 3. Soft Skills & Personality -->
+    <div class="track-card soft-track dashboard-card" [class.locked-ui]="isLocked">
+      <div class="card-header">
+        <div class="header-main">
+          <span class="header-icon soft">🧠</span>
+          <h2>Soft Skills & Personnalité</h2>
+        </div>
+        <div class="status-badge" [class.locked]="isLocked">
+          {{ isLocked ? 'Locked 🔒' : 'Complété ✅' }}
+        </div>
+      </div>
 
-  <!-- ══ PLAN DE DEVELOPPEMENT ══════════════════════════════════════════ -->
-  @if (techGaps.length || softGaps.length) {
-  <div class="combined-gaps dev-plan">
-    <h2 class="cg-title">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 2l7.5 4.5v6c0 5-3.5 7.5-7.5 8.5-4-1-7.5-3.5-7.5-8.5v-6L12 2z"/>
-      </svg>
-      Plan de développement recommandé
-    </h2>
-    <div class="dev-cards-grid">
-      @for (g of techGaps; track g) {
-        <div class="dev-card tech-dev">
-          <div class="dev-card-header">
-            <h3>{{ g }}</h3>
-            <span class="badge tech">Tech</span>
-          </div>
-          <div class="dev-card-scores">
-            <span>Actuel : <strong>45%</strong></span>
-            <span>Cible : <strong>80%</strong></span>
-          </div>
-          <button class="btn-dev-action">Voir la formation associée</button>
+      @if (!isLocked && softResult) {
+        <div class="pcm-summary">
+          <div class="pcm-type-badge">{{ pcmType }}</div>
+          <p class="pcm-mini-desc">{{ pcmDescription }}</p>
         </div>
-      }
-      @for (g of softGaps; track g) {
-        <div class="dev-card soft-dev">
-          <div class="dev-card-header">
-            <h3>{{ g | titlecase }}</h3>
-            <span class="badge soft">Soft Skill</span>
-          </div>
-          <div class="dev-card-scores">
-            <span>Actuel : <strong>6/10</strong></span>
-            <span>Cible : <strong>8/10</strong></span>
-          </div>
-          <button class="btn-dev-action">Voir la formation associée</button>
+
+        <div class="soft-skills-bars">
+          @for (entry of getSoftSkillEntries().slice(0, 4); track entry.name) {
+            <div class="soft-bar-item">
+              <div class="sb-label">
+                <span>{{ entry.name | titlecase }}</span>
+                <span>{{ entry.score }}/10</span>
+              </div>
+              <div class="sb-progress">
+                <div class="sb-fill" [style.width.%]="entry.score * 10" [style.background]="getScoreColor(entry.score)"></div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="track-actions">
+          <button class="btn-secondary" (click)="goToSoft()">Refaire le PCM</button>
         </div>
       }
     </div>
-  </div>
-  }
-  
-  <!-- ══ CERTIFICATIONS ══════════════════════════════════════════ -->
-  <div class="certifications-section">
-    <h2 class="section-title">🏆 Mes Certifications</h2>
-    <div class="cert-grid">
-      <div class="cert-card">
-        <div class="cert-icon">🥇</div>
-        <div class="cert-info">
-          <h3>Expert Angular</h3>
-          <p>Score : 92%</p>
+
+    <!-- 4. Career Match (AI-powered) -->
+    <div class="career-match-section dashboard-card full-width" [class.locked-ui]="isLocked">
+      <div class="card-header">
+        <div class="header-main">
+          <span class="header-icon career">🎯</span>
+          <h2>Career Match AI</h2>
         </div>
-        <button class="btn-download-cert">Télécharger</button>
       </div>
-      <div class="cert-card">
-        <div class="cert-icon">🥇</div>
-        <div class="cert-info">
-          <h3>Communication</h3>
-          <p>Score : 8.5/10</p>
+
+      @if (!isLocked) {
+        <div class="cm-grid">
+          @for (cm of careerMatches; track cm.role; let idx = $index) {
+            <div class="cm-card" [class.top-match]="idx === 0">
+              <div class="cm-header">
+                <h3>{{ cm.role }}</h3>
+                <div class="cm-score-badge" [style.background]="getScoreColor(cm.match, 100)">{{ cm.match }}%</div>
+              </div>
+              <p class="cm-reason">{{ cm.reason }}</p>
+              <div class="cm-gaps">
+                @for (gap of cm.gaps; track gap) {
+                  <span class="gap-tag">{{ gap }}</span>
+                }
+              </div>
+            </div>
+          }
         </div>
-        <button class="btn-download-cert">Télécharger</button>
-      </div>
+      }
     </div>
+
+    <!-- 5. Certifications & Achievements -->
+    <div class="certifications-section dashboard-card" [class.locked-ui]="isLocked">
+      <div class="card-header">
+        <div class="header-main">
+          <span class="header-icon cert">🏆</span>
+          <h2>Certifications</h2>
+        </div>
+      </div>
+
+      @if (!isLocked) {
+        <div class="cert-list">
+          <div class="cert-item">
+            <div class="cert-icon">🥇</div>
+            <div class="cert-meta">
+              <h5>Expert Angular</h5>
+              <p>Score: 92%</p>
+            </div>
+          </div>
+          <div class="cert-item">
+            <div class="cert-icon">🥇</div>
+            <div class="cert-meta">
+              <h5>Communication</h5>
+              <p>Score: 8.5/10</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="cert-suggestions">
+          <p class="suggest-title">Prochaines certifications suggérées :</p>
+          <div class="suggest-badges">
+            <span class="s-badge">AWS Cloud Practitioner</span>
+            <span class="s-badge">Agile Scrum Master</span>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- 6. Next Steps (Critical Section) -->
+    <div class="next-steps-section dashboard-card" [class.locked-ui]="isLocked">
+      <div class="card-header">
+        <div class="header-main">
+          <span class="header-icon next">🚀</span>
+          <h2>Prochaines Étapes</h2>
+        </div>
+      </div>
+
+      @if (!isLocked) {
+        <div class="steps-content">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <p>Améliorer vos compétences en <strong>{{ techGaps[0] || 'System Design' }}</strong> via nos formations.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <p>Travailler votre <strong>{{ softGaps[0] || 'Leadership' }}</strong> pour viser des postes de Tech Lead.</p>
+          </div>
+          <button class="btn-primary-full">Voir mon plan de formation</button>
+        </div>
+      }
+    </div>
+
   </div>
 
 </div>

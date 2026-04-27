@@ -2,10 +2,69 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { timeout } from 'rxjs/operators';
-import { DashboardService, EmployeeDashboardResponse } from '../../services/dashboard.service';
+import {
+  DashboardFormation,
+  DashboardService,
+  DashboardSkill,
+  EmployeeDashboardResponse,
+  TestSummary
+} from '../../services/dashboard.service';
 import { AuthService } from '../../../auth/services/auth.service';
-import { NotificationService } from '../../../../core/services/notification.service';
-import { PredictionResponse } from '../../models/prediction.model';
+
+type RadarToggle = 'tous' | 'tech' | 'soft';
+type MomentumDirection = 'up' | 'down' | 'flat';
+
+interface RadarEntry {
+  name: string;
+  score: number;
+  type: 'tech' | 'soft';
+}
+
+interface SkillMomentumItem {
+  name: string;
+  current: number;
+  delta: number;
+  dir: MomentumDirection;
+}
+
+interface CareerMatch {
+  role: string;
+  match: number;
+  gaps: string[];
+  targetRoute: string;
+}
+
+interface CareerBlueprint {
+  role: string;
+  tech: string[];
+  soft: string[];
+  targetRoute: string;
+}
+
+interface WeeklyInsight {
+  skillChange: string;
+  formationProgress: string;
+  recommendation: string;
+}
+
+interface BadgeItem {
+  icon: string;
+  name: string;
+  date: string;
+}
+
+interface LockedBadgeItem {
+  icon: string;
+  name: string;
+  condition: string;
+}
+
+interface FeedItem {
+  icon: string;
+  text: string;
+  date: string;
+  highlight?: boolean;
+}
 
 @Component({
   selector: 'app-user-dashboard',
@@ -18,32 +77,34 @@ export class UserDashboardComponent implements OnInit {
   Math = Math;
   private dashboardService = inject(DashboardService);
   private authService = inject(AuthService);
-  private notify = inject(NotificationService);
+
+  private readonly roleBlueprints: CareerBlueprint[] = [
+    {
+      role: 'Frontend Developer',
+      tech: ['angular', 'typescript', 'javascript'],
+      soft: ['communication', 'adaptabilite'],
+      targetRoute: '/competences/progress'
+    },
+    {
+      role: 'Full Stack Developer',
+      tech: ['java', 'spring', 'sql'],
+      soft: ['collaboration', 'problem solving'],
+      targetRoute: '/competences/results'
+    },
+    {
+      role: 'Tech Lead',
+      tech: ['architecture', 'system design', 'code review'],
+      soft: ['leadership', 'communication'],
+      targetRoute: '/formations'
+    }
+  ];
 
   dashboardData: EmployeeDashboardResponse | null = null;
   loading = true;
   error: string | null = null;
 
-  // Added Mock / Processed Properties for redesign
   currentDate = new Date();
-  
-  // Stats
-  streakHebdo = 3;
-  rangPlateforme = 15;
-  competencesMaitrisees = 8;
-  
-  // Radar state
-  radarToggle: 'tous' | 'tech' | 'soft' = 'tous';
-  
-  // Weekly AI Insight
-  weeklyInsight = {
-    skillChange: "Forte progression en Communication (+15pts)",
-    formationProgress: "Vous avancez bien sur 'Angular Avancé' (60%)",
-    recommendation: "Pensez à pratiquer vos skills en Leadership cette semaine."
-  };
-
-  // Prediction IA parsed
-  parsedPrediction: any = null;
+  radarToggle: RadarToggle = 'tous';
 
   ngOnInit(): void {
     const currentUser = this.authService.getCurrentUser();
@@ -54,10 +115,9 @@ export class UserDashboardComponent implements OnInit {
       ).subscribe({
         next: (data) => {
           this.dashboardData = data;
-          this.processData();
           this.loading = false;
         },
-        error: (err) => {
+        error: () => {
           this.error = 'Impossible de charger les données du tableau de bord.';
           this.loading = false;
         }
@@ -76,13 +136,20 @@ export class UserDashboardComponent implements OnInit {
     return user ? `${user.prenom} ${user.nom}` : '';
   }
 
-  // 1. Hero MBTI
+  get managerBannerMessage(): string {
+    const latestEvent = this.feed[0];
+    if (!latestEvent) {
+      return 'Aucune activité récente. Lancez un test pour enrichir votre tableau de bord.';
+    }
+    return `${latestEvent.text} - ${latestEvent.date}`;
+  }
+
   get pcmType(): string {
-    const tests = this.dashboardData?.testsRecents ?? [];
+    const tests = this.testsSortedByDateDesc;
     const lastWithPcm = tests.find(t => t.personalityType);
     return lastWithPcm?.personalityType ?? 'Analyseur';
   }
-  
+
   get pcmDescription(): string {
     const type = this.pcmType.toLowerCase();
     if (type.includes('analyseur')) return 'Logique et efficacité';
@@ -94,7 +161,6 @@ export class UserDashboardComponent implements OnInit {
     return 'Profil en cours d\'analyse';
   }
 
-  // 2. Stats formatting (Fix 0.77 -> 77% and rounding)
   formatPercent(val: number | undefined | null): number {
     if (val == null) return 0;
     let v = val;
@@ -105,40 +171,99 @@ export class UserDashboardComponent implements OnInit {
   get scoreMoyen(): number {
     return this.formatPercent(this.dashboardData?.scoreEvaluationMoyen);
   }
-  
+
   get testsCompletes(): number {
     return this.dashboardData?.nombreTests ?? 0;
+  }
+
+  get streakHebdo(): number {
+    const testDays = this.uniqueTestDaysDesc;
+    if (testDays.length === 0) {
+      return 0;
+    }
+
+    let streak = 1;
+    let previousTs = testDays[0].getTime();
+    const weekInMs = 7 * 24 * 60 * 60 * 1000;
+
+    for (let i = 1; i < testDays.length; i++) {
+      const currentTs = testDays[i].getTime();
+      if (previousTs - currentTs <= weekInMs) {
+        streak += 1;
+        previousTs = currentTs;
+        continue;
+      }
+      break;
+    }
+
+    return streak;
+  }
+
+  get softSkillsCount(): number {
+    return this.dashboardData?.nombreSkillsSoft ?? 0;
+  }
+
+  get techSkillsCount(): number {
+    return this.dashboardData?.nombreSkillsTech ?? 0;
   }
 
   get formationsActives(): number {
     return this.dashboardData?.nombreFormationsEnCours ?? 0;
   }
 
-  // Deduplicate formations
-  get uniqueFormationsRecentes(): any[] {
+  get uniqueFormationsRecentes(): DashboardFormation[] {
     const formations = this.dashboardData?.formationsRecentes ?? [];
-    const unique = new Map();
+    const unique = new Map<string, DashboardFormation>();
     for (const f of formations) {
-      if (!unique.has(f.titre)) unique.set(f.titre, f);
+      const key = (f.titre ?? '').trim().toLowerCase();
+      if (!key || unique.has(key)) {
+        continue;
+      }
+      unique.set(key, f);
     }
     return Array.from(unique.values());
   }
 
-  // 3. Line chart data (Score evolution)
+  get activeFormation(): DashboardFormation | null {
+    return this.uniqueFormationsRecentes.find(f => this.isFormationInProgress(f.statut)) ?? null;
+  }
+
+  get weeklyInsight(): WeeklyInsight {
+    const strongestProgress = this.skillMomentum.find((item) => item.dir === 'up');
+    const activeFormation = this.activeFormation;
+    const weakestSkill = this.radarBottom3[0];
+
+    const recommendationFromAi =
+      this.dashboardData?.dernierePrediction?.recommandationSoft ||
+      this.dashboardData?.dernierePrediction?.recommandationTech;
+
+    return {
+      skillChange: strongestProgress
+        ? `${strongestProgress.name} progresse de ${Math.abs(strongestProgress.delta)} pts.`
+        : 'Aucune variation détectée récemment dans les soft skills.',
+      formationProgress: activeFormation
+        ? `${activeFormation.titre} (${activeFormation.progression ?? 0}% complété)`
+        : 'Aucune formation active pour le moment.',
+      recommendation:
+        recommendationFromAi?.trim() ||
+        (weakestSkill
+          ? `Concentrez-vous sur ${weakestSkill} pour équilibrer votre profil.`
+          : 'Passez un test pour recevoir une recommandation personnalisée.')
+    };
+  }
+
   get scoreEvolutionPoints(): { x: number, y: number, date: Date | string, score: number }[] {
-    const tests = [...(this.dashboardData?.testsRecents ?? [])].reverse();
+    const tests = [...this.testsSortedByDateDesc].reverse();
     if (tests.length === 0) return [];
-    
-    // Scale X: 0 to 300, Y: 0 to 100 (inverted for SVG so 100 is 0, 0 is 100)
-    // SVG width 300, height 120
+
     const w = 300;
     const h = 120;
-    
+
     if (tests.length === 1) {
       const score = this.formatPercent(tests[0].overallScore);
-      return [{ x: w/2, y: h - (score/100 * h), date: tests[0].dateTest, score }];
+      return [{ x: w / 2, y: h - (score / 100 * h), date: tests[0].dateTest, score }];
     }
-    
+
     return tests.map((t, i) => {
       const score = this.formatPercent(t.overallScore);
       return {
@@ -156,50 +281,79 @@ export class UserDashboardComponent implements OnInit {
     return 'M ' + pts.map(p => `${p.x},${p.y}`).join(' L ');
   }
 
-  // 4. Career Match
-  careerMatches = [
-    { role: 'Frontend Developer', match: 87, gaps: ['Angular Adv.', 'Leadership'] },
-    { role: 'Full Stack', match: 72, gaps: ['Node.js', 'System Design'] },
-    { role: 'Tech Lead', match: 55, gaps: ['Team Management'] }
-  ];
+  get careerMatches(): CareerMatch[] {
+    const skillIndex = this.buildSkillScoreIndex();
+    const fallbackScore = this.scoreMoyen > 0 ? this.scoreMoyen : 50;
 
-  // 5. Radar
-  get radarEntries(): {name: string, score: number, type: string}[] {
-    let entries: {name: string, score: number, type: string}[] = [];
-    
-    // Add soft skills from latest test
-    const latestTest = this.dashboardData?.testsRecents?.[0];
-    if (latestTest?.softSkillsScores) {
-      Object.entries(latestTest.softSkillsScores).forEach(([k, v]) => {
-        entries.push({ name: k, score: this.formatPercent(v), type: 'soft' });
-      });
-    } else {
-      // Mock soft if none
-      entries.push({name: 'Communication', score: 80, type: 'soft'});
-      entries.push({name: 'Leadership', score: 60, type: 'soft'});
-      entries.push({name: 'Adaptabilité', score: 75, type: 'soft'});
+    return this.roleBlueprints
+      .map((blueprint) => {
+        const scores: number[] = [];
+        const gaps: string[] = [];
+
+        for (const tech of blueprint.tech) {
+          const key = this.normalizeName(tech);
+          const score = skillIndex.get(key) ?? Math.round(fallbackScore * 0.55);
+          scores.push(score);
+          if (score < 65) {
+            gaps.push(this.toTitleCase(tech));
+          }
+        }
+
+        for (const soft of blueprint.soft) {
+          const key = this.normalizeName(soft);
+          const score = skillIndex.get(key) ?? Math.round(fallbackScore * 0.6);
+          scores.push(score);
+          if (score < 65) {
+            gaps.push(this.toTitleCase(soft));
+          }
+        }
+
+        const averageScore = scores.length
+          ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length)
+          : Math.round(fallbackScore);
+
+        return {
+          role: blueprint.role,
+          match: this.clamp(averageScore, 35, 99),
+          gaps: gaps.slice(0, 3),
+          targetRoute: blueprint.targetRoute
+        };
+      })
+      .sort((a, b) => b.match - a.match)
+      .slice(0, 3);
+  }
+
+  get radarEntries(): RadarEntry[] {
+    const softEntries = Object.entries(this.latestSoftScores).map(([name, value]) => ({
+      name,
+      score: this.clamp(this.formatPercent(value), 0, 100),
+      type: 'soft' as const
+    }));
+
+    const techEntries = (this.dashboardData?.topSkills ?? []).map((skill) => ({
+      name: skill.nom,
+      score: this.clamp(Math.round((skill.niveau ?? 0) * 20), 0, 100),
+      type: this.normalizeSkillType(skill) === 'soft' ? 'soft' as const : 'tech' as const
+    }));
+
+    let entries = this.dedupeRadarEntries([...softEntries, ...techEntries]);
+
+    if (this.radarToggle === 'tech') {
+      entries = entries.filter(e => e.type === 'tech');
     }
-
-    // Add tech skills
-    const tech = this.dashboardData?.topSkills ?? [];
-    tech.forEach(t => {
-      entries.push({ name: t.nom, score: (t.niveau/5)*100, type: 'tech' });
-    });
-
-    if (entries.length === 0) return [];
-    
-    // Filter
-    if (this.radarToggle === 'tech') entries = entries.filter(e => e.type === 'tech');
-    if (this.radarToggle === 'soft') entries = entries.filter(e => e.type === 'soft');
+    if (this.radarToggle === 'soft') {
+      entries = entries.filter(e => e.type === 'soft');
+    }
 
     return entries.slice(0, 6);
   }
 
   get radarTop3(): string[] {
-    return [...this.radarEntries].sort((a,b)=>b.score - a.score).slice(0,3).map(e=>e.name);
+    return [...this.radarEntries].sort((a, b) => b.score - a.score).slice(0, 3).map(e => e.name);
   }
+
   get radarBottom3(): string[] {
-    return [...this.radarEntries].sort((a,b)=>a.score - b.score).slice(0,3).map(e=>e.name);
+    return [...this.radarEntries].sort((a, b) => a.score - b.score).slice(0, 3).map(e => e.name);
   }
 
   get radarPolygonPoints(): string {
@@ -225,7 +379,7 @@ export class UserDashboardComponent implements OnInit {
 
   get radarLabels(): { text: string; x: number; y: number; anchor: string }[] {
     const entries = this.radarEntries;
-    const cx = 100, cy = 100, radius = 95; 
+    const cx = 100, cy = 100, radius = 95;
     return entries.map((entry, i) => {
       const angle = (Math.PI * 2 * i) / entries.length - Math.PI / 2;
       const x = cx + radius * Math.cos(angle);
@@ -237,51 +391,336 @@ export class UserDashboardComponent implements OnInit {
     });
   }
 
-  // 6. Skill Momentum
-  get skillMomentum() {
-    return [
-      { name: 'Angular', current: 85, delta: 12, dir: 'up' },
-      { name: 'Communication', current: 78, delta: 5, dir: 'up' },
-      { name: 'Leadership', current: 60, delta: -3, dir: 'down' },
-      { name: 'Node.js', current: 70, delta: 0, dir: 'flat' }
-    ];
-  }
-
-  // 7. Last 3 Tests
-  get last3Tests() {
-    return (this.dashboardData?.testsRecents ?? []).slice(0, 3);
-  }
-  
-  toggleTestCollapse(test: any) {
-    test.collapsed = !test.collapsed;
-  }
-
-  // 8. Badges & Feed
-  badges = [
-    { icon: '🏆', name: 'Premier test', date: '12 Avr' },
-    { icon: '🔥', name: 'Streak 3 sem.', date: '15 Avr' },
-    { icon: '🚀', name: 'Top 10%', date: 'Hier' }
-  ];
-  lockedBadges = [
-    { icon: '⭐', name: 'Score > 90%', condition: 'Obtenir 90% sur une comp.' },
-    { icon: '📚', name: '1ère formation', condition: 'Terminer une formation' }
-  ];
-  
-  feed = [
-    { icon: '✅', text: 'Test technique Angular complété', date: 'Il y a 2h' },
-    { icon: '🚀', text: 'Badge "Top 10%" obtenu', date: 'Hier' },
-    { icon: '📚', text: 'Formation "Leadership" débutée', date: 'Il y a 2j' },
-    { icon: '👁️', text: 'Votre profil a été consulté par votre manager', date: 'Il y a 3j', highlight: true }
-  ];
-
-  private processData() {
-    // Parse Prediction IA if it exists
-    const pred = this.dashboardData?.dernierePrediction?.analyse;
-    if (pred) {
-      // Very basic parsing to remove raw keys
-      this.parsedPrediction = {
-        summary: pred.replace(/TYPE_PERSONNALITE:|SCORES_SOFT_SKILLS:/g, '').trim()
-      };
+  get skillMomentum(): SkillMomentumItem[] {
+    const tests = this.testsSortedByDateDesc;
+    if (tests.length < 2) {
+      return [];
     }
+
+    const currentScores = tests[0].softSkillsScores ?? {};
+    const previousScores = tests[1].softSkillsScores ?? {};
+
+    const skillNames = Array.from(
+      new Set<string>([...Object.keys(currentScores), ...Object.keys(previousScores)])
+    );
+
+    return skillNames
+      .map((name) => {
+        const current = this.formatPercent(currentScores[name] ?? 0);
+        const previous = this.formatPercent(previousScores[name] ?? 0);
+        const delta = Math.round((current - previous) * 10) / 10;
+        let dir: MomentumDirection = 'flat';
+        if (delta > 0) {
+          dir = 'up';
+        } else if (delta < 0) {
+          dir = 'down';
+        }
+
+        return {
+          name,
+          current,
+          delta,
+          dir
+        };
+      })
+      .filter((item) => item.current > 0 || item.delta !== 0)
+      .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+      .slice(0, 6);
+  }
+
+  get testActionText(): string {
+    if (this.testsCompletes === 0) {
+      return 'Démarrez votre première évaluation soft skills.';
+    }
+    return 'Continuez vos évaluations pour enrichir vos insights IA.';
+  }
+
+  get formationActionText(): string {
+    const activeFormation = this.activeFormation;
+    if (!activeFormation) {
+      return 'Découvrez une formation recommandée pour votre profil.';
+    }
+    return `${activeFormation.titre} (${activeFormation.progression ?? 0}% complété).`;
+  }
+
+  get skillPracticeText(): string {
+    const weakestSkill = this.radarBottom3[0];
+    if (!weakestSkill) {
+      return 'Travaillez vos compétences clés avec les exercices dédiés.';
+    }
+    return `Renforcez ${weakestSkill} avec un exercice ciblé.`;
+  }
+
+  get last3Tests(): TestSummary[] {
+    return this.testsSortedByDateDesc.slice(0, 3);
+  }
+
+  get badges(): BadgeItem[] {
+    const result: BadgeItem[] = [];
+    const firstTest = this.testsSortedByDateDesc[this.testsSortedByDateDesc.length - 1];
+
+    if (firstTest) {
+      result.push({
+        icon: '🏆',
+        name: 'Premier test complété',
+        date: this.formatDateLabel(firstTest.dateTest)
+      });
+    }
+
+    if (this.streakHebdo >= 2) {
+      result.push({
+        icon: '🔥',
+        name: `Streak ${this.streakHebdo} semaines`,
+        date: 'Cette semaine'
+      });
+    }
+
+    if (this.scoreMoyen >= 80) {
+      result.push({
+        icon: '🚀',
+        name: 'Score moyen > 80%',
+        date: 'Performance élevée'
+      });
+    }
+
+    if ((this.dashboardData?.nombreFormationsTerminees ?? 0) > 0) {
+      result.push({
+        icon: '📚',
+        name: 'Formation terminée',
+        date: 'Objectif atteint'
+      });
+    }
+
+    return result.slice(0, 4);
+  }
+
+  get lockedBadges(): LockedBadgeItem[] {
+    const result: LockedBadgeItem[] = [];
+
+    if (this.testsCompletes === 0) {
+      result.push({
+        icon: '🧪',
+        name: 'Lancer votre analyse',
+        condition: 'Compléter un premier test'
+      });
+    }
+
+    if (this.scoreMoyen < 90) {
+      result.push({
+        icon: '⭐',
+        name: 'Excellence',
+        condition: 'Atteindre 90% de score moyen'
+      });
+    }
+
+    if ((this.dashboardData?.nombreFormationsTerminees ?? 0) === 0) {
+      result.push({
+        icon: '🎓',
+        name: 'Learning Milestone',
+        condition: 'Terminer une formation'
+      });
+    }
+
+    return result.slice(0, 3);
+  }
+
+  get feed(): FeedItem[] {
+    const events: FeedItem[] = [];
+    const latestTest = this.testsSortedByDateDesc[0];
+    const latestPrediction = this.dashboardData?.dernierePrediction;
+    const activeFormation = this.activeFormation;
+    const completedFormation = this.uniqueFormationsRecentes.find((f) => this.isFormationCompleted(f.statut));
+
+    if (latestTest) {
+      events.push({
+        icon: '✅',
+        text: `Test enregistré (${this.formatPercent(latestTest.overallScore)}%)`,
+        date: this.formatDateLabel(latestTest.dateTest),
+        highlight: true
+      });
+    }
+
+    if (activeFormation) {
+      events.push({
+        icon: '📚',
+        text: `Formation en cours: ${activeFormation.titre}`,
+        date: `${activeFormation.progression ?? 0}%`
+      });
+    }
+
+    if (completedFormation) {
+      events.push({
+        icon: '🏁',
+        text: `Formation terminée: ${completedFormation.titre}`,
+        date: this.formatDateLabel(completedFormation.dateDebut || completedFormation.dateProposition)
+      });
+    }
+
+    if (latestPrediction) {
+      events.push({
+        icon: '🤖',
+        text: 'Prédiction IA mise à jour',
+        date: this.formatDateLabel(latestPrediction.datePrediction)
+      });
+    }
+
+    return events.slice(0, 4);
+  }
+
+  get testsSortedByDateDesc(): TestSummary[] {
+    return [...(this.dashboardData?.testsRecents ?? [])].sort(
+      (a, b) => this.getTimeValue(b.dateTest) - this.getTimeValue(a.dateTest)
+    );
+  }
+
+  get latestSoftScores(): Record<string, number> {
+    const latestTest = this.testsSortedByDateDesc[0];
+    const scores = latestTest?.softSkillsScores ?? {};
+    const normalized: Record<string, number> = {};
+
+    for (const [key, value] of Object.entries(scores)) {
+      normalized[key] = this.formatPercent(value);
+    }
+
+    return normalized;
+  }
+
+  isFormationInProgress(status?: string): boolean {
+    return this.normalizeFormationStatus(status) === 'EN_COURS';
+  }
+
+  isFormationCompleted(status?: string): boolean {
+    return this.normalizeFormationStatus(status) === 'TERMINEE';
+  }
+
+  formatFormationStatus(status?: string): string {
+    const normalized = this.normalizeFormationStatus(status);
+    if (normalized === 'EN_COURS') {
+      return 'En cours';
+    }
+    if (normalized === 'TERMINEE') {
+      return 'Terminée';
+    }
+    if (!normalized) {
+      return 'Non défini';
+    }
+    return this.toTitleCase(normalized.replace(/_/g, ' ').toLowerCase());
+  }
+
+  private get uniqueTestDaysDesc(): Date[] {
+    const dedup = new Set<string>();
+    const days: Date[] = [];
+
+    for (const test of this.testsSortedByDateDesc) {
+      const date = this.toDate(test.dateTest);
+      if (!date) {
+        continue;
+      }
+
+      const normalized = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const key = normalized.toISOString();
+      if (dedup.has(key)) {
+        continue;
+      }
+
+      dedup.add(key);
+      days.push(normalized);
+    }
+
+    return days;
+  }
+
+  private dedupeRadarEntries(entries: RadarEntry[]): RadarEntry[] {
+    const map = new Map<string, RadarEntry>();
+    for (const entry of entries) {
+      if (!entry.name?.trim()) {
+        continue;
+      }
+
+      const key = `${this.normalizeName(entry.name)}:${entry.type}`;
+      const current = map.get(key);
+      if (!current || entry.score > current.score) {
+        map.set(key, entry);
+      }
+    }
+    return Array.from(map.values());
+  }
+
+  private buildSkillScoreIndex(): Map<string, number> {
+    const index = new Map<string, number>();
+
+    for (const skill of this.dashboardData?.topSkills ?? []) {
+      if (!skill.nom) {
+        continue;
+      }
+      const key = this.normalizeName(skill.nom);
+      const value = this.clamp(Math.round((skill.niveau ?? 0) * 20), 0, 100);
+      const current = index.get(key) ?? 0;
+      if (value > current) {
+        index.set(key, value);
+      }
+    }
+
+    for (const [name, value] of Object.entries(this.latestSoftScores)) {
+      const key = this.normalizeName(name);
+      const current = index.get(key) ?? 0;
+      if (value > current) {
+        index.set(key, value);
+      }
+    }
+
+    return index;
+  }
+
+  private normalizeSkillType(skill: DashboardSkill): 'tech' | 'soft' {
+    return String(skill.type || '').toUpperCase() === 'SOFT' ? 'soft' : 'tech';
+  }
+
+  private normalizeFormationStatus(status?: string): string {
+    return String(status || '').toUpperCase().trim();
+  }
+
+  private normalizeName(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  private toTitleCase(value: string): string {
+    return value
+      .split(' ')
+      .filter(Boolean)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
+  private toDate(value: Date | string | undefined | null): Date | null {
+    if (!value) {
+      return null;
+    }
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  private formatDateLabel(value: Date | string | undefined | null): string {
+    const date = this.toDate(value);
+    if (!date) {
+      return 'Date non disponible';
+    }
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }).format(date);
+  }
+
+  private getTimeValue(value: Date | string | undefined): number {
+    return this.toDate(value)?.getTime() ?? 0;
+  }
+
+  private clamp(value: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, value));
   }
 }
