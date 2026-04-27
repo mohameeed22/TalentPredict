@@ -10,6 +10,7 @@ import {
   TestSummary
 } from '../../services/dashboard.service';
 import { AuthService } from '../../../auth/services/auth.service';
+import { PredictionResponse } from '../../models/prediction.model';
 
 type RadarToggle = 'tous' | 'tech' | 'soft';
 type MomentumDirection = 'up' | 'down' | 'flat';
@@ -102,6 +103,8 @@ export class UserDashboardComponent implements OnInit {
   dashboardData: EmployeeDashboardResponse | null = null;
   loading = true;
   error: string | null = null;
+  latestPrediction: PredictionResponse | null = null;
+  generatingPrediction = false;
 
   currentDate = new Date();
   radarToggle: RadarToggle = 'tous';
@@ -122,10 +125,28 @@ export class UserDashboardComponent implements OnInit {
           this.loading = false;
         }
       });
+      // Fetch the latest AI prediction independently
+      this.dashboardService.getLatestPrediction(userId).subscribe({
+        next: p => { this.latestPrediction = p; },
+        error: () => { /* non-fatal, prediction card shows empty state */ }
+      });
     } else {
       this.error = 'Utilisateur non authentifié.';
       this.loading = false;
     }
+  }
+
+  generatePrediction(): void {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser?.id || this.generatingPrediction) return;
+    this.generatingPrediction = true;
+    this.dashboardService.generatePrediction(String(currentUser.id)).subscribe({
+      next: p => {
+        this.latestPrediction = p;
+        this.generatingPrediction = false;
+      },
+      error: () => { this.generatingPrediction = false; }
+    });
   }
 
   get displayName(): string {

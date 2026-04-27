@@ -24,4 +24,16 @@ public class WebMvcConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:///" + absolutePath + "/");
     }
+
+    private final RateLimitInterceptor rateLimitInterceptor;
+
+    public WebMvcConfig(RateLimitInterceptor rateLimitInterceptor) {
+        this.rateLimitInterceptor = rateLimitInterceptor;
+    }
+
+    @Override
+    public void addInterceptors(org.springframework.web.servlet.config.annotation.InterceptorRegistry registry) {
+        registry.addInterceptor(rateLimitInterceptor)
+                .addPathPatterns("/api/auth/register", "/api/auth/login", "/api/auth/forgot-password", "/api/auth/reset-password");
+    }
 }

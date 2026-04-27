@@ -65,40 +65,4 @@ public class PublicProfileController {
         return ResponseEntity.ok(out);
     }
 
-    @GetMapping("/badge")
-    @Transactional(readOnly = true)
-    public ResponseEntity<String> badge(
-            @RequestParam(required = false) UUID userId,
-            @RequestParam(required = false) String skill) {
-        if (userId == null || skill == null || skill.isEmpty()) {
-            return ResponseEntity.badRequest()
-                    .header(HttpHeaders.CONTENT_TYPE, "text/plain")
-                    .body("Missing userId or skill parameter");
-        }
-        var existing = candidateBadgeRepository.findByUser_IdAndSkillIgnoreCase(userId, skill);
-        int score = 0;
-        if (existing.isPresent() && existing.get().getScore() != null) {
-            score = existing.get().getScore();
-        } else {
-            Profile p = profileRepository.findByUser_Id(userId).orElse(null);
-            if (p != null && p.getSkillRealScoresJson() != null) {
-                try {
-                    JsonNode n = objectMapper.readTree(p.getSkillRealScoresJson());
-                    if (n.has(skill)) {
-                        score = n.get(skill).asInt();
-                    }
-                } catch (JsonProcessingException ignored) {
-                    score = 0;
-                }
-            }
-        }
-        if (score < 70) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.FORBIDDEN, "Badge not available for this skill");
-        }
-        String svg = badgeService.buildSvgBadge(skill, score, "VERIFIED");
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_TYPE, "image/svg+xml")
-                .body(svg);
-    }
 }

@@ -191,6 +191,7 @@
             <th>Tests</th>
             <th>Type de personnalité</th>
             <th>Statut</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -222,6 +223,9 @@
               <span class="status-dot" [class.active]="emp.active" [class.inactive]="!emp.active">
                 {{ emp.active ? 'Actif' : 'Inactif' }}
               </span>
+            </td>
+            <td>
+              <a [routerLink]="['/public/profile', emp.id]" target="_blank" class="btn-sm btn-ghost" style="text-decoration:none; padding:4px 8px; border-radius:4px; border:1px solid #cbd5e1;">Voir Profil</a>
             </td>
           </tr>
           }

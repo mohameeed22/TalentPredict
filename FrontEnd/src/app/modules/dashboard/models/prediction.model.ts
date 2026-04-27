@@ -7,6 +7,9 @@ export interface PredictionResponse {
   recommandationSoft?: string;
   recommandationTech?: string;
   scoreConfiance?: number;
+  scoreFinal?: number;
+  scoreSoftSkills?: number;
+  scoreTechSkills?: number;
   statut: PredictionStatus;
   formationsProposees?: Array<Record<string, unknown>>;
 }

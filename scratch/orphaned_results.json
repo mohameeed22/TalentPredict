@@ -1,0 +1,94 @@
+{
+  "orphaned_python": [
+    {
+      "method": "POST",
+      "path": "/fraud-check",
+      "file": "analysis_routes.py"
+    },
+    {
+      "method": "POST",
+      "path": "/analyze-candidate",
+      "file": "analyze_candidate_route.py"
+    },
+    {
+      "method": "POST",
+      "path": "/interview/generate",
+      "file": "career_routes.py"
+    },
+    {
+      "method": "POST",
+      "path": "/interview/evaluate",
+      "file": "career_routes.py"
+    },
+    {
+      "method": "POST",
+      "path": "/profile/improve",
+      "file": "career_routes.py"
+    },
+    {
+      "method": "POST",
+      "path": "/opportunities/discover",
+      "file": "career_routes.py"
+    },
+    {
+      "method": "POST",
+      "path": "/learning-plan",
+      "file": "career_routes.py"
+    },
+    {
+      "method": "POST",
+      "path": "/match",
+      "file": "jobs_routes.py"
+    },
+    {
+      "method": "POST",
+      "path": "/parse-cv",
+      "file": "parse_cv_route.py"
+    },
+    {
+      "method": "POST",
+      "path": "/interview-questions",
+      "file": "recruiter_routes.py"
+    },
+    {
+      "method": "POST",
+      "path": "/code-challenge/evaluate",
+      "file": "test_routes.py"
+    },
+    {
+      "method": "POST",
+      "path": "/github/analyze",
+      "file": "test_routes.py"
+    },
+    {
+      "method": "POST",
+      "path": "/scenario/generate",
+      "file": "test_routes.py"
+    },
+    {
+      "method": "POST",
+      "path": "/scenario/evaluate",
+      "file": "test_routes.py"
+    },
+    {
+      "method": "POST",
+      "path": "/fraud/check",
+      "file": "test_routes.py"
+    },
+    {
+      "method": "POST",
+      "path": "/interview/question",
+      "file": "test_routes.py"
+    },
+    {
+      "method": "POST",
+      "path": "/interview/evaluate-turn",
+      "file": "test_routes.py"
+    },
+    {
+      "method": "POST",
+      "path": "/interview/summary",
+      "file": "test_routes.py"
+    }
+  ]
+}

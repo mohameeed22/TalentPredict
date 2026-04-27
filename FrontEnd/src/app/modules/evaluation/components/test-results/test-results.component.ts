@@ -31,6 +31,8 @@ export class TestResultsComponent implements OnInit, OnDestroy {
   errorType: 'none' | 'no-data' | 'server' | 'timeout' = 'none';
   errorMessage = '';
   exportingPdf = false;
+  reevaluating = false;
+  skillProgress: any[] = [];
   private sub?: Subscription;
   private timeoutId?: any;
 
@@ -425,6 +427,27 @@ export class TestResultsComponent implements OnInit, OnDestroy {
   startEvaluation(): void {
     sessionStorage.removeItem('softSkillsResult');
     this.router.navigate(['/evaluation']);
+  }
+
+  /** POST /api/soft-skills/reevaluate — Request a fresh AI re-analysis of the last test */
+  reevaluate(): void {
+    const user = this.authService.getCurrentUser();
+    if (!user || this.reevaluating) return;
+    this.reevaluating = true;
+    // Minimal payload: backend re-uses the candidate's last stored data
+    this.softSkillsService.reevaluate({ userId: user.id } as any).subscribe({
+      next: (fresh: any) => {
+        sessionStorage.removeItem('softSkillsResult');
+        this.result = this.normalize(fresh);
+        this.reevaluating = false;
+        this.notify.success('Ré-évaluation terminée.');
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.reevaluating = false;
+        this.notify.error('Impossible de lancer la ré-évaluation. Réessayez plus tard.');
+      }
+    });
   }
 
   retakeTechSkills(): void {

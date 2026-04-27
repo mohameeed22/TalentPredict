@@ -24,13 +24,6 @@ public class PredictionController {
     
     private final PredictionService predictionService;
     
-    @PostMapping("/users/{userId}/generer")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<PredictionDto.Response> genererPrediction(@PathVariable UUID userId) {
-        PredictionDto.Response response = predictionService.genererPrediction(userId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-    
     @GetMapping("/users/{userId}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<List<PredictionDto.Response>> getPredictionsByAccount(@PathVariable UUID userId) {

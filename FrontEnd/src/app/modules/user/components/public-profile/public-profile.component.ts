@@ -4,10 +4,12 @@ import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
 
+import { RouterModule } from '@angular/router';
+
 @Component({
   selector: 'app-public-profile',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './public-profile.html',
   styleUrl: './public-profile.css'
 })

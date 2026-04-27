@@ -135,7 +135,7 @@
               </span>
             </td>
             <td style="padding: 12px;" (click)="$event.stopPropagation()">
-              <a *ngIf="r.publicSlug" [href]="'/p/' + r.publicSlug" target="_blank" class="public-link" style="color: #3b82f6; text-decoration: none; font-size: 13px;">👁️ Voir</a>
+              <a *ngIf="r.publicSlug" [routerLink]="['/public/profile', r.publicSlug]" target="_blank" class="public-link" style="color: #3b82f6; text-decoration: none; font-size: 13px;">👁️ Voir</a>
               <span *ngIf="!r.publicSlug" class="private-badge" style="color: #64748b; font-size: 13px;">🔒 Privé</span>
             </td>
             <td style="padding: 12px;">
@@ -240,7 +240,7 @@
           <div class="info-group">
             <label style="color: #64748b; font-size: 13px; font-weight: 500;">Profil public</label>
             <p style="margin: 5px 0 0; color: #0f172a;">
-              <a *ngIf="r.publicSlug" [href]="'/p/' + r.publicSlug" target="_blank" style="color: #3b82f6; text-decoration: none;">/p/{{ r.publicSlug }}</a>
+              <a *ngIf="r.publicSlug" [routerLink]="['/public/profile', r.publicSlug]" target="_blank" style="color: #3b82f6; text-decoration: none;">/public/profile/{{ r.publicSlug }}</a>
               <span *ngIf="!r.publicSlug" style="color: #94a3b8; font-style: italic;">Privé</span>
             </p>
           </div>
@@ -249,16 +249,16 @@
         <div class="profile-links mt-4">
           <h4 style="margin: 0 0 15px; color: #334155; font-size: 16px;">Liens</h4>
           <div class="link-buttons" style="display: flex; gap: 10px;">
-            <button class="btn btn-outline">🔗 LinkedIn</button>
-            <button class="btn btn-outline">🐙 GitHub ({{ getGithubUsername(r) || 'N/A' }})</button>
-            <button class="btn btn-outline">📄 Télécharger CV</button>
+            <button class="btn btn-outline" disabled style="opacity: 0.5; cursor: not-allowed;">🔗 LinkedIn</button>
+            <button class="btn btn-outline" disabled style="opacity: 0.5; cursor: not-allowed;">🐙 GitHub ({{ getGithubUsername(r) || 'N/A' }})</button>
+            <button class="btn btn-outline" disabled style="opacity: 0.5; cursor: not-allowed;">📄 Télécharger CV</button>
           </div>
         </div>
 
         <div class="admin-note mt-4" style="margin-top: 30px;">
           <h4 style="margin: 0 0 15px; color: #334155; font-size: 16px;">Note Administrateur (Privée)</h4>
           <textarea class="form-input" rows="4" placeholder="Ajouter une note sur ce candidat..." style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1;"></textarea>
-          <button class="btn btn-primary btn-sm mt-2" style="margin-top: 10px;">Enregistrer la note</button>
+          <button class="btn btn-primary btn-sm mt-2" style="margin-top: 10px;" (click)="saveNote()">Enregistrer la note</button>
         </div>
       </div>
 
@@ -320,9 +320,9 @@
         </ul>
         
         <div class="quick-actions mt-4" style="display: flex; gap: 10px; margin-top: 30px;">
-          <button class="btn btn-secondary" style="flex: 1; border-color: #22c55e; color: #166534; background: #f0fdf4;">✅ Valider le profil</button>
-          <button class="btn btn-secondary" style="flex: 1; border-color: #f59e0b; color: #92400e; background: #fffbeb;">⚠️ Marquer à surveiller</button>
-          <button class="btn btn-secondary" style="flex: 1; border-color: #ef4444; color: #991b1b; background: #fef2f2;">❌ Rejeter le dossier</button>
+          <button class="btn btn-secondary" style="flex: 1; border-color: #22c55e; color: #166534; background: #f0fdf4;" (click)="reviewFraud('FALSE_POSITIVE')">✅ Valider le profil</button>
+          <button class="btn btn-secondary" style="flex: 1; border-color: #f59e0b; color: #92400e; background: #fffbeb;" (click)="reviewFraud('MONITORING')">⚠️ Marquer à surveiller</button>
+          <button class="btn btn-secondary" style="flex: 1; border-color: #ef4444; color: #991b1b; background: #fef2f2;" (click)="reviewFraud('CONFIRMED_FRAUD')">❌ Rejeter le dossier</button>
         </div>
       </div>
 
@@ -341,7 +341,7 @@
         <h4 class="mt-4" style="margin-bottom: 15px;">Résultats des Tests</h4>
         <div class="empty-box" style="padding: 20px; text-align: center; background: #f8fafc; border-radius: 8px; color: #64748b;">Aucun détail de test disponible pour ce candidat.</div>
         
-        <button class="btn btn-primary" style="width: 100%; margin-top: 20px; padding: 10px;">Inviter à passer un test</button>
+        <button class="btn btn-primary" style="width: 100%; margin-top: 20px; padding: 10px;" (click)="inviteTest()">Inviter à passer un test</button>
       </div>
 
       <!-- Tab 5: Pipeline -->
@@ -362,7 +362,7 @@
         <div class="mt-4" style="margin-top: 30px;">
           <label class="form-label" style="display: block; font-weight: 500; margin-bottom: 8px;">Lier à un ticket Jira</label>
           <input type="text" class="form-input" placeholder="Ex: HR-1234" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1;">
-          <button class="btn btn-secondary mt-2" style="margin-top: 10px;">Associer</button>
+          <button class="btn btn-secondary mt-2" style="margin-top: 10px;" (click)="linkJira()">Associer</button>
         </div>
       </div>
     </div>

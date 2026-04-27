@@ -160,4 +160,18 @@ export class RecruiterApiService {
   interviewQuestions(body: InterviewQuestionsRequest): Observable<string[] | Record<string, unknown>> {
     return this.http.post<string[] | Record<string, unknown>>(`${this.base}/interview-questions`, body);
   }
+
+  /** GET /api/candidates/{userId}/progress — Fetch a candidate's full assessment progress */
+  getCandidateProgress(userId: string): Observable<Record<string, unknown>> {
+    return this.http.get<Record<string, unknown>>(`${environment.apiUrl}/candidates/${userId}/progress`);
+  }
+
+  /** POST /api/candidates/{userId}/generate-report — Generate a full AI assessment report (PDF/JSON) */
+  generateCandidateReport(userId: string, body: { format?: 'pdf' | 'json' } = {}): Observable<Blob> {
+    return this.http.post(
+      `${environment.apiUrl}/candidates/${userId}/generate-report`,
+      body,
+      { responseType: 'blob' }
+    );
+  }
 }

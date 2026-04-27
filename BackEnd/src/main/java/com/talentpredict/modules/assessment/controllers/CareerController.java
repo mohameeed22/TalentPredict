@@ -68,18 +68,6 @@ public class CareerController {
         return ResponseEntity.ok(aiProxyService.postJson("/api/career/interview/evaluate", objectToMap(body)));
     }
 
-    @PostMapping("/profile/improve")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<JsonNode> improveProfile(@RequestBody(required = false) JsonNode body) {
-        return ResponseEntity.ok(aiProxyService.postJson("/api/career/profile/improve", objectToMap(body)));
-    }
-
-    @PostMapping("/opportunities/discover")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<JsonNode> discoverOpportunities(@RequestBody(required = false) JsonNode body) {
-        return ResponseEntity.ok(aiProxyService.postJson("/api/career/opportunities/discover", objectToMap(body)));
-    }
-
     @PostMapping("/learning-plan")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<JsonNode> generateLearningPlan(

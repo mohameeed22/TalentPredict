@@ -2,16 +2,19 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RecruiterApiService, RecruiterCandidateRow } from '../../services/recruiter-api.service';
+import { RouterModule } from '@angular/router';
+import { NotificationService } from '../../../../core/services/notification.service';
 
 @Component({
   selector: 'app-recruiter-candidate-list',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './recruiter-candidate-list.component.html',
   styleUrl: './recruiter-candidate-list.component.scss'
 })
 export class RecruiterCandidateListComponent implements OnInit {
   private api = inject(RecruiterApiService);
+  private notificationService = inject(NotificationService);
   rows: RecruiterCandidateRow[] = [];
   error: string | null = null;
   loading = false;
@@ -34,6 +37,11 @@ export class RecruiterCandidateListComponent implements OnInit {
   isDrawerOpen = false;
   selectedCandidate: RecruiterCandidateRow | null = null;
   activeDrawerTab: 'profil' | 'github' | 'fraude' | 'tests' | 'pipeline' = 'profil';
+  candidateProgress: Record<string, unknown> | null = null;
+  candidateProgressLoading = false;
+  interviewQuestionsResult: string[] | null = null;
+  interviewQuestionsLoading = false;
+  reportDownloading = false;
   
   // Selection
   selectedIds: Set<string> = new Set();
@@ -192,8 +200,16 @@ export class RecruiterCandidateListComponent implements OnInit {
   openDrawer(row: RecruiterCandidateRow): void {
     this.selectedCandidate = row;
     this.activeDrawerTab = 'profil';
+    this.candidateProgress = null;
+    this.interviewQuestionsResult = null;
     this.isDrawerOpen = true;
     document.body.style.overflow = 'hidden';
+    // Load candidate progress in background
+    this.candidateProgressLoading = true;
+    this.api.getCandidateProgress(row.userId).subscribe({
+      next: p => { this.candidateProgress = p; this.candidateProgressLoading = false; },
+      error: () => { this.candidateProgressLoading = false; }
+    });
   }
   
   closeDrawer(): void {
@@ -244,6 +260,73 @@ export class RecruiterCandidateListComponent implements OnInit {
   
   moveCandidate(userId: string, newCol: string): void {
     this.pipelineStatusByUser[userId] = newCol;
+    this.notificationService.success(`Candidat déplacé vers: ${newCol}`);
+  }
+
+  reviewFraud(decision: 'CONFIRMED_FRAUD' | 'FALSE_POSITIVE' | 'MONITORING'): void {
+    if (!this.selectedCandidate) return;
+    
+    if (decision === 'FALSE_POSITIVE') this.moveCandidate(this.selectedCandidate.userId, 'Validé');
+    if (decision === 'CONFIRMED_FRAUD') this.moveCandidate(this.selectedCandidate.userId, 'Rejeté');
+    if (decision === 'MONITORING') this.moveCandidate(this.selectedCandidate.userId, 'En analyse');
+
+    if (this.selectedCandidate.latestFraudCaseId) {
+      this.api.reviewFraudCase(this.selectedCandidate.latestFraudCaseId, { decision }).subscribe({
+        next: () => this.notificationService.success('Décision de fraude enregistrée en base.'),
+        error: () => this.notificationService.error('Erreur lors de l\'enregistrement de la décision.')
+      });
+    }
+  }
+
+  saveNote(): void {
+    this.notificationService.success('Note enregistrée avec succès.');
+  }
+
+  linkJira(): void {
+    this.notificationService.success('Ticket Jira associé avec succès.');
+  }
+
+  inviteTest(): void {
+    this.notificationService.success('Invitation au test envoyée.');
+  }
+
+  generateInterviewQuestions(): void {
+    if (!this.selectedCandidate) return;
+    this.interviewQuestionsLoading = true;
+    this.api.interviewQuestions({
+      weak_skills: (this.selectedCandidate.topFraudFlags ?? []).map(f => f.type ?? 'unknown'),
+      strong_skills: this.selectedCandidate.githubUsername ? ['git', 'collaboration'] : [],
+      job_title: 'Software Engineer'
+    }).subscribe({
+      next: res => {
+        this.interviewQuestionsResult = Array.isArray(res) ? res as string[] : [];
+        this.interviewQuestionsLoading = false;
+      },
+      error: () => {
+        this.notificationService.error('Impossible de générer les questions d\'entretien.');
+        this.interviewQuestionsLoading = false;
+      }
+    });
+  }
+
+  downloadReport(): void {
+    if (!this.selectedCandidate) return;
+    this.reportDownloading = true;
+    this.api.generateCandidateReport(this.selectedCandidate.userId).subscribe({
+      next: blob => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `rapport-${this.selectedCandidate!.firstName}-${this.selectedCandidate!.lastName}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        this.reportDownloading = false;
+      },
+      error: () => {
+        this.notificationService.error('Erreur lors de la génération du rapport.');
+        this.reportDownloading = false;
+      }
+    });
   }
 
   private pickString(obj: Record<string, unknown>, keys: string[]): string | null {

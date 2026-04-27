@@ -368,6 +368,7 @@ class InterviewSummaryRequest(BaseModel):
     level: str = "mid"
     history: list[dict]
     language: str = "fr"
+    fraud_context: dict[str, Any] | None = None
 
 
 @router.post("/interview/question")
@@ -407,4 +408,57 @@ async def get_interview_summary(body: InterviewSummaryRequest):
         history=body.history,
         language=body.language,
     )
+
+    # ── Fraud detection pipeline (same as scenario evaluate) ───────────
+    fc = body.fraud_context or {}
+    biometrics = fc.get("biometrics")
+    signals = collect_signals(
+        cv_text=fc.get("cv_text"),
+        cv_claimed_years_by_skill=fc.get("cv_claimed_years_by_skill"),
+        github_first_year_by_skill=fc.get("github_first_year_by_skill"),
+        candidate_skills=list(fc.get("candidate_skills") or []),
+        repos_languages=list(fc.get("repos_languages") or []),
+        test_answers=None,
+        code_submission=None,
+        github_activity_years=fc.get("github_activity_years"),
+        biometrics=biometrics,
+    )
+
+    # Voice interview specific: suspiciously fast session for an interview
+    if biometrics and isinstance(biometrics, dict):
+        session_dur = int(biometrics.get("sessionDurationSeconds", 0) or 0)
+        if 0 < session_dur < 30:
+            signals.append(
+                {
+                    "type": "interview_session_too_fast",
+                    "description": f"Full interview completed in only {session_dur}s — highly suspicious.",
+                    "severity": "high",
+                }
+            )
+
+    # Check if history answers are too short on average
+    if body.history:
+        total_len = sum(len(str(turn.get("answer", ""))) for turn in body.history if "answer" in turn)
+        avg_len = total_len / max(1, len(body.history))
+        if avg_len < 20:
+            signals.append(
+                {
+                    "type": "interview_responses_too_short",
+                    "description": f"Average response length is only {avg_len:.1f} characters — likely avoiding the questions.",
+                    "severity": "medium",
+                }
+            )
+
+    try:
+        verdict = await asyncio.wait_for(
+            ollama_fraud_verdict(signals),
+            timeout=FRAUD_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Interview fraud verdict timed out, using heuristic fallback")
+        verdict = _fraud_fallback(signals)
+
+    summary["fraud_flags"] = verdict.get("flags", signals)
+    summary["_fraud_verdict"] = verdict
+
     return summary

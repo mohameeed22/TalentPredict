@@ -107,6 +107,72 @@ def collect_signals(
             }
         )
 
+    if biometrics:
+        # Behavioral biometrics
+        tab_switches = int(biometrics.get("tabSwitchCount", 0))
+        if tab_switches > 0:
+            signals.append({
+                "type": "tab_switches",
+                "description": f"Candidat a changé d'onglet {tab_switches} fois pendant le test.",
+                "severity": "high" if tab_switches >= 3 else "medium"
+            })
+            
+        mouse_left = int(biometrics.get("mouseLeftCount", 0))
+        if mouse_left >= 3:
+            signals.append({
+                "type": "mouse_left_window",
+                "description": f"La souris a quitté la fenêtre {mouse_left} fois.",
+                "severity": "medium"
+            })
+            
+        if biometrics.get("suspiciousLargePaste"):
+            signals.append({
+                "type": "suspicious_paste",
+                "description": "Un grand bloc de texte a été collé de manière suspecte.",
+                "severity": "high"
+            })
+            
+        if biometrics.get("keystrokeBotPattern"):
+            signals.append({
+                "type": "keystroke_bot_pattern",
+                "description": "La dynamique de frappe indique un comportement automatisé (bot).",
+                "severity": "high"
+            })
+
+        # Proctoring biometrics
+        proctoring = biometrics.get("proctoring", {})
+        if proctoring:
+            if proctoring.get("cameraDenied"):
+                signals.append({
+                    "type": "camera_disabled",
+                    "description": "La caméra a été désactivée ou l'accès a été refusé pendant le test.",
+                    "severity": "high"
+                })
+                
+            no_face = int(proctoring.get("noFaceEventCount", 0))
+            if no_face > 0:
+                signals.append({
+                    "type": "no_face_detected",
+                    "description": f"Aucun visage détecté par la caméra à {no_face} reprises (absence potentielle).",
+                    "severity": "high" if no_face >= 3 else "medium"
+                })
+                
+            multiple_faces = int(proctoring.get("multipleFacesCount", 0))
+            if multiple_faces > 0:
+                signals.append({
+                    "type": "multiple_faces_detected",
+                    "description": f"Plusieurs visages détectés dans le champ de la caméra ({multiple_faces} fois).",
+                    "severity": "high"
+                })
+                
+            voice = int(proctoring.get("voiceActivityCount", 0))
+            if voice > 0:
+                signals.append({
+                    "type": "voice_activity_detected",
+                    "description": f"Activité vocale détectée {voice} fois pendant l'évaluation (aide possible).",
+                    "severity": "medium"
+                })
+
     return signals
 
 

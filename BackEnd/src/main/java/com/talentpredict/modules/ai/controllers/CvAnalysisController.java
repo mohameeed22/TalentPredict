@@ -27,13 +27,4 @@ public class CvAnalysisController {
         return ResponseEntity.ok(cvAnalysisService.analyserCvFile(file));
     }
 
-    @PostMapping("/analyze/url")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<List<SkillDto.CreateRequest>> analyzeCvUrl(@RequestBody Map<String, String> body) {
-        String url = body.get("url");
-        if (url == null || url.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
-        return ResponseEntity.ok(cvAnalysisService.analyserCvUrl(url));
-    }
 }

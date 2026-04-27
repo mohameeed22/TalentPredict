@@ -3,12 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../services/admin.service';
 import { NotificationService } from '../../../../core/services/notification.service';
-import { User, Role } from '../../../auth/models/user.model';
+import { User, Role, UserRequest } from '../../../auth/models/user.model';
+import { UserDto } from '../../models/user-dto.model'; // I'll need to create this or import it
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './user-management.component.html',
   styleUrl: './user-management.component.scss'
 })
@@ -40,6 +42,22 @@ export class UserManagementComponent implements OnInit {
 
   // Bulk selection
   selectedUserIds = signal<Set<string>>(new Set());
+
+  // Create/Edit Modal state
+  showUserModal = signal(false);
+  isEditing = signal(false);
+  userForm = signal<UserDto.CreateRequest>({
+    username: '',
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    department: '',
+    position: '',
+    role: Role.USER,
+    isActive: true
+  });
+  submitting = signal(false);
 
   // Stats computed from users list
   stats = computed(() => {
@@ -208,6 +226,97 @@ export class UserManagementComponent implements OnInit {
   cancelRoleChange(): void {
     this.pendingRoleChange.set(null);
     this.showRoleConfirm.set(false);
+  }
+
+  // Create / Edit Methods
+  openAddModal(): void {
+    this.isEditing.set(false);
+    this.userForm.set({
+      username: '',
+      email: '',
+      password: '',
+      firstName: '',
+      lastName: '',
+      department: '',
+      position: '',
+      role: Role.USER,
+      isActive: true
+    });
+    this.showUserModal.set(true);
+  }
+
+  openEditModal(user: User, event?: Event): void {
+    if (event) event.stopPropagation();
+    this.isEditing.set(true);
+    this.selectedUserForDelete.set(user); // Reuse for editing
+    this.userForm.set({
+      username: user.username || '',
+      email: user.email || '',
+      password: '', // Leave empty for edit
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      department: user.department || '',
+      position: user.position || '',
+      role: user.role || 'USER',
+      isActive: user.isActive ?? true
+    });
+    this.showUserModal.set(true);
+  }
+
+  closeUserModal(): void {
+    this.showUserModal.set(false);
+  }
+
+  saveUser(): void {
+    const form = this.userForm();
+    if (!form.email || !form.firstName || !form.lastName) {
+      this.notificationService.error('Veuillez remplir tous les champs obligatoires.');
+      return;
+    }
+
+    this.submitting.set(true);
+    if (this.isEditing()) {
+      const userId = this.selectedUserForDelete()?.id;
+      if (!userId) return;
+      
+      // Don't send empty password on update
+      const updateData = { ...form };
+      if (!updateData.password) delete updateData.password;
+
+      this.adminService.updateUser(userId, updateData).subscribe({
+        next: (updatedUser) => {
+          this.users.update(all => all.map(u => u.id === userId ? { ...u, ...updatedUser } : u));
+          this.notificationService.success('Utilisateur mis à jour.');
+          this.closeUserModal();
+          this.submitting.set(false);
+        },
+        error: (err) => {
+          this.notificationService.error('Erreur lors de la mise à jour.');
+          this.submitting.set(false);
+        }
+      });
+    } else {
+      if (!form.password) {
+        this.notificationService.error('Le mot de passe est requis pour un nouvel utilisateur.');
+        this.submitting.set(false);
+        return;
+      }
+      if (!form.username) {
+        form.username = form.email.split('@')[0] + Math.floor(Math.random() * 1000);
+      }
+      this.adminService.createUser(form as UserRequest).subscribe({
+        next: (newUser) => {
+          this.users.update(all => [newUser, ...all]);
+          this.notificationService.success('Utilisateur créé avec succès.');
+          this.closeUserModal();
+          this.submitting.set(false);
+        },
+        error: (err) => {
+          this.notificationService.error('Erreur lors de la création.');
+          this.submitting.set(false);
+        }
+      });
+    }
   }
 
   // Delete Management

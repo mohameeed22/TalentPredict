@@ -11,6 +11,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import java.util.List;
 import java.util.UUID;
@@ -23,6 +25,9 @@ public class UserServiceImpl implements IUserService {
 
     private final UserRepository userRepository;
     private final IPoliciesService policiesService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
 
     @Override
@@ -62,14 +67,49 @@ public class UserServiceImpl implements IUserService {
         User userToDelete = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + targetUserId));
 
-        // Manual cleanup for FraudCase where the user might be a trigger or reviewer
-        // (Since we don't want to delete the fraud case, just un-link the user)
-        // Note: These fields are optional in FraudCase
-        // We'll use a native query or direct repository call if available, 
-        // but for now, we'll rely on the repository's save if we had it.
-        // Actually, since this is a USER role usually, it's unlikely, 
-        // but let's ensure we handle the delete fully.
+        // Manual cleanup for dependencies
+        entityManager.createQuery("DELETE FROM CandidateBadge cb WHERE cb.user.id = :userId")
+                .setParameter("userId", targetUserId).executeUpdate();
         
+        entityManager.createQuery("DELETE FROM CandidateTestResult ctr WHERE ctr.user.id = :userId")
+                .setParameter("userId", targetUserId).executeUpdate();
+
+        entityManager.createQuery("DELETE FROM JobMatch jm WHERE jm.user.id = :userId")
+                .setParameter("userId", targetUserId).executeUpdate();
+
+        entityManager.createQuery("DELETE FROM UserNotification un WHERE un.user.id = :userId")
+                .setParameter("userId", targetUserId).executeUpdate();
+
+        entityManager.createQuery("DELETE FROM EmailVerificationToken evt WHERE evt.user.id = :userId")
+                .setParameter("userId", targetUserId).executeUpdate();
+
+        entityManager.createQuery("DELETE FROM PasswordResetToken prt WHERE prt.user.id = :userId")
+                .setParameter("userId", targetUserId).executeUpdate();
+
+        entityManager.createQuery("DELETE FROM AuditLog al WHERE al.user.id = :userId")
+                .setParameter("userId", targetUserId).executeUpdate();
+
+        entityManager.createQuery("DELETE FROM TwoFactorCode tfc WHERE tfc.user.id = :userId")
+                .setParameter("userId", targetUserId).executeUpdate();
+
+        entityManager.createQuery("DELETE FROM UserPrivacySetting ups WHERE ups.userId = :userId")
+                .setParameter("userId", targetUserId).executeUpdate();
+        
+        // Profiles usually have a one-to-one with user
+        entityManager.createQuery("DELETE FROM Profile p WHERE p.user.id = :userId")
+                .setParameter("userId", targetUserId).executeUpdate();
+
+        // Manual cleanup for FraudCase where the user might be a trigger or reviewer
+        entityManager.createQuery("UPDATE FraudCase fc SET fc.triggeredByUser = null WHERE fc.triggeredByUser.id = :userId")
+                .setParameter("userId", targetUserId).executeUpdate();
+                
+        entityManager.createQuery("UPDATE FraudCase fc SET fc.reviewedByUser = null WHERE fc.reviewedByUser.id = :userId")
+                .setParameter("userId", targetUserId).executeUpdate();
+        
+        // Candidate cases in fraud
+        entityManager.createQuery("DELETE FROM FraudCase fc WHERE fc.candidate.id = :userId")
+                .setParameter("userId", targetUserId).executeUpdate();
+
         userRepository.delete(userToDelete);
     }
 

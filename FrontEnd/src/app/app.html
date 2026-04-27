@@ -112,23 +112,37 @@
         </a>
       </div>
 
-      <div class="nav-section">
-        <span class="nav-section-title">RECOMMANDATIONS</span>
+      } <!-- end @if (!isAdmin()) -->
 
-        <a routerLink="/formations" routerLinkActive="active" class="nav-item">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" />
-            <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" />
-          </svg>
-          <span class="nav-label">Mes Formations</span>
-        </a>
-      </div>
+      <!-- RECOMMANDATIONS — visible to employees only -->
+      @if (!isAdmin()) {
+        <div class="nav-section">
+          <span class="nav-section-title">RECOMMANDATIONS</span>
+  
+          <a routerLink="/formations" routerLinkActive="active" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" />
+              <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" />
+            </svg>
+            <span class="nav-label">Mes Formations</span>
+          </a>
+        </div>
       }
 
       <!-- ADMIN / HR menu — includes Jira + Mon Profil -->
       @if (isAdmin()) {
       <div class="nav-section">
         <span class="nav-section-title">RH / ADMINISTRATION</span>
+
+        <a routerLink="/admin/users" routerLinkActive="active" class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 00-3-3.87" />
+            <path d="M16 3.13a4 4 0 010 7.75" />
+          </svg>
+          <span class="nav-label">Gestion Employés</span>
+        </a>
 
         <a routerLink="/admin/dashboard" routerLinkActive="active" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -148,31 +162,21 @@
           <span class="nav-label">Campaign Manager</span>
         </a>
 
-        <!-- TASK 2: Admin "Mon Profil" link -->
-        <a routerLink="/admin/profile" routerLinkActive="active" class="nav-item">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-          <span class="nav-label">Mon Profil</span>
-        </a>
-
-        <a routerLink="/admin/users" routerLinkActive="active" class="nav-item">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 00-3-3.87" />
-            <path d="M16 3.13a4 4 0 010 7.75" />
-          </svg>
-          <span class="nav-label">Gestion Employés</span>
-        </a>
-
         <a routerLink="/admin/formations" routerLinkActive="active" class="nav-item">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
           </svg>
           <span class="nav-label">Gestion Formations</span>
+        </a>
+
+        <!-- Admin "Mon Profil" link -->
+        <a routerLink="/admin/profile" routerLinkActive="active" class="nav-item">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <span class="nav-label">Mon Profil Admin</span>
         </a>
       </div>
 

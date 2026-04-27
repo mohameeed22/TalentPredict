@@ -331,10 +331,19 @@
       </div>
     </div>
 
+
     <!-- Actions -->
     <div class="actions-row" style="flex-wrap: wrap; justify-content: center; gap: 1rem; margin-top: 2rem; padding-bottom: 3rem;">
       <button class="btn-primary" (click)="startScenarioSimulator()" style="background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%); border: none; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4); padding: 0.8rem 1.5rem; font-weight: 600;">
         🎙️ Simulateur de Scénario IA
+      </button>
+      <button
+        id="btn-reevaluate"
+        class="btn-primary"
+        (click)="reevaluate()"
+        [disabled]="reevaluating"
+        style="background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%); border: none; box-shadow: 0 4px 15px rgba(14,165,233,0.35); padding: 0.8rem 1.5rem; font-weight: 600;">
+        {{ reevaluating ? '⏳ Ré-évaluation...' : '🔁 Ré-évaluer mon profil' }}
       </button>
       <button class="btn-secondary" (click)="startEvaluation()" style="padding: 0.8rem 1.5rem;">
         🔄 Nouvelle évaluation

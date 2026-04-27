@@ -263,7 +263,49 @@
       </div>
     </div>
 
-    <!-- ROW 7: BADGES & FEED -->
+    <!-- ROW 7: AI PREDICTION CARD -->
+    <div class="card prediction-card">
+      <div class="card-header flex-between">
+        <h2>🤖 Prédiction IA</h2>
+        <button
+          id="btn-generate-prediction"
+          class="btn-sm btn-outline"
+          (click)="generatePrediction()"
+          [disabled]="generatingPrediction">
+          {{ generatingPrediction ? 'Génération...' : '⚡ Générer' }}
+        </button>
+      </div>
+
+      @if (latestPrediction) {
+        <div class="prediction-body">
+          <div class="prediction-scores">
+            <div class="pred-score-item">
+              <span class="pred-val">{{ formatPercent(latestPrediction.scoreFinal) }}%</span>
+              <span class="pred-label">Score Final</span>
+            </div>
+            <div class="pred-score-item">
+              <span class="pred-val">{{ formatPercent(latestPrediction.scoreSoftSkills) }}%</span>
+              <span class="pred-label">Soft Skills</span>
+            </div>
+            <div class="pred-score-item">
+              <span class="pred-val">{{ formatPercent(latestPrediction.scoreTechSkills) }}%</span>
+              <span class="pred-label">Tech Skills</span>
+            </div>
+          </div>
+          @if (latestPrediction.recommandationSoft) {
+            <p class="pred-reco">💬 <strong>Soft :</strong> {{ latestPrediction.recommandationSoft }}</p>
+          }
+          @if (latestPrediction.recommandationTech) {
+            <p class="pred-reco">🛠 <strong>Tech :</strong> {{ latestPrediction.recommandationTech }}</p>
+          }
+          <small class="pred-date">Générée le {{ latestPrediction.datePrediction | date:'dd MMM yyyy' }}</small>
+        </div>
+      } @else {
+        <p class="empty-text">Aucune prédiction IA disponible. Cliquez sur « Générer » pour lancer une analyse.</p>
+      }
+    </div>
+
+    <!-- ROW 8: BADGES & FEED -->
     <div class="grid-2col">
       <div class="card badges-card">
         <div class="card-header">

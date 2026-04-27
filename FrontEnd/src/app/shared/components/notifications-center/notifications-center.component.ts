@@ -543,7 +543,17 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     });
 
     this.syncFromServer();
-    this.pollIntervalId = setInterval(() => this.syncFromServer(), 20000);
+    // Efficient unread badge poll (lightweight endpoint, no payload)
+    this.pollIntervalId = setInterval(() => {
+      this.notificationApi.getUnreadCount().subscribe({
+        next: res => {
+          if (res.unreadCount !== this.unreadCount) {
+            // Count changed — do a full sync to get new items
+            this.syncFromServer();
+          }
+        }
+      });
+    }, 20000);
   }
 
   toggle(): void {
