@@ -5,7 +5,8 @@ import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { SoftSkillsService } from '../../services/soft-skills.service';
-import { PieChartComponent, PieChartSlice } from '../../../../shared/components/pie-chart/pie-chart.component';
+import type { PieChartSlice } from '../../../../shared/components/pie-chart/pie-chart.component';
+import { RadarChartComponent, RadarSlice } from '../radar-chart/radar-chart.component';
 import { AuthService } from '../../../auth/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 
@@ -14,7 +15,7 @@ import { TestApiService } from '../../../skill-test/services/test-api.service';
 @Component({
   selector: 'app-test-results',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, PieChartComponent],
+  imports: [CommonModule, RouterModule, FormsModule, RadarChartComponent],
   templateUrl: './test-results.component.html',
   styleUrls: ['./test-results.component.scss']
 })
@@ -39,14 +40,15 @@ export class TestResultsComponent implements OnInit, OnDestroy {
   readonly skillIcons: Record<string, string> = {
     communication: '💬', discipline: '⏰', curiosity: '🔍',
     collaboration: '🤝', ownership: '🎯', leadership: '👑',
-    adaptability: '🌱', problem_solving: '🧩'
+    adaptability: '🌱', problem_solving: '🧩', linkedin: '💼'
   };
 
   readonly skillLabels: Record<string, string> = {
     communication: 'Communication', discipline: 'Discipline',
     curiosity: 'Curiosité',        collaboration: 'Collaboration',
     ownership: 'Ownership',        leadership: 'Leadership',
-    adaptability: 'Adaptabilité',  problem_solving: 'Résolution de problèmes'
+    adaptability: 'Adaptabilité',  problem_solving: 'Résolution de problèmes',
+    linkedin: 'LinkedIn'
   };
 
   // Advanced AI Features state
@@ -385,8 +387,67 @@ export class TestResultsComponent implements OnInit, OnDestroy {
     return Object.keys(this.result?.mergedSoftSkills || {}).length;
   }
 
-  exportResultPdf(): void {
-    this.notify.warning("L'exportation PDF est momentanément indisponible.");
+  today = new Date();
+
+  async exportResultPdf(): Promise<void> {
+    if (this.exportingPdf || !this.result) return;
+    
+    this.exportingPdf = true;
+    this.cdr.detectChanges();
+
+    const element = document.getElementById('report-content');
+    if (!element) {
+      this.notify.error("Impossible de trouver le contenu du rapport.");
+      this.exportingPdf = false;
+      return;
+    }
+
+    try {
+      // Import dynamically to avoid bundle bloat if not used
+      const { default: jsPDF } = await import('jspdf');
+      const { default: html2canvas } = await import('html2canvas');
+
+      const canvas = await html2canvas(element, {
+        scale: 2, // High quality
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#f8fafc',
+        ignoreElements: (el) => el.id === 'ignore-pdf-actions'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      // Handle multiple pages if height exceeds A4
+      let heightLeft = pdfHeight;
+      let position = 0;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+      }
+
+      const fileName = `Rapport_SoftSkills_${this.result.userName.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`;
+      pdf.save(fileName);
+      
+      this.notify.success("Rapport PDF exporté avec succès.");
+    } catch (error) {
+      console.error('[TestResults] Export PDF Error:', error);
+      this.notify.error("Erreur lors de la génération du PDF.");
+    } finally {
+      this.exportingPdf = false;
+      this.cdr.detectChanges();
+    }
   }
 
   getActivePersonalityKey(): string {
@@ -476,12 +537,15 @@ export class TestResultsComponent implements OnInit, OnDestroy {
     const cv = Number(result?.sourceData?.cv?.overall_score ?? 0);
     const github = Number(result?.sourceData?.github?.overall_score ?? 0);
     const pcm = Number(result?.sourceData?.pcm?.overall_score ?? 0);
-    const sourceZero = cv <= 0 && github <= 0 && pcm <= 0;
+    const linkedin = Number(result?.sourceData?.linkedin?.overall_score ?? 0);
+    
+    // If we have ANY source score > 0, the analysis is valid enough to show.
+    const hasAnySource = cv > 0 || github > 0 || pcm > 0 || linkedin > 0;
 
     const summaryBlank = !String(result.summary || '').trim();
-    const strengthsEmpty = !Array.isArray(result.top3Strengths) || result.top3Strengths.length === 0;
-
-    return overallZero && mergedZero && sourceZero && summaryBlank && strengthsEmpty;
+    
+    // It's invalid ONLY if everything is zero AND there's no text analysis.
+    return overallZero && mergedZero && !hasAnySource && summaryBlank;
   }
 
   // ── ADVANCED AI FEATURES ─────────────────────────────────────────
@@ -528,5 +592,69 @@ export class TestResultsComponent implements OnInit, OnDestroy {
   private toNumber(value: unknown): number {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
+  }
+  getDataIntegrity(): number {
+    if (!this.result?.sourceData) return 25;
+    const sources = Object.keys(this.result.sourceData).length;
+    return Math.min(100, 40 + (sources - 1) * 20);
+  }
+
+  getRadarAxes(): RadarSlice[] {
+    const entries = this.getSkillEntries();
+    return entries.map(entry => ({
+      label: this.getSkillLabel(entry[0]),
+      value: entry[1]
+    }));
+  }
+
+  getActiveSources(): string[] {
+    return Object.keys(this.result?.sourceData || {});
+  }
+
+  getSourceLabel(key: string): string {
+    const labels: Record<string, string> = {
+      pcm: 'Auto-évaluation PCM',
+      cv: 'Analyse Sémantique CV',
+      github: 'Activité GitHub & Open Source',
+      linkedin: 'Parcours Professionnel LinkedIn'
+    };
+    return labels[key] || key;
+  }
+
+  getSourceDetails(key: string): string {
+    return this.result?.sourceData?.[key]?.details || "Analyse transversale effectuée.";
+  }
+  getScenarioScores(): { label: string, value: number }[] {
+    const s = this.result?.scenarioEvaluation?.scores;
+    if (!s) return [];
+    return [
+      { label: 'Empathie', value: s.empathy },
+      { label: 'Assertivité', value: s.assertiveness },
+      { label: 'Pragmatisme', value: s.pragmatism },
+      { label: 'Clarté', value: s.communication_clarity }
+    ];
+  }
+
+  getSourceIcon(key: string): string {
+    const icons: Record<string, string> = {
+      pcm: '🧠',
+      cv: '📄',
+      github: '🐙',
+      linkedin: '💼'
+    };
+    return icons[key] || '🔗';
+  }
+
+  getPersonalityEmoji(type: string): string {
+    const types: Record<string, string> = {
+      'Empathique': '❤️',
+      'Travaillomane': '🎯',
+      'Persévérant': '🛡️',
+      'Promoteur': '⚡',
+      'Rebelle': '🎨',
+      'Rêveur': '🌙',
+      'Imagineur': '🌙'
+    };
+    return types[type] || '👤';
   }
 }

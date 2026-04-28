@@ -1,8 +1,11 @@
 """AI Voice Interview Service — async httpx-based (uses shared ollama_client).
 
-Replaces the old `import ollama` (Python package) approach with the project's
-shared httpx-based `call_ollama_json` so it works consistently with the rest
-of the talentpredict-ai service.
+Improvements over v1:
+- Full conversation context: the entire history is fed to the LLM, not just 4 turns
+- Dynamic focus pivoting: automatically probes the weakest scoring dimension
+- Role-specific question context injected into the prompt
+- Smarter follow-up injection: when next_action='follow_up', the cue is ready to be
+  displayed/spoken by the frontend without fetching a new question
 """
 
 from __future__ import annotations
@@ -16,18 +19,70 @@ logger = logging.getLogger(__name__)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Internal helpers
+# Role-specific context bank (RAG-lite)
 # ──────────────────────────────────────────────────────────────────────────────
 
-def _build_history_summary(history: list[dict]) -> str:
+ROLE_CONTEXT: dict[str, str] = {
+    "Full Stack Developer": "Probe for: React/Angular experience, REST API design, DB optimization, CI/CD pipelines, testing practices.",
+    "DevOps Engineer": "Probe for: Docker/Kubernetes, IaC (Terraform/Ansible), SRE mindset, monitoring, incident response.",
+    "Data Scientist": "Probe for: ML pipelines, model evaluation, feature engineering, Python/SQL, communicating results to stakeholders.",
+    "Backend Engineer": "Probe for: distributed systems, API design patterns, database indexing, caching strategies, scalability.",
+    "Frontend Developer": "Probe for: component architecture, performance optimization, accessibility, state management, cross-browser support.",
+    "Machine Learning Engineer": "Probe for: model deployment, MLOps, experiment tracking, inference optimization, data pipelines.",
+    "UX Designer": "Probe for: user research methods, design systems, prototyping, usability testing, cross-functional collaboration.",
+    "Product Manager": "Probe for: roadmap prioritization, stakeholder management, metrics definition, user story writing, trade-off decisions.",
+}
+
+# Dimension -> pivot topic mapping
+DIMENSION_PIVOT: dict[str, str] = {
+    "relevance": "problem-solving and question comprehension",
+    "depth": "technical depth and experience details",
+    "clarity": "communication and structured thinking",
+    "confidence": "motivation, passion, and professional confidence",
+}
+
+
+def _get_role_context(role: str) -> str:
+    """Return role-specific probing context, fuzzy-matching if needed."""
+    for key, ctx in ROLE_CONTEXT.items():
+        if key.lower() in role.lower() or role.lower() in key.lower():
+            return ctx
+    return ""
+
+
+def _build_full_history(history: list[dict]) -> str:
+    """Build the complete conversation transcript for full-context prompting."""
     if not history:
         return "No prior turns."
     lines = []
-    for i, turn in enumerate(history[-4:], 1):
+    for i, turn in enumerate(history, 1):
         q = turn.get("question", "")
         a = turn.get("answer", "")
-        lines.append(f"Turn {i}: Q: {q[:120]} | A: {a[:200]}")
+        scores = turn.get("scores", {})
+        score_str = ""
+        if scores:
+            avg = round(sum(scores.values()) / len(scores))
+            score_str = f" [Score: {avg}/100]"
+        lines.append(f"Turn {i}: Q: {q} | A: {a}{score_str}")
     return "\n".join(lines)
+
+
+def _get_dynamic_focus(history: list[dict], default_focus: str) -> tuple[str, str]:
+    """
+    Analyse the last turn's scores and return the next focus_area.
+    Returns (focus_area, pivot_reason).
+    """
+    if not history:
+        return default_focus, ""
+    last_scores = history[-1].get("scores", {})
+    if not last_scores:
+        return default_focus, ""
+    weakest = min(last_scores, key=lambda k: last_scores.get(k, 100))
+    weakest_val = last_scores.get(weakest, 100)
+    if weakest_val < 55:
+        pivot_topic = DIMENSION_PIVOT.get(weakest, default_focus)
+        return pivot_topic, f"(probing weak dimension: {weakest}={weakest_val})"
+    return default_focus, ""
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -43,28 +98,34 @@ async def generate_interview_question(
 ) -> dict[str, Any]:
     """Return the next discovery-interview question and an optional follow-up cue."""
 
-    history_summary = _build_history_summary(history)
+    # Dynamic focus: pivot automatically if last answer was weak
+    dynamic_focus, pivot_reason = _get_dynamic_focus(history, focus_area)
+
+    history_text = _build_full_history(history)
     turn_number = len(history) + 1
+    role_context = _get_role_context(role)
 
     prompt = f"""You are an expert AI interviewer conducting a warm discovery interview.
-Role: {role} | Level: {level} | Focus Area: {focus_area}
+Role: {role} | Level: {level} | Focus Area: {dynamic_focus} {pivot_reason}
 Language for all output: {language} | Turn: {turn_number}
+{f"Role-specific context: {role_context}" if role_context else ""}
 
-Prior conversation:
-{history_summary}
+Full conversation so far:
+{history_text}
 
 Rules:
 - Ask ONE clear, open-ended question appropriate for the role and level.
 - Turn 1: warm-up about background or motivation.
-- Turn >= 2: dig deeper into previous answers or pivot to a new topic.
-- Do NOT repeat a question already asked.
+- Turn >= 2: dig deeper into previous answers or pivot to the focus area above.
+- Do NOT repeat a question already asked in the conversation above.
 - Keep questions conversational and natural (this is spoken, not written).
+- The follow_up_cue should be a concrete probing question if the answer to the main question is vague.
 
 Return ONLY valid JSON with no markdown fences:
 {{
   "question": "...",
   "follow_up_cue": "...",
-  "topic": "...",
+  "topic": "{dynamic_focus}",
   "difficulty": "easy|medium|hard"
 }}"""
 
@@ -98,7 +159,7 @@ Return ONLY valid JSON with no markdown fences:
     return {
         "question": questions[idx],
         "follow_up_cue": cue,
-        "topic": focus_area,
+        "topic": dynamic_focus,
         "difficulty": "medium",
     }
 
@@ -122,22 +183,24 @@ Role: {role} | Level: {level} | Turn: {turn_number}/{max_turns}
 
 Question asked: {question}
 Candidate's answer: {answer}
+Word count: {word_count}
 
 Score these four dimensions (0-100):
-- relevance:  Did the answer address the question?
-- depth:      Was it detailed and substantive?
-- clarity:    Was communication clear and well-structured?
-- confidence: Did the candidate sound engaged and confident?
+- relevance:  Did the answer directly address the question?
+- depth:      Was it detailed, substantive and specific?
+- clarity:    Was communication clear, well-structured and easy to follow?
+- confidence: Did the candidate sound engaged, assertive and confident?
 
-next_action:
-- "continue"  → move to next question
-- "follow_up" → answer was vague, probe deeper
-- "end"       → final turn (turn_number >= max_turns or answer signals closure)
+next_action rules:
+- "continue"  → answer was satisfactory, move to next question
+- "follow_up" → answer was vague or too short (< 20 words), probe deeper with the follow_up_cue
+- "end"       → this is the final turn (turn_number >= max_turns)
 
 Respond in {language}. Return ONLY valid JSON:
 {{
   "scores": {{"relevance": 0, "depth": 0, "clarity": 0, "confidence": 0}},
-  "feedback": "Short coaching note...",
+  "feedback": "Short, constructive coaching note in 1-2 sentences...",
+  "follow_up_cue": "A specific drill-down question if the answer was vague...",
   "next_action": "continue",
   "red_flags": []
 }}"""
@@ -147,6 +210,8 @@ Respond in {language}. Return ONLY valid JSON:
         if isinstance(result, dict) and result.get("scores"):
             if turn_number >= max_turns:
                 result["next_action"] = "end"
+            elif is_very_short and result.get("next_action") != "follow_up":
+                result["next_action"] = "follow_up"
             if is_very_short:
                 flag = "Réponse très courte — développez davantage." if language == "fr" else "Very short answer — please elaborate."
                 result.setdefault("red_flags", []).append(flag)
@@ -156,10 +221,13 @@ Respond in {language}. Return ONLY valid JSON:
 
     avg = 50 if not is_very_short else 30
     short_flag = "Réponse très courte." if language == "fr" else "Very short answer."
+    next_action = "end" if turn_number >= max_turns else ("follow_up" if is_very_short else "continue")
+    follow_cue = "Pouvez-vous développer ?" if language == "fr" else "Could you elaborate on that?"
     return {
         "scores": {"relevance": avg, "depth": avg, "clarity": avg, "confidence": avg},
         "feedback": "Réponse reçue. Continuons." if language == "fr" else "Answer received. Let's continue.",
-        "next_action": "end" if turn_number >= max_turns else "continue",
+        "follow_up_cue": follow_cue,
+        "next_action": next_action,
         "red_flags": [short_flag] if is_very_short else [],
     }
 
@@ -187,15 +255,18 @@ async def generate_interview_summary(
         avg_scores[dim] = round(sum(vals) / len(vals), 1) if vals else 0.0
     overall = round(sum(avg_scores.values()) / 4, 1) if avg_scores else 0.0
 
+    role_context = _get_role_context(role)
+
     prompt = f"""You are an expert recruiter writing a structured interview debrief.
 Role: {role} | Level: {level}
+{f"Role context: {role_context}" if role_context else ""}
 
 Full interview transcript:
 {turns_text}
 
 Computed averages: {avg_scores} | Overall: {overall}/100
 
-Write a concise, honest debrief in {language}. Return ONLY valid JSON:
+Write a concise, honest, actionable debrief in {language}. Return ONLY valid JSON:
 {{
   "overall_score": {overall},
   "recommendation": "strong_hire|hire|borderline|no_hire",
@@ -230,7 +301,7 @@ Write a concise, honest debrief in {language}. Return ONLY valid JSON:
         "recommendation": rec,
         "strengths": [fallback_strength],
         "areas_for_improvement": [fallback_area],
-        "communication_style": "Standard" if language == "fr" else "Standard",
+        "communication_style": "Standard",
         "confidence_level": "Medium" if overall >= 50 else "Low",
         "culture_fit_notes": "Évaluation en cours." if language == "fr" else "Assessment pending.",
         "summary_paragraph": fallback_para,

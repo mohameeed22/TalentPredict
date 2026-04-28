@@ -77,6 +77,7 @@ public class PredictionService {
         Prediction prediction = new Prediction();
         prediction.setUser(user);
         prediction.setAnalyse(analyseLlm);
+        prediction.setDatePrediction(java.time.LocalDateTime.now());
         // Bug fix: calculate score based on data richness instead of hardcoding 0.85
         int testCount = tests.size();
         int skillCount = skills.size();

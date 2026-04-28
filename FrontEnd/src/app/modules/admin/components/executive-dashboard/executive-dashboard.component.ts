@@ -1,6 +1,5 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { NotificationService } from '../../../../core/services/notification.service';
 import {
   AdminOverviewResponse,
@@ -28,7 +27,7 @@ export interface KpiCard {
 @Component({
   selector: 'app-executive-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule],
   templateUrl: './executive-dashboard.component.html',
   styleUrl: './executive-dashboard.component.scss'
 })

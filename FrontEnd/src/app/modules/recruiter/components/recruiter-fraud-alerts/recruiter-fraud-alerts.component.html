@@ -59,7 +59,7 @@
       <!-- Card header: candidate + risk indicator -->
       <div class="card-top">
         <div class="candidate-avatar" [ngClass]="'avatar-' + getRiskClass(r.fraudRisk)">
-          {{ (r.firstName?.[0] ?? '?').toUpperCase() }}{{ (r.lastName?.[0] ?? '').toUpperCase() }}
+          {{ (r.firstName[0] ?? '?').toUpperCase() }}{{ (r.lastName[0] ?? '').toUpperCase() }}
         </div>
         <div class="candidate-info">
           <div class="candidate-name">{{ r.firstName }} {{ r.lastName }}</div>

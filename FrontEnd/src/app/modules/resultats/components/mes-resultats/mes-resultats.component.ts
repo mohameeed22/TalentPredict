@@ -320,7 +320,23 @@ export class MesResultatsComponent implements OnInit {
     this.router.navigate(['/evaluation/results']);
   }
 
+  exportVoicePdf(): void {
+    this.notify.info('Génération du rapport IA en cours...');
+    setTimeout(() => {
+      window.print();
+    }, 500);
+  }
+
+  exportGlobalPdf(): void {
+    this.notify.info('Génération du rapport Global en cours...');
+    setTimeout(() => {
+      window.print();
+    }, 500);
+  }
+
   goToTech(): void { this.router.navigate(['/competences']); }
   goToSoft(): void { this.router.navigate(['/evaluation/intro']); }
   goToVoiceInterview(): void { this.router.navigate(['/skill-test/voice-interview']); }
+  goToProgress(): void { this.router.navigate(['/competences/progress']); }
 }
+

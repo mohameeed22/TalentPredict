@@ -1,287 +1,245 @@
-<div class="mr-wrap" id="mr-print">
+<div class="dashboard-root" id="mr-print">
 
-  <!-- ══ HERO ═══════════════════════════════════════════════════════════ -->
-  <div class="mr-hero hero-gradient" [class.is-locked]="isLocked">
-    <div class="hero-content">
-      <div class="hero-badge">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-        </svg>
-        Tableau de bord des résultats
-      </div>
-      <h1>Votre Profil de Carrière</h1>
-      <div class="formula-box">
-        <span class="formula-item">Tech: {{ formattedTechScore }}%</span>
-        <span class="formula-plus">+</span>
-        <span class="formula-item">Soft: {{ formattedSoftScore }}%</span>
-        <span class="formula-equals">=</span>
-        <span class="formula-total">Global {{ overallReadiness }}%</span>
+  <!-- ══ PREMIUM HEADER ════════════════════════════════════════════ -->
+  <header class="dashboard-header" [class.is-locked]="isLocked">
+    <div class="header-main">
+      <div class="header-titles">
+        <div class="badge-premium">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          TalentPredict Intelligence
+        </div>
+        <h1>Profil de Compétences & Carrière</h1>
+        <p class="subtitle">Analyse multidimensionnelle générée par l'Intelligence Artificielle.</p>
       </div>
       
-      <div class="hero-actions-row">
-        <button class="btn-share" (click)="toggleShareProfile()" [disabled]="isLocked">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-          </svg>
-          Partager mon profil
+      <div class="header-actions">
+        <button class="action-btn secondary" (click)="toggleShareProfile()" [disabled]="isLocked">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Partager
+        </button>
+        <button class="action-btn primary" (click)="exportGlobalPdf()" [disabled]="isLocked">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+          Exporter le Rapport
         </button>
       </div>
     </div>
 
-    <!-- Overall readiness ring -->
-    <div class="readiness-ring-card">
-      <div class="ring-wrap">
-        <svg class="ring-svg" viewBox="0 0 120 120" width="140" height="140">
-          <circle cx="60" cy="60" r="54" fill="none" stroke="#e5e7eb" stroke-width="10"/>
-          <circle cx="60" cy="60" r="54" fill="none" [attr.stroke]="readinessColor" stroke-width="10"
-            stroke-linecap="round" [attr.stroke-dasharray]="strokeDash"
-            stroke-dashoffset="0" transform="rotate(-90 60 60)"
-            class="ring-animate"/>
-        </svg>
-        <div class="ring-inner">
-          <span class="ring-num">{{ overallReadiness }}</span>
-          <span class="ring-unit">%</span>
-        </div>
+    <div class="readiness-banner">
+      <div class="rb-info">
+        <span class="rb-label">Indice de Préparation au Marché (Market Readiness)</span>
+        <h2 class="rb-status">{{ readinessLabel }}</h2>
       </div>
-      <div class="ring-meta">
-        <div class="readiness-badge" [style.background]="readinessColor" style="color: white; font-weight: 700;">
-          {{ isLocked ? 'Locked' : 'Readiness Score' }} {{ isLocked ? '🔒' : '✅' }}
+      <div class="rb-score-wrap">
+        <div class="score-circle" [style.--score-color]="readinessColor" [style.--score-pct]="overallReadiness + '%'">
+          <svg viewBox="0 0 36 36" class="circular-chart">
+            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            <path class="circle" [attr.stroke]="readinessColor" [attr.stroke-dasharray]="overallReadiness + ', 100'" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+          </svg>
+          <div class="score-text">
+            <span class="val">{{ overallReadiness }}</span>
+            <span class="pct">%</span>
+          </div>
         </div>
-        <p class="readiness-label">{{ readinessLabel }}</p>
       </div>
     </div>
-  </div>
+  </header>
 
   <!-- ══ LOCKED STATE OVERLAY ════════════════════════════════════════ -->
   @if (isLocked) {
-    <div class="locked-cta-card">
-      <div class="lcta-icon">🎙️</div>
+    <div class="locked-cta-premium">
+      <div class="lcta-visual">
+        <div class="waveform-mock">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+      </div>
       <div class="lcta-content">
-        <h2>Débloquez vos résultats personnalisés</h2>
-        <p>Complétez votre entretien IA pour obtenir une analyse complète de vos compétences, votre adéquation au marché et vos recommandations de carrière.</p>
-        <button class="btn-primary-glow" (click)="goToVoiceInterview()">
-          Démarrer l'Entretien IA maintenant
+        <h2>L'analyse IA requiert votre voix</h2>
+        <p>Passez l'entretien vocal immersif pour permettre à notre agent de générer votre cartographie de compétences, vos forces, et votre plan de carrière.</p>
+        <button class="action-btn primary large glow" (click)="goToVoiceInterview()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+          Démarrer l'Entretien IA
         </button>
       </div>
     </div>
   }
 
-  <div class="results-dashboard-grid" [class.is-blurred]="isLocked">
+  <!-- ══ BENTO GRID DASHBOARD ════════════════════════════════════════ -->
+  <div class="bento-grid" [class.is-blurred]="isLocked">
     
-    <!-- 1. AI Interview Summary (Top Priority) -->
+    <!-- 1. Executive Summary (Wide) -->
     @if (voiceResult) {
-      <div class="summary-section dashboard-card full-width">
-        <div class="card-header">
-          <div class="header-main">
-            <span class="header-icon">🤖</span>
-            <h2>Synthèse de l'Entretien IA</h2>
+      <div class="bento-box ai-brief col-span-2">
+        <div class="box-header">
+          <div class="bh-title">
+            <div class="icon-sparkle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/></svg></div>
+            <h3>Synthèse Exécutive IA</h3>
           </div>
-          <div class="status-badge completed">Complété ✅</div>
+          <button class="action-btn ghost small" (click)="exportVoicePdf()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
         </div>
-        
-        <div class="summary-grid">
-          <div class="summary-text-col">
-            <p class="evaluation-para">{{ voiceResult.summary_paragraph }}</p>
-            <div class="insights-row">
-              <div class="insight-item">
-                <span class="insight-label">Style de communication</span>
-                <span class="insight-value">{{ voiceResult.communication_style || 'Professionnel' }}</span>
-              </div>
-              <div class="insight-item">
-                <span class="insight-label">Niveau de confiance</span>
-                <span class="insight-value" [class]="'conf-' + (voiceResult.confidence_level || 'Medium').toLowerCase()">
-                  {{ voiceResult.confidence_level || 'Medium' }}
-                </span>
-              </div>
+        <div class="brief-content">
+          <p class="ai-quote">{{ voiceResult.summary_paragraph }}</p>
+          <div class="brief-metrics">
+            <div class="metric">
+              <span class="m-lbl">Style de Comm.</span>
+              <span class="m-val">{{ voiceResult.communication_style || 'Clair & Précis' }}</span>
             </div>
-          </div>
-          
-          <div class="summary-lists-col">
-            <div class="list-box strengths">
-              <h4>💪 Points forts clés</h4>
-              <ul>
-                @for (s of voiceResult.strengths; track s) {
-                  <li>{{ s }}</li>
-                }
-              </ul>
+            <div class="metric">
+              <span class="m-lbl">Niveau de Confiance</span>
+              <span class="m-val">{{ voiceResult.confidence_level || 'Élevé' }}</span>
             </div>
-            <div class="list-box improvements">
-              <h4>📈 Axes d'amélioration</h4>
-              <ul>
-                @for (a of voiceResult.areas_for_improvement; track a) {
-                  <li>{{ a }}</li>
-                }
-              </ul>
+            <div class="metric highlight">
+              <span class="m-lbl">Score IA Vocal</span>
+              <span class="m-val">{{ voiceResult.overall_score }}%</span>
             </div>
           </div>
         </div>
       </div>
     }
 
-    <!-- 2. Technical Skills Analysis -->
-    <div class="track-card tech-track dashboard-card" [class.locked-ui]="isLocked">
-      <div class="card-header">
-        <div class="header-main">
-          <span class="header-icon tech">💻</span>
-          <h2>Analyse Technique</h2>
-        </div>
-        <div class="status-badge" [class.locked]="isLocked">
-          {{ isLocked ? 'Locked 🔒' : 'Complété ✅' }}
+    <!-- 2. Strengths (Forces) -->
+    <div class="bento-box strengths-box">
+      <div class="box-header">
+        <div class="bh-title">
+          <div class="icon-circle green"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <h3>Forces Validées</h3>
         </div>
       </div>
+      <div class="box-body scrollable">
+        <ul class="insight-list">
+          @if (voiceResult?.strengths) {
+            @for (s of voiceResult.strengths; track s) {
+              <li><span class="dot green"></span> {{ s }}</li>
+            }
+          }
+          <li class="soft-strength"><span class="dot green"></span> Profil {{ pcmType }} ({{ pcmDescription | slice:0:30 }}...)</li>
+        </ul>
+      </div>
+    </div>
 
-      @if (!isLocked) {
-        <div class="overall-level">
-          Niveau Global : <strong>{{ formattedTechScore >= 80 ? 'Avancé' : (formattedTechScore >= 50 ? 'Intermédiaire' : 'Débutant') }}</strong>
+    <!-- 3. Weaknesses & Gaps (Axes d'amélioration) -->
+    <div class="bento-box gaps-box">
+      <div class="box-header">
+        <div class="bh-title">
+          <div class="icon-circle orange"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+          <h3>Gaps & Axes d'Amélioration</h3>
         </div>
-        
-        <div class="mini-skills">
+      </div>
+      <div class="box-body scrollable">
+        <div class="gap-group">
+          <span class="group-lbl">Retours Entretien IA</span>
+          <ul class="insight-list">
+            @for (a of voiceResult?.areas_for_improvement; track a) {
+              <li><span class="dot orange"></span> {{ a }}</li>
+            }
+          </ul>
+        </div>
+        <div class="gap-group mt-3">
+          <span class="group-lbl">Gaps Techniques / Soft</span>
+          <div class="gap-tags">
+            @for (gap of techGaps.slice(0, 3); track gap) { <span class="tag tech">{{ gap }}</span> }
+            @for (sgap of softGaps.slice(0, 2); track sgap) { <span class="tag soft">{{ sgap }}</span> }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Radar Chart (Soft Skills) -->
+    <div class="bento-box radar-box">
+      <div class="box-header">
+        <div class="bh-title">
+          <h3>Empreinte Comportementale</h3>
+        </div>
+      </div>
+      <div class="box-body center-content">
+        @if (getSoftSkillEntries().length > 0) {
+          <svg class="premium-radar" viewBox="0 0 280 280">
+            <defs>
+              <linearGradient id="radarFill" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="rgba(99, 102, 241, 0.4)" />
+                <stop offset="100%" stop-color="rgba(168, 85, 247, 0.1)" />
+              </linearGradient>
+            </defs>
+            <polygon [attr.points]="getRadarGridPoints(1.0)" class="grid-line" />
+            <polygon [attr.points]="getRadarGridPoints(0.66)" class="grid-line" />
+            <polygon [attr.points]="getRadarGridPoints(0.33)" class="grid-line" />
+            
+            @for (axis of radarAxisPoints; track axis.x2) {
+              <line x1="130" y1="130" [attr.x2]="axis.x2" [attr.y2]="axis.y2" class="axis-line" />
+            }
+            
+            <polygon [attr.points]="radarPolygonPoints" class="data-area" fill="url(#radarFill)" stroke="#6366f1" stroke-width="2" />
+            
+            @for (entry of getSoftSkillEntries().slice(0, 5); track entry.name; let i = $index) {
+              <circle [attr.cx]="getRadarPointX(entry.score, i, 5)" [attr.cy]="getRadarPointY(entry.score, i, 5)" r="5" class="data-point" />
+            }
+
+            @for (label of radarLabels; track label.text) {
+              <text [attr.x]="label.x" [attr.y]="label.y" [attr.text-anchor]="label.anchor" class="radar-txt" dy="5">{{ label.text }}</text>
+            }
+          </svg>
+        } @else {
+          <p class="text-muted">Données insuffisantes.</p>
+        }
+      </div>
+    </div>
+
+    <!-- 5. Tech Stack -->
+    <div class="bento-box tech-box">
+      <div class="box-header">
+        <div class="bh-title">
+          <h3>Expertise Technique</h3>
+        </div>
+        <button class="action-btn ghost small" (click)="goToTech()">Détails</button>
+      </div>
+      <div class="box-body">
+        <div class="tech-list">
           @for (s of techSkills; track s.id) {
-            <div class="ms-item">
-              <span class="ms-name">{{ s.nom }}</span>
-              <div class="ms-progress-bar">
-                <div class="progress-fill" [style.width.%]="s.score100" [style.background]="getScoreColor(s.score100, 100)"></div>
+            <div class="tech-row">
+              <div class="tr-top">
+                <span class="tr-name">{{ s.nom }}</span>
+                <span class="tr-score">{{ s.score100 }}%</span>
               </div>
-              <span class="ms-score-num">{{ s.score100 }}%</span>
+              <div class="tr-bar"><div class="tr-fill" [style.width.%]="s.score100"></div></div>
             </div>
           }
         </div>
-
-        <div class="track-actions">
-          <button class="btn-secondary" (click)="goToTech()">Refaire l'évaluation</button>
-        </div>
-      }
+      </div>
     </div>
 
-    <!-- 3. Soft Skills & Personality -->
-    <div class="track-card soft-track dashboard-card" [class.locked-ui]="isLocked">
-      <div class="card-header">
-        <div class="header-main">
-          <span class="header-icon soft">🧠</span>
-          <h2>Soft Skills & Personnalité</h2>
+    <!-- 6. Career Path Alignment (Full Width) -->
+    <div class="bento-box career-box col-span-2">
+      <div class="box-header">
+        <div class="bh-title">
+          <div class="icon-circle blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+          <h3>Alignement & Plan de Carrière</h3>
         </div>
-        <div class="status-badge" [class.locked]="isLocked">
-          {{ isLocked ? 'Locked 🔒' : 'Complété ✅' }}
-        </div>
+        <button class="action-btn secondary small" (click)="goToProgress()">Plan d'Action</button>
       </div>
-
-      @if (!isLocked && softResult) {
-        <div class="pcm-summary">
-          <div class="pcm-type-badge">{{ pcmType }}</div>
-          <p class="pcm-mini-desc">{{ pcmDescription }}</p>
-        </div>
-
-        <div class="soft-skills-bars">
-          @for (entry of getSoftSkillEntries().slice(0, 4); track entry.name) {
-            <div class="soft-bar-item">
-              <div class="sb-label">
-                <span>{{ entry.name | titlecase }}</span>
-                <span>{{ entry.score }}/10</span>
-              </div>
-              <div class="sb-progress">
-                <div class="sb-fill" [style.width.%]="entry.score * 10" [style.background]="getScoreColor(entry.score)"></div>
-              </div>
-            </div>
-          }
-        </div>
-
-        <div class="track-actions">
-          <button class="btn-secondary" (click)="goToSoft()">Refaire le PCM</button>
-        </div>
-      }
-    </div>
-
-    <!-- 4. Career Match (AI-powered) -->
-    <div class="career-match-section dashboard-card full-width" [class.locked-ui]="isLocked">
-      <div class="card-header">
-        <div class="header-main">
-          <span class="header-icon career">🎯</span>
-          <h2>Career Match AI</h2>
-        </div>
-      </div>
-
-      @if (!isLocked) {
-        <div class="cm-grid">
+      <div class="box-body">
+        <div class="career-cards">
           @for (cm of careerMatches; track cm.role; let idx = $index) {
-            <div class="cm-card" [class.top-match]="idx === 0">
-              <div class="cm-header">
-                <h3>{{ cm.role }}</h3>
-                <div class="cm-score-badge" [style.background]="getScoreColor(cm.match, 100)">{{ cm.match }}%</div>
+            <div class="c-card" [class.optimal]="idx === 0">
+              @if (idx === 0) { <div class="c-badge">Optimal Match</div> }
+              <div class="c-head">
+                <h4>{{ cm.role }}</h4>
+                <div class="match-score">{{ cm.match }}% Match</div>
               </div>
-              <p class="cm-reason">{{ cm.reason }}</p>
-              <div class="cm-gaps">
-                @for (gap of cm.gaps; track gap) {
-                  <span class="gap-tag">{{ gap }}</span>
-                }
+              <p class="c-desc">{{ cm.reason }}</p>
+              
+              <div class="c-progress">
+                <div class="cp-labels"><span>Acquis</span><span>Cible</span></div>
+                <div class="cp-track">
+                  <div class="cp-fill" [style.width.%]="cm.match"></div>
+                  <div class="cp-target"></div>
+                </div>
               </div>
             </div>
           }
         </div>
-      }
-    </div>
-
-    <!-- 5. Certifications & Achievements -->
-    <div class="certifications-section dashboard-card" [class.locked-ui]="isLocked">
-      <div class="card-header">
-        <div class="header-main">
-          <span class="header-icon cert">🏆</span>
-          <h2>Certifications</h2>
-        </div>
       </div>
-
-      @if (!isLocked) {
-        <div class="cert-list">
-          <div class="cert-item">
-            <div class="cert-icon">🥇</div>
-            <div class="cert-meta">
-              <h5>Expert Angular</h5>
-              <p>Score: 92%</p>
-            </div>
-          </div>
-          <div class="cert-item">
-            <div class="cert-icon">🥇</div>
-            <div class="cert-meta">
-              <h5>Communication</h5>
-              <p>Score: 8.5/10</p>
-            </div>
-          </div>
-        </div>
-        
-        <div class="cert-suggestions">
-          <p class="suggest-title">Prochaines certifications suggérées :</p>
-          <div class="suggest-badges">
-            <span class="s-badge">AWS Cloud Practitioner</span>
-            <span class="s-badge">Agile Scrum Master</span>
-          </div>
-        </div>
-      }
-    </div>
-
-    <!-- 6. Next Steps (Critical Section) -->
-    <div class="next-steps-section dashboard-card" [class.locked-ui]="isLocked">
-      <div class="card-header">
-        <div class="header-main">
-          <span class="header-icon next">🚀</span>
-          <h2>Prochaines Étapes</h2>
-        </div>
-      </div>
-
-      @if (!isLocked) {
-        <div class="steps-content">
-          <div class="step-card">
-            <div class="step-num">1</div>
-            <p>Améliorer vos compétences en <strong>{{ techGaps[0] || 'System Design' }}</strong> via nos formations.</p>
-          </div>
-          <div class="step-card">
-            <div class="step-num">2</div>
-            <p>Travailler votre <strong>{{ softGaps[0] || 'Leadership' }}</strong> pour viser des postes de Tech Lead.</p>
-          </div>
-          <button class="btn-primary-full">Voir mon plan de formation</button>
-        </div>
-      }
     </div>
 
   </div>
-
 </div>

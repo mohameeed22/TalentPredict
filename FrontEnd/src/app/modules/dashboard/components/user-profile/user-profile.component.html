@@ -85,7 +85,7 @@
           </div>
           <div class="metric-card">
             <span class="metric-label">GitHub</span>
-            <strong>{{ profile.githubRepos ?? 0 }} repos</strong>
+            <strong>{{ profile.githubRepos }} repos</strong>
           </div>
           <div class="metric-card">
             <span class="metric-label">CV</span>
@@ -154,24 +154,66 @@
           </div>
           <h2 class="preview-name">{{ profile.firstName }} {{ profile.lastName }}</h2>
           <p class="preview-title">{{ profile.titreProfessionnel || profile.poste || '—' }}</p>
-          @if (profile.ville) { <p class="preview-location">📍 {{ profile.ville }}</p> }
-          @if (profile.disponibilite) { <p class="preview-dispo">🟢 {{ profile.disponibilite }}</p> }
+          
+          <div class="preview-meta">
+            @if (profile.ville) { <span class="preview-meta-item">📍 {{ profile.ville }}</span> }
+            @if (profile.disponibilite) { <span class="preview-meta-item">🟢 {{ profile.disponibilite }}</span> }
+          </div>
+
+          <!-- AI Verdict / Summary -->
+          @if (profile.aiSummary) {
+          <div class="preview-ai-verdict">
+            <div class="ai-verdict-header">
+              <span class="sparkle">✨</span>
+              <span>Analyse IA</span>
+            </div>
+            <p>{{ profile.aiSummary }}</p>
+          </div>
+          }
+
           @if (profile.description) {
           <div class="preview-bio">
             <h4>À propos</h4>
             <p>{{ profile.description }}</p>
           </div>
           }
-          @if (profile.poste || profile.departementEditable || profile.experienceAns != null) {
+
+          <!-- New: Professional Metrics -->
+          <div class="preview-stats-grid">
+            <div class="p-stat">
+              <span class="p-stat-val">{{ profile.experienceAns || 0 }} ans</span>
+              <span class="p-stat-lbl">Expérience</span>
+            </div>
+            <div class="p-stat">
+              <span class="p-stat-val">{{ profile.githubRepos || 0 }}</span>
+              <span class="p-stat-lbl">Repos GitHub</span>
+            </div>
+            <div class="p-stat">
+              <span class="p-stat-val">{{ profile.niveauEtudes || 'N/A' }}</span>
+              <span class="p-stat-lbl">Formation</span>
+            </div>
+          </div>
+
+          <!-- New: Contract Types -->
+          @if (profile.typeContrat && profile.typeContrat.length > 0) {
+          <div class="preview-contracts">
+            @for (contract of profile.typeContrat; track contract) {
+            <span class="contract-badge">{{ contract }}</span>
+            }
+          </div>
+          }
+
+          @if (profile.poste || profile.departementEditable) {
           <div class="preview-tags">
             @if (profile.poste) { <span class="tag tag-blue">{{ profile.poste }}</span> }
             @if (profile.departementEditable) { <span class="tag tag-purple">{{ profile.departementEditable }}</span> }
-            @if (profile.experienceAns != null) { <span class="tag tag-green">{{ profile.experienceAns }} ans XP</span> }
           </div>
           }
+
           <div class="preview-links">
             @if (profile.lienLinkedin) { <a [href]="profile.lienLinkedin" target="_blank" class="social-link linkedin">LinkedIn</a> }
             @if (profile.githubUrl) { <a [href]="profile.githubUrl" target="_blank" class="social-link github">GitHub</a> }
+            @if (profile.portfolioUrl) { <a [href]="profile.portfolioUrl" target="_blank" class="social-link portfolio">Portfolio</a> }
           </div>
         </div>
       </div>

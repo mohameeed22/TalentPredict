@@ -459,6 +459,142 @@
   p { margin: 0; font-size: 0.82rem; color: #8b1e1e; font-weight: 700; }
 }
 
+/* ── Waveform ────────────────────────────────────────────────────── */
+.waveform-container {
+  border: 1px solid #c8dff2;
+  border-radius: 12px;
+  background: #050e1a;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 0.6rem;
+}
+.waveform-canvas {
+  display: block;
+  width: 100%;
+  height: 60px;
+}
+.listening-indicator {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.live-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #ff4444;
+  animation: pulse 0.8s ease infinite;
+  display: block;
+}
+.live-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: rgba(255,255,255,0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Live Transcript ─────────────────────────────────────────────── */
+.live-transcript {
+  background: #f5faff;
+  border: 1px dashed #a8cfe8;
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  min-height: 40px;
+  margin-bottom: 0.5rem;
+  color: var(--ink);
+}
+.final-text { color: var(--ink); }
+.interim-text { color: var(--ink-muted); font-style: italic; }
+.cursor-blink {
+  color: var(--brand);
+  animation: pulse 0.8s ease infinite;
+  font-weight: 700;
+}
+
+/* ── Feature Pills (Setup) ───────────────────────────────────────── */
+.feature-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+}
+.feature-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #e8f3ff, #edfcfb);
+  color: #0a5fa8;
+  border: 1px solid #c8def9;
+  border-radius: 999px;
+  padding: 0.22rem 0.65rem;
+}
+
+/* ── Live Score Badge ────────────────────────────────────────────── */
+.live-score {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  background: linear-gradient(135deg, #e5f1ff, #edfcfb);
+  border: 1px solid #c8def9;
+  border-radius: 12px;
+  padding: 0.4rem 0.75rem;
+}
+.live-score-num { font-size: 1.4rem; font-weight: 800; color: #0b79d0; font-family: 'Space Grotesk', sans-serif; }
+.live-score-lbl { font-size: 0.72rem; font-weight: 700; color: #4b6072; }
+
+/* ── WPM Badge ───────────────────────────────────────────────────── */
+.turn-wpm {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #6a8fa8;
+  background: #edf4fa;
+  border: 1px solid #cce0f0;
+  border-radius: 999px;
+  padding: 0.12rem 0.45rem;
+}
+.turn-badges { display: flex; align-items: center; gap: 0.4rem; }
+
+/* ── Save Status ─────────────────────────────────────────────────── */
+.save-status { margin-left: auto; }
+.save-pill {
+  font-size: 0.72rem; font-weight: 800; border-radius: 999px; padding: 0.25rem 0.7rem; white-space: nowrap;
+  &.saving  { background: #e5f1ff; color: #0b5d9c; }
+  &.saved   { background: #dff7f3; color: #0a6d5a; }
+  &.save-error { background: #fff2f2; color: #8b1e1e; }
+}
+
+/* ── Overall Meta Chips ──────────────────────────────────────────── */
+.overall-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
+.meta-chip {
+  font-size: 0.72rem; font-weight: 700;
+  background: #f0f8ff; border: 1px solid #cde3f5; border-radius: 999px;
+  padding: 0.18rem 0.55rem; color: #2a6b9e;
+}
+
+/* ── Scores Section Title ────────────────────────────────────────── */
+.scores-section { }
+.section-title {
+  font-size: 0.92rem;
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--ink);
+  margin: 0 0 0.75rem;
+}
+
+/* ── PDF & Action Buttons ────────────────────────────────────────── */
+.pdf-btn {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+  &:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(0,0,0,0.35); }
+}
+.retry-btn { background: linear-gradient(135deg, var(--brand), var(--accent)); color: #fff; box-shadow: 0 6px 14px rgba(11,121,208,0.25); }
+.back-btn-alt { background: var(--surface); border: 1px solid var(--border); color: var(--ink-muted); border-radius: 12px; }
+
 /* ── Animations ──────────────────────────────────────────────────── */
 @keyframes riseIn {
   from { opacity: 0; transform: translateY(14px); }

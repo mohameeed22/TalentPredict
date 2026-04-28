@@ -1,163 +1,130 @@
 <div class="pcm-intro-page">
-
-  <div class="intro-container">
-
-    <div class="intro-header">
-      <h1>Évaluation Soft Skills</h1>
-      <p class="subtitle">
-        Analyse complète via votre CV, profil GitHub et auto-évaluation PCM
-      </p>
-    </div>
-
-    <!-- STEP INDICATOR -->
-    <div class="steps-indicator">
-      <div class="step active">
-        <span class="step-num">1</span>
-        <span class="step-label">Profil</span>
-      </div>
-      <div class="step-line"></div>
-      <div class="step">
-        <span class="step-num">2</span>
-        <span class="step-label">Test PCM</span>
-      </div>
-      <div class="step-line"></div>
-      <div class="step">
-        <span class="step-num">3</span>
-        <span class="step-label">Résultats</span>
-      </div>
-    </div>
-
-    <form [formGroup]="profileForm" (ngSubmit)="startTest()">
-
-      <!-- PERSONAL INFO -->
-      <div class="form-section">
-        <h3>Informations personnelles</h3>
-        <div class="form-group">
-          <label for="fullName">Nom complet *</label>
-          <input id="fullName" name="fullName" type="text" formControlName="fullName" placeholder="Ex: Sarah Johnson">
-        </div>
-        <div class="form-group">
-          <label for="email">Email *</label>
-          <input id="email" name="email" type="email" formControlName="email" placeholder="sarah@example.com">
-        </div>
-      </div>
-
-      <!-- GITHUB -->
-      <div class="form-section">
-        <h3>
-          <span class="github-icon">🐙</span>
-          Profil GitHub
-          <span class="optional-badge">Optionnel</span>
-        </h3>
-        <p class="section-hint">
-          Permet d'analyser vos soft skills techniques via votre activité GitHub
-        </p>
-        <div class="form-group">
-          <label for="githubUsername">Nom d'utilisateur GitHub</label>
-          <div class="input-with-prefix">
-            <span class="prefix">github.com/</span>
-            <input
-              id="githubUsername"
-              name="githubUsername"
-              type="text"
-              formControlName="githubUsername"
-              placeholder="votre-username">
-          </div>
-        </div>
-      </div>
-
-      <!-- LINKEDIN -->
-      <div class="form-section">
-        <h3>
-          <span>💼</span>
-          Profil LinkedIn
-          <span class="optional-badge">Optionnel</span>
-        </h3>
-        <p class="section-hint">
-          Permet d'enrichir l'analyse de vos soft skills avec votre parcours professionnel
-        </p>
-        <div class="form-group">
-          <label for="linkedinUrl">URL LinkedIn</label>
-          <input
-            id="linkedinUrl"
-            name="linkedinUrl"
-            type="url"
-            formControlName="linkedinUrl"
-            placeholder="https://linkedin.com/in/votre-profil">
-        </div>
-      </div>
-
-      <!-- CV UPLOAD -->
-      <div class="form-section">
-        <h3>
-          <span class="cv-icon">📄</span>
-          Curriculum Vitae
-          <span class="optional-badge">Optionnel</span>
-        </h3>
-        <p class="section-hint">
-          Permet d'extraire vos soft skills depuis votre expérience professionnelle
-        </p>
-        <div class="upload-zone" (click)="cvInput.click()">
-          <input
-            #cvInput
-            id="cvFile"
-            name="cvFile"
-            type="file"
-            accept=".pdf,.txt,text/plain"
-            (change)="onFileSelected($event)"
-            style="display: none">
-          <div *ngIf="!selectedFile" class="upload-placeholder">
-            <span class="upload-icon">⬆️</span>
-            <p>Cliquez pour uploader votre CV (PDF ou TXT)</p>
-            <small>Max 5MB</small>
-          </div>
-          <div *ngIf="selectedFile" class="file-selected">
-            <span>✅ {{ selectedFile.name }}</span>
-            <button type="button" (click)="clearSelectedFile($event)">
-              ✕
-            </button>
-          </div>
-        </div>
-        <p *ngIf="isExtracting" class="section-hint">Extraction du texte du CV en cours...</p>
-        <p *ngIf="selectedFile && extractedCvText && !isExtracting" class="section-hint">
-          Texte CV extrait ({{ extractedCvText.length }} caractères).
-        </p>
-        <p *ngIf="fileError" class="error-text">{{ fileError }}</p>
-        <p *ngIf="extractionError" class="error-text">{{ extractionError }}</p>
-      </div>
-
-      <!-- WHAT'S NEXT INFO BOX -->
-      <div class="info-box">
-        <h4>Ce qui va se passer</h4>
-        <ul>
-          <li *ngIf="hasGithub()">🐙 Analyse de votre profil GitHub</li>
-          <li *ngIf="selectedFile">📄 Extraction des compétences depuis votre CV</li>
-          <li>📋 Test PCM aléatoire (6-12 questions · ≈ 3 minutes)</li>
-          <li>🎭 Simulateur de Scénario professionnel</li>
-          <li>🤖 Analyse IA et fusion des sources</li>
-          <li>📊 Rapport détaillé avec recommandations de formation</li>
-        </ul>
-      </div>
-
-      <button
-        type="submit"
-        class="btn-start"
-        [disabled]="profileForm.invalid || isExtracting">
-        @if (isExtracting) {
-          ⏳ Extraction du CV en cours…
-        } @else {
-          Commencer le test PCM →
-        }
-      </button>
-
-      <!-- Show form errors explicitly so the user knows why button is blocked -->
-      @if (profileForm.get('fullName')?.invalid && profileForm.get('fullName')?.touched) {
-        <p class="error-text">Le nom complet est requis.</p>
-      }
-      @if (profileForm.get('email')?.invalid && profileForm.get('email')?.touched) {
-        <p class="error-text">Un email valide est requis.</p>
-      }
-
-    </form>
+  <div class="bg-decor">
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
   </div>
-  
+
+  <div class="intro-content">
+    <!-- Hero Header -->
+    <header class="hero-section">
+      <div class="badge-ai">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        AI-DRIVEN ASSESSMENT
+      </div>
+      <h1>Optimisez votre Profil <span class="gradient-text">Soft Skills</span></h1>
+      <p class="hero-description">
+        Enrichissez votre analyse IA en connectant vos profils professionnels. 
+        Plus vous fournissez de contexte, plus votre rapport sera précis.
+      </p>
+    </header>
+
+    <!-- Onboarding Progress -->
+    <div class="onboarding-steps">
+      <div class="step-node active">
+        <span class="node-num">1</span>
+        <span class="node-label">Configuration</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-node">
+        <span class="node-num">2</span>
+        <span class="node-label">Test PCM</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-node">
+        <span class="node-num">3</span>
+        <span class="node-label">Résultats</span>
+      </div>
+    </div>
+
+    <!-- Main Form Card -->
+    <main class="glass-card">
+      <form [formGroup]="profileForm" class="form-grid">
+        
+        <!-- Identity Section -->
+        <section class="form-section">
+          <h2>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            Votre Identité
+          </h2>
+          <div class="input-group">
+            <label>Nom Complet</label>
+            <div class="input-wrapper">
+              <input type="text" formControlName="fullName" placeholder="Ex: Jean Dupont">
+            </div>
+          </div>
+        </section>
+
+        <!-- Connectivity Section -->
+        <section class="form-section">
+          <h2>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
+            </svg>
+            Profils Professionnels
+          </h2>
+          <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+            <div class="input-group">
+              <label>LinkedIn URL</label>
+              <div class="input-wrapper">
+                <input type="text" formControlName="linkedinUrl" placeholder="linkedin.com/in/username">
+              </div>
+            </div>
+            <div class="input-group">
+              <label>GitHub Username</label>
+              <div class="input-wrapper">
+                <input type="text" formControlName="githubUsername" placeholder="Ex: johndoe">
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- CV Upload Section -->
+        <section class="form-section">
+          <h2>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Curriculum Vitae
+          </h2>
+          <div class="upload-container">
+            <div *ngIf="!selectedFile" class="upload-area" (click)="fileInput.click()">
+              <span class="upload-icon">📄</span>
+              <h4 *ngIf="!isExtracting">Importer votre CV</h4>
+              <h4 *ngIf="isExtracting">Extraction en cours...</h4>
+              <p *ngIf="!isExtracting">Format PDF ou TXT uniquement</p>
+              <p *ngIf="isExtracting">Veuillez patienter quelques secondes</p>
+              <input #fileInput type="file" (change)="onFileSelected($event)" accept=".pdf,.txt" hidden>
+            </div>
+            <div *ngIf="selectedFile" class="file-chip">
+              <div class="file-info">
+                <span *ngIf="!isExtracting">✅</span>
+                <span *ngIf="isExtracting" class="mini-loader"></span>
+                {{ selectedFile.name }}
+              </div>
+              <button class="btn-remove" (click)="clearSelectedFile($event)">✕</button>
+            </div>
+            <div class="error-text" *ngIf="fileError || extractionError">{{ fileError || extractionError }}</div>
+          </div>
+        </section>
+
+        <!-- CTA -->
+        <div class="actions-footer">
+          <button type="button" class="btn-primary-glow" (click)="startTest()" [disabled]="profileForm.invalid || isExtracting">
+            LANCER L'ÉVALUATION IA →
+          </button>
+          <div class="secure-tag">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            Anonymisation & Sécurité Active
+          </div>
+        </div>
+
+      </form>
+    </main>
+  </div>
+</div>

@@ -9,10 +9,36 @@
     </div>
 
     <div class="hero-actions">
-      <button type="button" (click)="exportPdf()" [disabled]="exportingPdf">
-        {{ exportingPdf ? 'Export PDF...' : 'Exporter mon rapport PDF' }}
-      </button>
-      <a routerLink="/skill-test" class="hero-link">Nouveau skill test</a>
+      <div class="tab-toggle">
+        <button [class.active]="activeTab === 'TECH'" (click)="setTab('TECH')">Tech Skills</button>
+        <button [class.active]="activeTab === 'SOFT'" (click)="setTab('SOFT')">Soft Skills</button>
+      </div>
+
+      <div class="action-buttons">
+        <button type="button" (click)="exportPdf()" [disabled]="exportingPdf" class="btn-export">
+          <span class="icon">📄</span>
+          {{ exportingPdf ? 'Génération...' : 'Exporter rapport PDF' }}
+        </button>
+
+        <div class="dropdown-wrapper">
+          <button (click)="toggleTestOptions()" class="btn-new-test">
+            Nouveau test <span class="arrow">▾</span>
+          </button>
+          
+          @if (showTestOptions) {
+            <div class="dropdown-menu">
+              <a routerLink="/skill-test" class="menu-item" (click)="showTestOptions = false">
+                <strong>Test Technique</strong>
+                <span>QCM & Challenge Code</span>
+              </a>
+              <a routerLink="/evaluation/pcm" class="menu-item" (click)="showTestOptions = false">
+                <strong>Test Soft Skills</strong>
+                <span>Personnalité & IA Behavioral</span>
+              </a>
+            </div>
+          }
+        </div>
+      </div>
     </div>
   </header>
 
@@ -99,28 +125,21 @@
           <strong>{{ row.candidate_score }}</strong>
         </header>
 
-        <div class="metric-line">
-          <span>Votre score</span>
-          <div class="line-track">
-            <div class="line-fill candidate" [style.width.%]="benchmarkRatio(row.candidate_score, row.top_10_percent_score)"></div>
+        <div class="benchmark-grid">
+          <div class="benchmark-metric">
+            <span class="metric-label">Votre score</span>
+            <app-progress-tracker [progression]="row.candidate_score" />
           </div>
-          <em>{{ row.candidate_score }}</em>
-        </div>
+          
+          <div class="benchmark-metric">
+            <span class="metric-label">Moyenne globale</span>
+            <app-progress-tracker [progression]="row.avg_score" />
+          </div>
 
-        <div class="metric-line">
-          <span>Moyenne</span>
-          <div class="line-track">
-            <div class="line-fill average" [style.width.%]="benchmarkRatio(row.avg_score, row.top_10_percent_score)"></div>
+          <div class="benchmark-metric">
+            <span class="metric-label">Objectif Top 10%</span>
+            <app-progress-tracker [progression]="row.top_10_percent_score" />
           </div>
-          <em>{{ row.avg_score }}</em>
-        </div>
-
-        <div class="metric-line">
-          <span>Top 10%</span>
-          <div class="line-track">
-            <div class="line-fill top" [style.width.%]="benchmarkRatio(row.top_10_percent_score, row.top_10_percent_score)"></div>
-          </div>
-          <em>{{ row.top_10_percent_score }}</em>
         </div>
       </article>
     </div>

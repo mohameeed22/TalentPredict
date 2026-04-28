@@ -100,7 +100,7 @@ export class TestApiService {
   }
 
   // ── AI Voice Interview ────────────────────────────────────────────
-  private readonly interviewTimeoutMs = 30_000;
+  private readonly interviewTimeoutMs = 60_000;
 
   getInterviewQuestion(body: {
     role: string;
@@ -139,6 +139,21 @@ export class TestApiService {
     );
   }
 
+  saveInterviewResult(userId: string, body: {
+    overallScore: number;
+    recommendation: string;
+    role: string;
+    level: string;
+    avgScores: Record<string, number>;
+    summaryData: unknown;
+  }): Observable<unknown> {
+    return this.http.post(`${this.base}/candidates/${userId}/interview-results`, body);
+  }
+
+  getInterviewResults(userId: string): Observable<unknown> {
+    return this.http.get(`${this.base}/candidates/${userId}/interview-results`);
+  }
+
   // ── Advanced Forensics & Analysis ──────────────────────────────────
   analyzeGithubDeep(body: {
     github_username: string;
@@ -158,5 +173,11 @@ export class TestApiService {
     return this.http.post(`${this.base}/analysis/cv-authenticity`, body).pipe(
       timeout({ first: this.evaluateTimeoutMs })
     );
+  }
+
+  generateReport(userId: string): Observable<Blob> {
+    return this.http.post(`${this.base}/candidates/${userId}/generate-report`, {}, {
+      responseType: 'blob'
+    });
   }
 }

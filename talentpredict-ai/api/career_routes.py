@@ -912,6 +912,12 @@ todayDate: {today_str}
         def _safe_dict(val: Any) -> dict:
             return val if isinstance(val, dict) else {}
 
+        def _string_list(val: Any, max_len: int = 0) -> list:
+            if isinstance(val, list):
+                res = [str(x) for x in val]
+                return res[:max_len] if max_len > 0 else res
+            return []
+
         summary = _safe_dict(data.get("summary"))
         skill_gap = _safe_dict(data.get("skill_gap_analysis"))
         roadmap = _safe_list(data.get("roadmap"), 1)

@@ -136,22 +136,39 @@ export class PcmTestComponent implements OnInit {
   questions: PCMQuestion[] = [];
 
   ngOnInit(): void {
-    // Pick a random subset of 6-12 questions
-    const count = 6 + Math.floor(Math.random() * 7); // 6 to 12
-    const shuffled = [...this.allQuestions].sort(() => Math.random() - 0.5);
-    this.questions = shuffled.slice(0, count);
-    this.totalSteps = Math.ceil(this.questions.length / 2);
+    // Better randomization: ensure at least 1 question from each unique category
+    const categories = Array.from(new Set(this.allQuestions.map(q => q.category)));
+    const selected: PCMQuestion[] = [];
+    
+    // 1. Pick one random question per category
+    categories.forEach(cat => {
+      const catQuestions = this.allQuestions.filter(q => q.category === cat);
+      const randomQ = catQuestions[Math.floor(Math.random() * catQuestions.length)];
+      selected.push(randomQ);
+    });
+
+    // 2. Fill the rest with random questions until we have a total of 10-12
+    const remainingCount = (10 + Math.floor(Math.random() * 3)) - selected.length;
+    const available = this.allQuestions.filter(q => !selected.find(s => s.id === q.id));
+    const extra = available.sort(() => Math.random() - 0.5).slice(0, remainingCount);
+    
+    this.questions = [...selected, ...extra].sort(() => Math.random() - 0.5);
+    this.totalSteps = this.questions.length;
 
     // Initialize both responses (for PCM endpoint) and answers (for soft skills endpoint)
     this.questions.forEach(q => {
       this.responses[q.id] = ''; // String for PCM endpoint
       this.answers[q.id] = 5;     // Number 0-10 for soft skills (default 5)
     });
-    console.log('[PcmTest] ngOnInit: Initialized 18 questions and answers');
+    console.log(`[PcmTest] ngOnInit: Initialized ${this.questions.length} questions`);
+  }
+
+  get steps(): number[] {
+    return Array.from({ length: this.totalSteps }, (_, i) => i);
   }
 
   get currentQuestions(): PCMQuestion[] {
-    const questionsPerStep = 2;
+    const questionsPerStep = 1;
     const start = this.currentStep * questionsPerStep;
     return this.questions.slice(start, start + questionsPerStep);
   }
