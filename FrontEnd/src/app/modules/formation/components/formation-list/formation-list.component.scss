@@ -977,3 +977,13 @@ input[type="range"] {
 .fraud-warning.high { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
 .fraud-warning.medium { background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; }
 .fraud-warning.low { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

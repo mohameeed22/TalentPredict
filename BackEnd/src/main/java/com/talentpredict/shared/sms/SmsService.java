@@ -32,6 +32,42 @@ public class SmsService {
     @Value("${twilio.whatsapp-number:}")
     private String twilioWhatsappNumber;
 
+    public void send2FACode(String toPhone, String code) {
+        if (toPhone == null || toPhone.isBlank()) {
+            return;
+        }
+
+        if (twilioAccountSid != null && !twilioAccountSid.isBlank()
+                && twilioAuthToken != null && !twilioAuthToken.isBlank()
+                && twilioFromNumber != null && !twilioFromNumber.isBlank()) {
+            try {
+                String message = "Votre code de vérification TalentPredict est : " + code;
+                String body = "To=" + URLEncoder.encode(toPhone, StandardCharsets.UTF_8)
+                        + "&From=" + URLEncoder.encode(twilioFromNumber, StandardCharsets.UTF_8)
+                        + "&Body=" + URLEncoder.encode(message, StandardCharsets.UTF_8);
+
+                String url = "https://api.twilio.com/2010-04-01/Accounts/" + twilioAccountSid + "/Messages.json";
+                String auth = twilioAccountSid + ":" + twilioAuthToken;
+                String basic = java.util.Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .header("Accept", "application/json")
+                        .header("Authorization", "Basic " + basic)
+                        .header("Content-Type", "application/x-www-form-urlencoded")
+                        .POST(HttpRequest.BodyPublishers.ofString(body))
+                        .build();
+
+                HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+                log.info("2FA SMS sent to {}", toPhone);
+            } catch (Exception ex) {
+                log.warn("Failed to send 2FA SMS to {}", toPhone, ex);
+            }
+        } else {
+            log.info("SMS not configured — 2FA code for {}: {}", toPhone, code);
+        }
+    }
+
     public void sendResetToken(String toPhone, String resetLink, String token) {
         if (toPhone == null || toPhone.isBlank()) {
             log.info("SMS reset skipped: no phone provided");

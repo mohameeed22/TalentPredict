@@ -6,6 +6,25 @@ import { SkillsService } from '../../../skills/services/skills.service';
 import { SoftSkillsService } from '../../../evaluation/services/soft-skills.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { FormsModule } from '@angular/forms';
+import { AuthUser } from '../../../auth/models/user.model';
+import { SoftSkillsResult } from '../../../evaluation/models/soft-skills.model';
+
+interface TechSkill {
+  id: string;
+  name: string;
+  niveau: number;
+  type: string;
+  delta: number;
+  score100: number;
+}
+
+interface TechTestResult {
+  finalScore: number;
+  overall_score?: number; // legacy fallback
+  passed: boolean;
+  skillScores: Record<string, number>;
+}
+
 
 @Component({
   selector: 'app-mes-resultats',
@@ -22,17 +41,17 @@ export class MesResultatsComponent implements OnInit {
   private softSkillsService = inject(SoftSkillsService);
   private notify = inject(NotificationService);
 
-  currentUser: any;
+  currentUser: AuthUser | null = null;
   loadingTech = true;
   loadingSoft = true;
 
   // Tech data
-  techSkills: any[] = [];
-  latestTechTest: any = null;
+  techSkills: TechSkill[] = [];
+  latestTechTest: TechTestResult | null = null;
   githubResult: any = null;
 
   // Soft data
-  softResult: any = null;
+  softResult: SoftSkillsResult | null = null;
 
   // Interview data
   voiceResult: any = null;
@@ -142,9 +161,9 @@ export class MesResultatsComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.currentUser = this.authService.getCurrentUser();
+    this.currentUser = this.authService.getCurrentUser() as AuthUser;
     if (!this.currentUser?.id) return;
-    const userId = String(this.currentUser.id);
+    const userId = this.currentUser.id;
 
     // 1. Check Voice Interview First (The Lock)
     const vCtx = sessionStorage.getItem('voiceInterviewResult');

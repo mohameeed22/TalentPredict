@@ -1,9 +1,8 @@
 package com.talentpredict.modules.assessment.dto;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
+import com.talentpredict.modules.assessment.entities.FraudFlags;
 
 public record RecruiterCandidateRow(
         UUID userId,
@@ -22,5 +21,5 @@ public record RecruiterCandidateRow(
         Instant fraudCheckedAt,
         String fraudReviewStatus,
         String fraudSource,
-        List<Map<String, Object>> topFraudFlags) {
+        FraudFlags fraudFlags) {
 }

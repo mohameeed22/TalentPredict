@@ -127,6 +127,7 @@ public class SocialAuthService {
 
             GithubTokenResponse body = tokenResp.getBody();
             if (body == null || body.accessToken == null) {
+                log.warn("Échec échange token GitHub. Réponse: {}", tokenResp.getBody());
                 throw new IllegalArgumentException("Impossible de récupérer le token GitHub");
             }
             String githubAccessToken = Objects.requireNonNull(body.accessToken, "GitHub access token must not be null");
@@ -260,7 +261,9 @@ public class SocialAuthService {
 
     private record GithubTokenResponse(@JsonProperty("access_token") String accessToken,
                                        @JsonProperty("scope") String scope,
-                                       @JsonProperty("token_type") String tokenType) { }
+                                       @JsonProperty("token_type") String tokenType,
+                                       @JsonProperty("error") String error,
+                                       @JsonProperty("error_description") String errorDescription) { }
 
     private record GithubUserInfo(@JsonProperty("email") String email,
                                   @JsonProperty("name") String name) { }

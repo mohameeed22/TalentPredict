@@ -9,7 +9,6 @@ import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.talentpredict.modules.ai.entities.Prediction;
 
-import com.talentpredict.modules.evaluation.entities.PersonalityTest;
 import com.talentpredict.modules.formation.entities.Formation;
 import com.talentpredict.modules.skills.entities.Skill;
 import com.talentpredict.modules.notification.entities.UserNotification;
@@ -123,11 +122,6 @@ public class User {
     @ToString.Exclude
     private Profile profile;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
-    @ToString.Exclude
-    @Builder.Default
-    private List<PersonalityTest> tests = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore

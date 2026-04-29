@@ -12,8 +12,8 @@ import com.talentpredict.modules.ai.dto.PredictionDto;
 import com.talentpredict.modules.ai.entities.Prediction;
 import com.talentpredict.modules.ai.repositories.PredictionRepository;
 import com.talentpredict.modules.auth.services.AuthServiceImpl;
-import com.talentpredict.modules.evaluation.entities.PersonalityTest;
-import com.talentpredict.modules.evaluation.repositories.PersonalityTestRepository;
+import com.talentpredict.modules.assessment.entities.CandidateTestResult;
+import com.talentpredict.modules.assessment.repositories.CandidateTestResultRepository;
 import com.talentpredict.modules.formation.dto.FormationDto;
 import com.talentpredict.modules.formation.entities.Formation;
 import com.talentpredict.modules.skills.entities.Skill;
@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PredictionService {
 
     private final PredictionRepository predictionRepository;
-    private final PersonalityTestRepository personalityTestRepository;
+    private final CandidateTestResultRepository candidateTestResultRepository;
     private final SkillRepository skillRepository;
     private final AuthServiceImpl authServiceImpl;
     private final OpenAIService openAIService;
@@ -44,7 +44,7 @@ public class PredictionService {
         User user = authServiceImpl.getUserById(userId);
 
         // Récupérer les données de l'utilisateur
-        List<PersonalityTest> tests = personalityTestRepository.findByUserIdOrderByDateTestDesc(userId);
+        List<CandidateTestResult> tests = candidateTestResultRepository.findByUser_IdOrderByTakenAtDesc(userId);
         List<Skill> skills = skillRepository.findByUserId(userId);
 
         // Construire le profil complet
@@ -55,9 +55,9 @@ public class PredictionService {
         if (!tests.isEmpty()) {
             profileBuilder.append("Tests de personnalité:\n");
             tests.forEach(test -> {
-                profileBuilder.append("- Type: ").append(test.getTypeTest())
-                        .append(", Score: ").append(test.getScore())
-                        .append("\n  Analyse: ").append(test.getAnalyseLlm()).append("\n");
+                profileBuilder.append("- Type: ").append(test.getTestType())
+                        .append(", Score: ").append(test.getOverallScore())
+                        .append("\n  Analyse: ").append(test.getSkillScoresJson()).append("\n");
             });
         }
 

@@ -46,22 +46,21 @@ export class RegisterComponent {
         ...this.registerForm.value,
         role: 'USER'
       };
-      this.authService.registerWithoutLogin(formValue).subscribe({
-        next: () => {
-          this.authService.clearSession();
-          this.notificationService.success('Compte créé avec succès. Vérifiez votre e-mail pour activer le compte.');
-          this.router.navigate(['/auth/verify-email'], {
-            queryParams: {
-              sent: 1,
-              email: formValue.email
-            }
-          }).then(() => this.appRef.tick());
+      this.authService.register(formValue).subscribe({
+        next: (response) => {
+          this.notificationService.success('Bienvenue ! Votre compte a été créé avec succès.');
+          // Redirect using backend's URL or default to dashboard
+          const redirectUrl = response.redirectUrl || '/dashboard';
+          this.router.navigateByUrl(redirectUrl).then(() => this.appRef.tick());
         },
         error: (error) => {
           if (error.status === 409) {
-            this.notificationService.error('Un compte avec cet email existe déjà. Veuillez vous connecter.');
+            const msg = error.error?.message || 'Cet email ou numéro de téléphone est déjà utilisé.';
+            this.notificationService.error(msg);
+            return;
           } else if (error.status === 400) {
-            this.notificationService.error('Données invalides. Vérifiez le formulaire.');
+            const msg = error.error?.message || error.error?.error || 'Données invalides. Vérifiez le formulaire.';
+            this.notificationService.error(msg);
           } else {
             const msg = error?.error?.message || 'Erreur lors de l\'inscription. Réessayez.';
             this.notificationService.error(msg);

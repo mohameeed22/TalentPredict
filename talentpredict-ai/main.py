@@ -11,7 +11,6 @@ from fastapi.middleware.cors import CORSMiddleware
 #cros allows us to make requests from the frontend (angular) to the backend (fastapi)  
 from api.analyze_candidate_route import router as analyze_router
 from api.analysis_routes import router as analysis_router
-from api.jobs_routes import router as jobs_router
 from api.parse_cv_route import router as parse_cv_router
 from api.recruiter_routes import router as recruiter_router
 from api.test_routes import router as test_router
@@ -56,7 +55,6 @@ app.include_router(analyze_router)
 app.include_router(parse_cv_router)
 app.include_router(test_router)
 app.include_router(analysis_router)
-app.include_router(jobs_router)
 app.include_router(recruiter_router)
 app.include_router(career_router)
 #every router become an endpoint in the backend, for example: /api/analyze, /api/test, /api/analysis, /api/jobs, /api/career, /api/recruiter

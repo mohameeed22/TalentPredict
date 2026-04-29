@@ -2,10 +2,8 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { EvaluationService } from '../../services/evaluation.service';
 import { AuthService } from '../../../auth/services/auth.service';
 import { SoftSkillsService } from '../../services/soft-skills.service';
-import { PersonalityTestRequest } from '../../models/evaluation.model';
 import { SoftSkillsAnalysisRequest } from '../../models/soft-skills.model';
 import { QuestionCardComponent } from '../question-card/question-card.component';
 
@@ -23,7 +21,6 @@ interface PCMQuestion {
   styleUrls: ['./pcm-test.component.scss']
 })
 export class PcmTestComponent implements OnInit {
-  private evaluationService = inject(EvaluationService);
   private authService = inject(AuthService);
   private softSkillsService = inject(SoftSkillsService);
   private router = inject(Router);
@@ -160,7 +157,6 @@ export class PcmTestComponent implements OnInit {
       this.responses[q.id] = ''; // String for PCM endpoint
       this.answers[q.id] = 5;     // Number 0-10 for soft skills (default 5)
     });
-    console.log(`[PcmTest] ngOnInit: Initialized ${this.questions.length} questions`);
   }
 
   get steps(): number[] {
@@ -185,7 +181,6 @@ export class PcmTestComponent implements OnInit {
   }
 
   onAnswerChange(questionId: string, answer: string): void {
-    console.log(`[PcmTest] Answer changed: ${questionId} = ${answer}`);
     this.responses[questionId] = answer;
     // Convert string answer to numeric scale (1-5 → 0-10)
     // If answer was "1" (disagree), map to 0-3; if "5" (agree), map to 8-10
@@ -236,39 +231,12 @@ export class PcmTestComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    console.log('[PcmTest] Submitting test with 18 answers');
-
-    // Build reponses map for PCM endpoint (q1, q2, ... q18)
-    const reponses = this.buildReponses();
-
-    const request: PersonalityTestRequest = {
-      reponses,
-      typeTest: 'PCM'
-    };
-
-    // Step 1: Submit to PCM endpoint
-    this.evaluationService.submitTest(currentUser.id, request).subscribe({
-      next: (pcmResponse) => {
-        console.log('[PcmTest] PCM test submitted, now launching soft skills analysis');
-        
-        // Step 2: Launch soft skills analysis with ALL 18 answers
-        this.launchSoftSkillsAnalysis(pcmResponse);
-      },
-      error: (err) => {
-        console.error('[PcmTest] PCM submission failed:', err);
-        this.loading = false;
-        if (err.status === 400) {
-          this.error = err?.error?.message || 'Les réponses sont invalides.';
-        } else if (err.status === 401) {
-          this.error = 'Session expirée. Veuillez vous reconnecter.';
-        } else {
-          this.error = 'Impossible de soumettre le test. Veuillez réessayer.';
-        }
-      }
-    });
+    // Step 1: Launch soft skills analysis with ALL 18 answers directly
+    // (Legacy PCM endpoint bypassed as requested for system cleanup)
+    this.launchSoftSkillsAnalysis();
   }
 
-  private launchSoftSkillsAnalysis(pcmResult: any): void {
+  private launchSoftSkillsAnalysis(): void {
     const profileDataStr = sessionStorage.getItem('softSkillsProfile');
     const profileData = profileDataStr ? JSON.parse(profileDataStr) : {};
 

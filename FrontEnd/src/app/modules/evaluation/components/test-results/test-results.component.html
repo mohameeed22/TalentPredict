@@ -104,34 +104,11 @@
       </div>
     </section>
 
-    <!-- IA Scenario Result (New) -->
-    <section class="card scenario-result-card" *ngIf="result?.scenarioEvaluation">
-      <div class="card-header">
-        <span class="icon">🎮</span>
-        <h2>Simulation de Mise en Situation</h2>
-      </div>
-      <div class="scenario-body">
-        <div class="scenario-scores">
-          <div class="sc-item" *ngFor="let s of getScenarioScores()">
-            <div class="sc-meta">
-              <span class="sc-label">{{ s.label }}</span>
-              <span class="sc-val">{{ s.value }}%</span>
-            </div>
-            <div class="sc-bar"><div class="fill" [style.width.%]="s.value"></div></div>
-          </div>
-        </div>
-        <div class="scenario-feedback">
-          <h4>Feedback Situationnel</h4>
-          <p>{{ result.scenarioEvaluation.overall_feedback }}</p>
-        </div>
-      </div>
-    </section>
-
     <!-- Source Insights (Detailed - SHOW FROM WHERE CAME FROM) -->
     <section class="card sources-pro-card full-width">
       <div class="card-header">
         <span class="icon">🔗</span>
-        <h2>Origine des Données & Preuves</h2>
+        <h2>Analyse Transversale par Source</h2>
       </div>
       <div class="source-grid">
         <div class="source-detail-item" *ngFor="let s of getActiveSources()">
@@ -140,15 +117,55 @@
               <span class="source-icon">{{ getSourceIcon(s) }}</span>
               <span class="source-label">{{ getSourceLabel(s) }}</span>
             </div>
-            <span class="source-score">{{ getSourceScore(s) }}/10</span>
+            <span class="source-score" [style.color]="getScoreColor(getSourceScore(s))">{{ getSourceScore(s) }}/10</span>
           </div>
           <div class="source-text">{{ getSourceDetails(s) }}</div>
           <div class="source-footer">
-            <span class="badge-verified">Verified By AI</span>
+            <span class="badge-verified">Verified By AI Engine</span>
           </div>
         </div>
       </div>
     </section>
+
+    <!-- Personality Detailed Breakdown (PCM) -->
+    <section class="card pcm-detailed-card full-width">
+      <div class="card-header">
+        <span class="icon">🧩</span>
+        <h2>Profil de Personnalité Détaillé (PCM)</h2>
+      </div>
+      <div class="pcm-grid">
+        <div class="pcm-main-info">
+          <div class="pcm-type-banner">
+            <span class="pcm-emoji">{{ getPersonalityEmoji(result?.personalityType) }}</span>
+            <div class="pcm-type-txt">
+              <h3>Type Dominant : {{ result?.personalityType }}</h3>
+              <p>Ce profil définit votre mode de communication privilégié et vos sources de motivation principales.</p>
+            </div>
+          </div>
+          <div class="pcm-cards-grid">
+            <div class="pcm-mini-card" *ngFor="let card of personalityCards" [class.active]="getActivePersonalityKey() === card.key">
+              <span class="p-icon">{{ card.icon }}</span>
+              <span class="p-label">{{ card.label }}</span>
+              <p class="p-desc">{{ card.desc }}</p>
+            </div>
+          </div>
+        </div>
+        <div class="pcm-characteristics" *ngIf="result?.personalityType">
+          <div class="char-box">
+            <h4>Points Forts Naturels</h4>
+            <ul>
+              <li *ngFor="let s of result?.top3Strengths">{{ getSkillLabel(s) }}</li>
+            </ul>
+          </div>
+          <div class="char-box">
+            <h4>Environnement Favorisé</h4>
+            <p>{{ result?.careerAdvice }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- IA Scenario Result (New) -->
 
     <!-- Traits Card -->
     <section class="card traits-card">
@@ -183,22 +200,52 @@
       </div>
     </section>
 
+    <!-- Full Skills Inventory -->
+    <section class="card full-skills-card full-width">
+      <div class="card-header">
+        <span class="icon">📊</span>
+        <h2>Inventaire Complet des Soft Skills</h2>
+      </div>
+      <div class="skills-detailed-grid">
+        <div class="skill-detail-row" *ngFor="let entry of getSkillEntries()">
+          <div class="sd-meta">
+            <span class="sd-icon">{{ getSkillIcon(entry[0]) }}</span>
+            <span class="sd-label">{{ getSkillLabel(entry[0]) }}</span>
+          </div>
+          <div class="sd-progress">
+            <div class="sd-bar-bg">
+              <div class="sd-bar-fill" [style.width.%]="entry[1] * 10" [style.background]="getScoreColor(entry[1])"></div>
+            </div>
+            <span class="sd-val">{{ entry[1] }}/10</span>
+          </div>
+          <span class="sd-status" [style.color]="getScoreColor(entry[1])">{{ getScoreLabel(entry[1]) }}</span>
+        </div>
+      </div>
+    </section>
+
     <!-- Roadmap Card -->
     <section class="card roadmap-card full-width">
       <div class="card-header">
         <span class="icon">🛤️</span>
-        <h2>Feuille de Route & Recommandations</h2>
+        <h2>Plan de Développement Personnalisé</h2>
       </div>
       <div class="roadmap-grid">
         <div class="roadmap-col">
-          <h3>Conseils Carrière IA</h3>
+          <h3>Conseils Stratégiques IA</h3>
           <p>{{ result?.careerAdvice }}</p>
+          <div class="expert-note">
+            <strong>Note de l'Expert:</strong> L'analyse montre une forte corrélation entre votre type {{ result?.personalityType }} et vos scores en {{ result?.top3Strengths?.[0] }}.
+          </div>
         </div>
         <div class="roadmap-col">
-          <h3>Modules de Formation Suggérés</h3>
+          <h3>Actions de Formation Recommandées</h3>
           <div class="reco-list">
             <div class="reco-mini" *ngFor="let r of getRecommendationEntries()">
-              <strong>{{ getSkillLabel(r[0]) }}</strong>: {{ r[1] }}
+              <div class="reco-header">
+                <span class="reco-skill">{{ getSkillLabel(r[0]) }}</span>
+                <span class="reco-tag">Priorité Haute</span>
+              </div>
+              <p class="reco-desc">{{ r[1] }}</p>
             </div>
           </div>
         </div>

@@ -113,21 +113,17 @@ export class TestResultsComponent implements OnInit, OnDestroy {
         this.result = null;
         this.loading = false;
         this.errorType = 'no-data';
-        console.warn('[TestResults] Constructor: Ignoring invalid analysis payload from router state');
       } else {
         this.result = normalized;
         this.loading = false;
-        console.log('[TestResults] Constructor: Got result from router state');
       }
     }
   }
 
   ngOnInit(): void {
-    console.log('[TestResults] ngOnInit: loading =', this.loading);
     this.cdr.detectChanges();
 
     if (this.result) {
-      console.log('[TestResults] ngOnInit: Already have result, skipping API call');
       this.checkAutoCvAuthenticity();
       return;
     }
@@ -143,10 +139,8 @@ export class TestResultsComponent implements OnInit, OnDestroy {
           this.result = cached;
           this.loading = false;
           this.cdr.detectChanges();
-          console.log('[TestResults] ngOnInit: Got result from sessionStorage');
           return;
         }
-        console.log('[TestResults] ngOnInit: Cached result is incomplete/invalid, refreshing from API');
       } catch (e) {
         console.error('[TestResults] ngOnInit: Failed to parse sessionStorage:', e);
         sessionStorage.removeItem('softSkillsResult');
@@ -154,9 +148,7 @@ export class TestResultsComponent implements OnInit, OnDestroy {
     }
 
     // 30s timeout safety
-    console.log('[TestResults] ngOnInit: Starting 30s timeout');
     this.timeoutId = setTimeout(() => {
-      console.log('[TestResults] ngOnInit: Timeout fired, showing timeout state');
       if (this.loading) {
         this.loading = false;
         this.errorType = 'timeout';
@@ -165,13 +157,10 @@ export class TestResultsComponent implements OnInit, OnDestroy {
     }, 30000);
 
     // Call API
-    console.log('[TestResults] ngOnInit: Calling softSkillsService.getLastAnalysis()');
     this.sub = this.softSkillsService.getLastAnalysis().subscribe({
       next: (data) => {
-        console.log('[TestResults] ngOnInit: Got response:', data);
         clearTimeout(this.timeoutId);
         if (!data) {
-          console.log('[TestResults] ngOnInit: Response is empty, showing no-data state');
           this.loading = false;
           this.errorType = 'no-data';
           this.cdr.detectChanges();
@@ -179,7 +168,6 @@ export class TestResultsComponent implements OnInit, OnDestroy {
         }
         this.result = this.normalize(data);
         if (this.isLikelyInvalidAnalysis(this.result)) {
-          console.warn('[TestResults] ngOnInit: Backend returned invalid/fallback analysis, showing no-data state');
           this.result = null;
           this.loading = false;
           this.errorType = 'no-data';
@@ -189,7 +177,6 @@ export class TestResultsComponent implements OnInit, OnDestroy {
         }
         this.loading = false;
         this.errorType = 'none';
-        console.log('[TestResults] ngOnInit: Normalized result:', this.result);
         this.cdr.detectChanges();
         sessionStorage.setItem('softSkillsResult',
           JSON.stringify(this.result));
@@ -516,7 +503,6 @@ export class TestResultsComponent implements OnInit, OnDestroy {
   }
 
   retry(): void {
-    console.log('[TestResults] retry: Resetting state and reloading');
     sessionStorage.removeItem('softSkillsResult');
     this.result = null;
     this.loading = true;

@@ -8,6 +8,7 @@ import {
   RecruiterApiService,
   RecruiterCandidateRow
 } from '../../../recruiter/services/recruiter-api.service';
+import { CampaignApi, CampaignService, CampaignUpsertRequest } from '../../services/campaign.service';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../../environments/environment';
@@ -86,6 +87,7 @@ export class CampaignManagerComponent implements OnInit {
   private notificationService = inject(NotificationService);
   private dashboardService = inject(DashboardService);
   private recruiterApiService = inject(RecruiterApiService);
+  private campaignService = inject(CampaignService);
   private http = inject(HttpClient);
 
   activeTab = signal<'templates' | 'campaigns' | 'logs' | 'direct_messages'>('templates');
@@ -405,7 +407,7 @@ export class CampaignManagerComponent implements OnInit {
     const tmpl = this.templates().find(t => t.id === this.newCampaign.templateId);
 
     const campaignDraft: Campaign = {
-      id: 'c' + Date.now(),
+      id: 'draft',
       name: this.newCampaign.name!,
       templateId: this.newCampaign.templateId!,
       templateName: tmpl?.name || '—',
@@ -425,10 +427,23 @@ export class CampaignManagerComponent implements OnInit {
       return;
     }
 
-    this.campaigns.update(cs => [hydratedCampaign, ...cs]);
-    this.rebuildLogs();
-    this.isCreatingCampaign.set(false);
-    this.notificationService.success('Campagne créée avec succès.');
+    const payload = this.toUpsertPayload(hydratedCampaign, false);
+    this.loading.set(true);
+    this.campaignService.saveCampaign(payload)
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (saved) => {
+          const normalized = this.normalizeCampaign(saved);
+          const hydrated = this.hydrateCampaign(normalized);
+          this.campaigns.update(cs => [hydrated, ...cs]);
+          this.rebuildLogs();
+          this.isCreatingCampaign.set(false);
+          this.notificationService.success('Campagne créée avec succès.');
+        },
+        error: () => {
+          this.notificationService.error('Erreur lors de la création de la campagne.');
+        }
+      });
   }
 
   cancelCampaignCreate(): void {
@@ -441,38 +456,30 @@ export class CampaignManagerComponent implements OnInit {
       this.notificationService.error('Impossible de lancer: aucun destinataire dans ce groupe.');
       return;
     }
+    if (!campaign) return;
 
-    this.campaigns.update(cs =>
-      cs.map(c => {
-        if (c.id !== campaignId) return c;
-        return this.hydrateCampaign({
-          ...c,
-          status: 'ENVOYÉ',
-          scheduledAt: c.scheduledAt || new Date().toISOString()
-        });
-      })
-    );
+    const updated = this.hydrateCampaign({
+      ...campaign,
+      status: 'ENVOYÉ',
+      scheduledAt: campaign.scheduledAt || new Date().toISOString()
+    });
 
-    this.rebuildLogs();
-    this.notificationService.success('Campagne lancée.');
+    this.persistCampaignUpdate(updated, 'Campagne lancée.');
   }
 
   pauseCampaign(campaignId: string): void {
-    this.campaigns.update(cs =>
-      cs.map(c => {
-        if (c.id !== campaignId) return c;
-        return { ...c, isPaused: !c.isPaused };
-      })
-    );
+    const campaign = this.campaigns().find(c => c.id === campaignId);
+    if (!campaign) return;
+    const updated = { ...campaign, isPaused: !campaign.isPaused };
+    this.persistCampaignUpdate(this.hydrateCampaign(updated), 'Statut mis à jour.');
   }
 
   duplicateCampaign(campaignId: string): void {
     const source = this.campaigns().find(c => c.id === campaignId);
     if (!source) return;
-
     const duplicate: Campaign = {
       ...source,
-      id: `c${Date.now()}`,
+      id: 'draft',
       name: `Copie de ${source.name}`,
       status: 'BROUILLON',
       sentCount: 0,
@@ -480,8 +487,19 @@ export class CampaignManagerComponent implements OnInit {
       scheduledAt: ''
     };
 
-    this.campaigns.update(cs => [this.hydrateCampaign(duplicate), ...cs]);
-    this.notificationService.info('Campagne dupliquée comme brouillon.');
+    const hydrated = this.hydrateCampaign(duplicate);
+    const payload = this.toUpsertPayload(hydrated, false);
+    this.campaignService.saveCampaign(payload).subscribe({
+      next: (saved) => {
+        const normalized = this.normalizeCampaign(saved);
+        const persisted = this.hydrateCampaign(normalized);
+        this.campaigns.update(cs => [persisted, ...cs]);
+        this.notificationService.info('Campagne dupliquée comme brouillon.');
+      },
+      error: () => {
+        this.notificationService.error('Erreur lors de la duplication de la campagne.');
+      }
+    });
   }
 
   getCampaignProgress(campaign: Campaign): number {
@@ -529,14 +547,18 @@ export class CampaignManagerComponent implements OnInit {
       overview: this.dashboardService.getAdminOverview(),
       candidates: this.recruiterApiService.listCandidates().pipe(
         catchError(() => of([] as RecruiterCandidateRow[]))
+      ),
+      campaigns: this.campaignService.listCampaigns().pipe(
+        catchError(() => of([] as CampaignApi[]))
       )
     })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: ({ overview, candidates }) => {
+        next: ({ overview, candidates, campaigns }) => {
           this.sourceEmployees.set(overview.employees ?? []);
           this.candidateRows.set(candidates);
-          this.syncCampaignsWithLiveData();
+          const normalized = campaigns.map(campaign => this.normalizeCampaign(campaign));
+          this.syncCampaignsWithLiveData(normalized);
           this.lastSync.set(this.getNowLabel());
           if (showToast) {
             this.notificationService.success('Données synchronisées.');
@@ -548,51 +570,10 @@ export class CampaignManagerComponent implements OnInit {
       });
   }
 
-  private syncCampaignsWithLiveData(): void {
-    if (this.campaigns().length === 0) {
-      this.campaigns.set(this.buildDefaultCampaigns());
-      this.rebuildLogs();
-      return;
-    }
-    this.campaigns.update(campaigns => campaigns.map(campaign => this.hydrateCampaign(campaign)));
+  private syncCampaignsWithLiveData(campaigns?: Campaign[]): void {
+    const source = campaigns ?? this.campaigns();
+    this.campaigns.set(source.map(campaign => this.hydrateCampaign(campaign)));
     this.rebuildLogs();
-  }
-
-  private buildDefaultCampaigns(): Campaign[] {
-    const now = new Date();
-    const oneDay = 24 * 60 * 60 * 1000;
-    const twoDays = 2 * oneDay;
-
-    const defaults: Campaign[] = [
-      {
-        id: 'seed-assessment',
-        name: 'Relance Finalisation Test',
-        templateId: 't1',
-        templateName: 'Invitation au test',
-        channel: 'EMAIL',
-        targetGroup: 'PENDING_ASSESSMENT',
-        recipientCount: 0,
-        status: 'PLANIFIÉ',
-        scheduledAt: new Date(now.getTime() + oneDay).toISOString(),
-        sentCount: 0,
-        failedCount: 0
-      },
-      {
-        id: 'seed-all',
-        name: 'Newsletter RH Mensuelle',
-        templateId: 't2',
-        templateName: 'Mise à jour Onboarding',
-        channel: 'EMAIL',
-        targetGroup: 'ACTIVE_EMPLOYEES',
-        recipientCount: 0,
-        status: 'BROUILLON',
-        scheduledAt: '',
-        sentCount: 0,
-        failedCount: 0
-      }
-    ];
-
-    return defaults.map(campaign => this.hydrateCampaign(campaign));
   }
 
   private hydrateCampaign(campaign: Campaign): Campaign {
@@ -648,6 +629,58 @@ export class CampaignManagerComponent implements OnInit {
     }
 
     this.deliveryLogs.set(logs);
+  }
+
+  private normalizeCampaign(campaign: CampaignApi): Campaign {
+    return {
+      ...(campaign as Campaign),
+      recipientCount: campaign.recipientCount ?? 0,
+      sentCount: campaign.sentCount ?? 0,
+      failedCount: campaign.failedCount ?? 0,
+      isPaused: campaign.isPaused ?? false,
+      scheduledAt: campaign.scheduledAt ?? ''
+    };
+  }
+
+  private toUpsertPayload(campaign: Campaign, includeId = true): CampaignUpsertRequest {
+    const payload: CampaignUpsertRequest = {
+      id: includeId ? campaign.id : undefined,
+      name: campaign.name,
+      templateId: campaign.templateId,
+      templateName: campaign.templateName,
+      channel: campaign.channel,
+      targetGroup: campaign.targetGroup,
+      recipientCount: campaign.recipientCount,
+      status: campaign.status,
+      scheduledAt: campaign.scheduledAt ? campaign.scheduledAt : null,
+      sentCount: campaign.sentCount,
+      failedCount: campaign.failedCount,
+      openRate: campaign.openRate,
+      clickRate: campaign.clickRate,
+      isPaused: campaign.isPaused ?? false
+    };
+
+    if (!includeId) {
+      delete payload.id;
+    }
+
+    return payload;
+  }
+
+  private persistCampaignUpdate(campaign: Campaign, successMessage: string): void {
+    const payload = this.toUpsertPayload(campaign, true);
+    this.campaignService.saveCampaign(payload).subscribe({
+      next: (saved) => {
+        const normalized = this.normalizeCampaign(saved);
+        const hydrated = this.hydrateCampaign(normalized);
+        this.campaigns.update(cs => cs.map(c => c.id === hydrated.id ? hydrated : c));
+        this.rebuildLogs();
+        this.notificationService.success(successMessage);
+      },
+      error: () => {
+        this.notificationService.error('Erreur lors de la mise à jour de la campagne.');
+      }
+    });
   }
 
   private getTargetEmployees(group: CampaignTargetGroup): EmployeeSummary[] {

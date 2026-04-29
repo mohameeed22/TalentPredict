@@ -309,6 +309,38 @@
               }
             </ul>
           }
+
+          <h4 class="mt-4">Compétences</h4>
+          @if (skillsLoading()) {
+            <div class="empty-box">Chargement des compétences...</div>
+          } @else if (skillsError()) {
+            <div class="empty-box">{{ skillsError() }}</div>
+          } @else if (userSkills().length === 0) {
+            <div class="empty-box">Aucune compétence enregistrée.</div>
+          } @else {
+            <ul class="list-cards">
+              @for (skill of userSkills(); track skill.id) {
+                <li>
+                  <div>
+                    <strong>{{ skill.nom }}</strong>
+                    <span>{{ skill.type }} · Niveau {{ skill.niveau }}</span>
+                  </div>
+                  <div class="skill-actions">
+                    <span class="badge" [ngClass]="skill.validee ? 'success' : 'info'">
+                      {{ skill.validee ? 'Validée' : 'En attente' }}
+                    </span>
+                    @if (isAdmin()) {
+                      <button class="btn-small"
+                        (click)="validateSkill(skill.id, $event)"
+                        [disabled]="skill.validee || isSkillValidating(skill.id)">
+                        {{ skill.validee ? 'Validée' : (isSkillValidating(skill.id) ? 'Validation...' : 'Valider') }}
+                      </button>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          }
           <button class="btn-primary full-width mt-3" (click)="assignFormation()">Inviter à passer un test</button>
         </div>
       }

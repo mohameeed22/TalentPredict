@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
@@ -45,6 +46,8 @@ public class AuthDto {
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class RegisterRequest {
 
         @NotBlank(message = "Last name is required")
@@ -71,7 +74,7 @@ public class AuthDto {
          * Role chosen at signup: USER (Employee) or ADMIN (HR Manager).
          * Defaults to USER if null.
          */
-        private User.Role role;
+        private String role;
     }
 
     @Data

@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.talentpredict.modules.ai.entities.Prediction;
 import com.talentpredict.modules.ai.repositories.PredictionRepository;
 import com.talentpredict.modules.assessment.entities.CandidateTestResult;
+import com.talentpredict.modules.assessment.entities.FraudFlags;
 import com.talentpredict.modules.assessment.entities.TestType;
 import com.talentpredict.modules.assessment.repositories.CandidateTestResultRepository;
 import com.talentpredict.modules.assessment.services.ReportGeneratorService;
@@ -40,7 +41,6 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/api/candidates")
 @RequiredArgsConstructor
 @Slf4j
-@SuppressWarnings("null")
 public class CandidateAssessmentController {
 
     private final CandidateTestResultRepository candidateTestResultRepository;
@@ -152,7 +152,7 @@ public class CandidateAssessmentController {
         User user = userRepository.findById(userId).orElseThrow();
 
         String skillScoresJson = "{}";
-        String fraudFlagsJson = "[]";
+        FraudFlags fraudFlags = new FraudFlags();
         String summaryJson = "{}";
 
         try {
@@ -191,7 +191,7 @@ public class CandidateAssessmentController {
                 .user(user)
                 .overallScore(score)
                 .skillScoresJson(skillScoresJson)
-                .fraudFlagsJson(fraudFlagsJson)
+                .fraudFlags(fraudFlags)
                 .passed(passed)
                 .testType(TestType.VOICE_INTERVIEW)
                 .build();

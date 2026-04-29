@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.talentpredict.modules.assessment.dto.FraudCaseDto;
+import com.talentpredict.modules.assessment.entities.FraudFlags;
 import com.talentpredict.modules.assessment.entities.FraudCase;
 import com.talentpredict.modules.assessment.repositories.FraudCaseRepository;
 import com.talentpredict.modules.user.entities.Profile;
@@ -55,7 +56,7 @@ public class FraudCaseService {
                 .scoreConfidence(readDouble(safeVerdict, "score_confidence"))
                 .recommendation(safeText(safeVerdict.path("recommendation"), 40))
                 .explanation(safeText(safeVerdict.path("explanation"), 4000))
-                .flagsJson(extractFlagsJson(safeVerdict))
+                .flags(extractFraudFlags(safeVerdict))
                 .build();
 
         FraudCase saved = fraudCaseRepository.save(fraudCase);
@@ -190,32 +191,23 @@ public class FraudCaseService {
                 falsePositiveRate);
     }
 
-    public List<Map<String, Object>> extractTopFlags(String flagsJson, int limit) {
-        if (flagsJson == null || flagsJson.isBlank()) {
+    public List<Map<String, Object>> extractTopFlags(FraudFlags flagsObj, int limit) {
+        if (flagsObj == null || flagsObj.getFlags() == null) {
             return List.of();
         }
         int boundedLimit = Math.max(1, Math.min(limit, 10));
-        try {
-            JsonNode root = objectMapper.readTree(flagsJson);
-            if (!root.isArray()) {
-                return List.of();
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (FraudFlags.FlagDetail flag : flagsObj.getFlags()) {
+            if (result.size() >= boundedLimit) {
+                break;
             }
-            List<Map<String, Object>> flags = new ArrayList<>();
-            for (JsonNode item : root) {
-                if (flags.size() >= boundedLimit) {
-                    break;
-                }
-                Map<String, Object> entry = new LinkedHashMap<>();
-                entry.put("type", safeText(item.path("type"), 120));
-                entry.put("description", safeText(item.path("description"), 1000));
-                entry.put("severity", normalizeSeverity(safeText(item.path("severity"), 20)));
-                flags.add(entry);
-            }
-            return flags;
-        } catch (Exception ex) {
-            log.debug("Could not parse fraud flags JSON: {}", ex.getMessage());
-            return List.of();
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("type", flag.getType());
+            entry.put("description", flag.getDescription() != null ? flag.getDescription() : "Fraud signal: " + flag.getType());
+            entry.put("severity", flag.getSeverity() != null ? normalizeSeverity(flag.getSeverity()) : normalizeSeverity(flagsObj.getSeverity()));
+            result.add(entry);
         }
+        return result;
     }
 
     private FraudCaseDto.HistoryResponse toHistoryResponse(FraudCase fraudCase) {
@@ -233,7 +225,7 @@ public class FraudCaseService {
                 fraudCase.getCreatedAt(),
                 fraudCase.getReviewedAt(),
                 reviewedBy,
-                extractTopFlags(fraudCase.getFlagsJson(), DEFAULT_TOP_FLAGS));
+                extractTopFlags(fraudCase.getFlags(), DEFAULT_TOP_FLAGS));
     }
 
     private Map<String, Double> computeDriftBySource(List<FraudCase> recentCases, List<FraudCase> previousCases) {
@@ -270,7 +262,7 @@ public class FraudCaseService {
     private Map<String, Long> computeSignalDistribution(List<FraudCase> recentCases) {
         Map<String, Long> distribution = new LinkedHashMap<>();
         for (FraudCase item : recentCases) {
-            for (Map<String, Object> flag : extractTopFlags(item.getFlagsJson(), 20)) {
+            for (Map<String, Object> flag : extractTopFlags(item.getFlags(), 20)) {
                 String type = String.valueOf(flag.getOrDefault("type", "unknown")).trim();
                 if (!type.isEmpty()) {
                     distribution.merge(type, 1L, Long::sum);
@@ -324,12 +316,32 @@ public class FraudCaseService {
         profileRepository.save(profile);
     }
 
-    private String extractFlagsJson(JsonNode verdict) {
+    public FraudFlags extractFraudFlags(JsonNode verdict) {
+        if (verdict == null || verdict.isNull()) {
+            return new FraudFlags();
+        }
+        
+        FraudFlags ff = new FraudFlags();
+        ff.setScore(readDouble(verdict, "fraud_score"));
+        ff.setSeverity(normalizeSeverity(verdict.path("severity").asText("low")));
+        
         JsonNode flags = verdict.path("flags");
         if (flags.isArray()) {
-            return flags.toString();
+            List<FraudFlags.FlagDetail> flagList = new ArrayList<>();
+            for (JsonNode f : flags) {
+                if (f.isObject()) {
+                    flagList.add(new FraudFlags.FlagDetail(
+                        f.path("type").asText("unknown"),
+                        f.path("description").asText(""),
+                        f.path("severity").asText("low")
+                    ));
+                } else {
+                    flagList.add(new FraudFlags.FlagDetail(f.asText(), "", "low"));
+                }
+            }
+            ff.setFlags(flagList);
         }
-        return "[]";
+        return ff;
     }
 
     private Integer readInteger(JsonNode node, String field) {

@@ -5,6 +5,10 @@ import { RouterModule } from '@angular/router';
 import { DashboardService, AdminOverviewResponse, EmployeeDashboardResponse, EmployeeSummary } from '../../services/dashboard.service';
 import { PieChartComponent, PieChartSlice } from '../../../../shared/components/pie-chart/pie-chart.component';
 
+/**
+ * @deprecated Use ExecutiveDashboardComponent instead.
+ * This component covers all premium HR analytics and will fully replace this legacy version.
+ */
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,

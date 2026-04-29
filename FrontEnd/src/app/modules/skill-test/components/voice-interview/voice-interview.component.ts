@@ -26,7 +26,19 @@ interface InterviewTurn {
   wpm?: number;
 }
 
+export interface InterviewSummary {
+  overall_score: number;
+  recommendation: string;
+  summary_paragraph?: string;
+  avg_scores?: Record<string, number>;
+  strengths?: string[];
+  areas_for_improvement?: string[];
+  culture_fit_notes?: string;
+  confidence_level?: string;
+}
+
 type Phase = 'setup' | 'interviewing' | 'evaluating' | 'results';
+
 
 @Component({
   selector: 'app-voice-interview',
@@ -105,7 +117,7 @@ export class VoiceInterviewComponent implements OnInit, AfterViewInit, OnDestroy
   private mediaStream?: MediaStream;
 
   // ── Results
-  summary = signal<any>(null);
+  summary = signal<InterviewSummary | null>(null);
 
   // ── Computed helpers
   get turnNumber() { return this.history().length + 1; }
@@ -473,12 +485,13 @@ export class VoiceInterviewComponent implements OnInit, AfterViewInit, OnDestroy
     const strengthsList = (sum.strengths ?? []).map((s: string) => `<li>${s}</li>`).join('');
     const improveList = (sum.areas_for_improvement ?? []).map((a: string) => `<li>${a}</li>`).join('');
     const turnRows = this.history().map((t, i) => {
-      const avg = t.scores ? this.turnAvgScore(t.scores) : 'N/A';
+      const avgNum = t.scores ? this.turnAvgScore(t.scores) : 0;
+      const avgDisplay = t.scores ? `${avgNum}/100` : 'N/A';
       return `<tr>
         <td>${i + 1}</td>
-        <td>${t.question}</td>
-        <td>${t.answer}</td>
-        <td><b>${avg}/100</b></td>
+        <td><div style="font-weight:700;">${t.topic ?? 'Général'}</div><div style="font-size:11px; color:#64748b;">${t.question}</div></td>
+        <td>${t.answer}<br><span style="font-size:10px; color:#94a3b8;">${t.wpm ? t.wpm + ' WPM' : ''}</span></td>
+        <td><b style="color:${avgNum > 70 ? '#22c55e' : avgNum > 40 ? '#f59e0b' : '#ef4444'}">${avgDisplay}</b></td>
         <td>${t.feedback ?? ''}</td>
       </tr>`;
     }).join('');
@@ -489,38 +502,51 @@ export class VoiceInterviewComponent implements OnInit, AfterViewInit, OnDestroy
   <meta charset="UTF-8"/>
   <title>Rapport Entretien IA — TalentPredict</title>
   <style>
-    body { font-family: 'Segoe UI', Arial, sans-serif; color: #122433; padding: 32px; }
-    h1 { font-size: 24px; color: #0b79d0; margin-bottom: 4px; }
-    .subtitle { color: #4b6072; font-size: 14px; margin-bottom: 24px; }
+    body { font-family: 'Outfit', 'Segoe UI', Arial, sans-serif; color: #1e293b; padding: 40px; background: #f8fafc; }
+    .report-page { background: #fff; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.05); padding: 50px; max-width: 900px; margin: 0 auto; border: 1px solid #e2e8f0; }
+    .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px; }
+    .logo-text { font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -1px; }
+    .logo-text span { color: #0b79d0; }
+    h1 { font-size: 28px; color: #0f172a; margin-bottom: 4px; font-weight: 800; }
+    .subtitle { color: #64748b; font-size: 14px; margin-bottom: 30px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
     .badge { display:inline-block; padding: 4px 12px; border-radius: 20px; font-weight:700; font-size: 14px; margin-bottom: 16px; }
-    .score-row { display:flex; gap:24px; margin-bottom: 20px; }
-    .score-box { text-align:center; background:#f0f8ff; border:1px solid #cde3f5; border-radius:10px; padding:12px 20px; }
-    .score-num { font-size: 28px; font-weight:800; color: #0b79d0; }
-    table { width:100%; border-collapse: collapse; margin-bottom: 24px; font-size:13px; }
-    th { background:#0b79d0; color:#fff; padding:8px; text-align:left; }
-    td { padding: 7px 8px; border-bottom: 1px solid #e0eaf5; }
-    h2 { font-size:16px; color:#122433; margin:20px 0 8px; border-bottom:2px solid #e0eaf5; padding-bottom:4px; }
-    ul { padding-left:18px; } li { margin-bottom: 4px; font-size:13px; }
-    .summary-p { background:#f8fbff; border-left:4px solid #0b79d0; padding:10px 14px; font-size:13px; color:#4b6072; line-height:1.6; }
-    @media print { body { padding: 16px; } }
+    .score-box { text-align:center; background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+    .score-num { font-size: 36px; font-weight: 800; color: #0b79d0; line-height: 1; margin-bottom: 8px; }
+    table { width:100%; border-collapse: collapse; margin-bottom: 30px; font-size:13px; }
+    th { background:#f8fafc; color:#475569; padding:12px; text-align:left; border-bottom: 2px solid #e2e8f0; font-weight: 700; text-transform: uppercase; font-size: 11px; }
+    td { padding: 12px; border-bottom: 1px solid #f1f5f9; line-height: 1.5; }
+    h2 { font-size:18px; color:#0f172a; margin:30px 0 15px; border-left:4px solid #0b79d0; padding-left:15px; font-weight: 800; }
+    ul { padding-left:18px; } li { margin-bottom: 8px; font-size:14px; color: #334155; }
+    .summary-p { background:#f0f9ff; border-radius: 12px; padding: 20px; font-size:14px; color:#1e293b; line-height:1.7; border: 1px solid #bae6fd; font-style: italic; }
+    .footer-pro { margin-top: 50px; padding-top: 20px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; font-weight: 600; }
+    @media print { body { background: #fff; padding: 0; } .report-page { box-shadow: none; border: none; padding: 20px; width: 100%; max-width: 100%; } }
   </style>
 </head>
 <body>
+  <div class="report-page">
+    <div class="header-top">
+      <div class="logo-text">TALENT<span>PREDICT</span></div>
+      <div style="text-align: right; font-size: 10px; color: #94a3b8; font-weight: 700;">DOCUMENT OFFICIEL D'ÉVALUATION</div>
+    </div>
   <h1>🎙️ Rapport Entretien IA — TalentPredict</h1>
   <p class="subtitle">${lang === 'fr' ? 'Entretien de Découverte' : 'Discovery Interview'} · ${this.role} · ${this.level} · ${new Date().toLocaleDateString()}</p>
 
-  <div style="display:flex; gap:20px; margin-bottom:20px; flex-wrap:wrap;">
-    <div class="score-box">
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:20px; margin-bottom:30px;">
+    <div class="score-box" style="border-top: 4px solid #0b79d0;">
       <div class="score-num">${sum.overall_score ?? this.avgScore}</div>
       <div style="font-size:12px; color:#4b6072;">Score Global / 100</div>
     </div>
-    <div class="score-box">
+    <div class="score-box" style="border-top: 4px solid ${sum.recommendation === 'strong_hire' ? '#22c55e' : '#f59e0b'};">
       <div style="font-size:18px; font-weight:700;">${rec}</div>
       <div style="font-size:12px; color:#4b6072;">Recommandation</div>
     </div>
-    <div class="score-box">
+    <div class="score-box" style="border-top: 4px solid #9333ea;">
       <div style="font-size:18px; font-weight:700;">${sum.confidence_level ?? 'Medium'}</div>
-      <div style="font-size:12px; color:#4b6072;">Niveau de Confiance</div>
+      <div style="font-size:12px; color:#4b6072;">Niveau de Confiance IA</div>
+    </div>
+    <div class="score-box" style="border-top: 4px solid #14b8a6;">
+      <div style="font-size:18px; font-weight:700;">${this.history().length} / ${this.maxTurns}</div>
+      <div style="font-size:12px; color:#4b6072;">Interactions</div>
     </div>
   </div>
 
@@ -539,13 +565,19 @@ export class VoiceInterviewComponent implements OnInit, AfterViewInit, OnDestroy
   <h2>${lang === 'fr' ? 'Synthèse' : 'Summary'}</h2>
   <div class="summary-p">${sum.summary_paragraph ?? ''}</div>
 
-  ${sum.culture_fit_notes ? `<h2>${lang === 'fr' ? 'Adéquation culturelle' : 'Culture fit'}</h2><p style="font-size:13px;">${sum.culture_fit_notes}</p>` : ''}
+  ${sum.culture_fit_notes ? `<h2>${lang === 'fr' ? 'Adéquation culturelle' : 'Culture fit'}</h2><p style="font-size:14px; color: #334155; line-height: 1.6;">${sum.culture_fit_notes}</p>` : ''}
 
   <h2>${lang === 'fr' ? 'Détail des réponses' : 'Answer breakdown'}</h2>
   <table>
-    <thead><tr><th>#</th><th>Question</th><th>Réponse</th><th>Score</th><th>Feedback</th></tr></thead>
+    <thead><tr><th>#</th><th style="width: 35%;">Question</th><th style="width: 35%;">Réponse</th><th>Score</th><th>Feedback</th></tr></thead>
     <tbody>${turnRows}</tbody>
   </table>
+
+  <div class="footer-pro">
+    <div>Généré par TALENT PREDICT IA Engine v4.0 (Neural Core)</div>
+    <div>Page 1 / 1</div>
+  </div>
+</div>
 </body>
 </html>`;
 

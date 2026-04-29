@@ -1,10 +1,9 @@
-"""Heuristic fraud signals + optional Ollama verdict JSON."""
-
-from __future__ import annotations
-
+import logging
 from typing import Any
 
 from services.ollama_client import call_ollama_json
+
+logger = logging.getLogger(__name__)
 
 
 def collect_signals(
@@ -200,8 +199,8 @@ Schema:
         data = await call_ollama_json(prompt, temperature=0.2, retry_stricter=True)
         if isinstance(data, dict) and "fraud_risk" in data:
             return data
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("LLM fraud assessment failed, falling back to heuristics: %s", e)
     risk = "low"
     score = min(100, len(signals) * 15)
     if score >= 60:
@@ -226,7 +225,8 @@ Code:
 Return ONLY JSON: {{"similarity_risk": "low|medium|high", "reason": "..."}}"""
     try:
         return await call_ollama_json(prompt, temperature=0.1, retry_stricter=True)
-    except Exception:
+    except Exception as e:
+        logger.warning("Copy-paste LLM check failed: %s", e)
         return {"similarity_risk": "low", "reason": "unavailable"}
 
 def score_signals_calibrated(signals: list[dict[str, Any]]) -> dict[str, Any]:

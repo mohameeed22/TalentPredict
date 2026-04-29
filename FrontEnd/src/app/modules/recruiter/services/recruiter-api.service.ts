@@ -20,13 +20,14 @@ export interface RecruiterCandidateRow {
   fraudCheckedAt?: string | null;
   fraudReviewStatus?: string | null;
   fraudSource?: string | null;
-  topFraudFlags?: TopFraudFlag[];
+  fraudFlags?: FraudFlags;
 }
 
-export interface TopFraudFlag {
-  type: string | null;
-  description: string | null;
-  severity: string | null;
+export interface FraudFlags {
+  score: number | null;
+  flags: { type: string; description: string; severity: string }[];
+  severity: string;
+  message?: string;
 }
 
 export interface FraudCaseHistoryItem {
@@ -42,7 +43,7 @@ export interface FraudCaseHistoryItem {
   createdAt: string;
   reviewedAt: string | null;
   reviewedByUserId: string | null;
-  topFlags: TopFraudFlag[];
+  fraudFlags: FraudFlags;
 }
 
 export interface FraudCaseReviewRequest {

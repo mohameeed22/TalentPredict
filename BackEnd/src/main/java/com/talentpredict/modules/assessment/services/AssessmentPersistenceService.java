@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.talentpredict.modules.assessment.entities.CandidateBadge;
 import com.talentpredict.modules.assessment.entities.CandidateTestResult;
+import com.talentpredict.modules.assessment.entities.FraudFlags;
 import com.talentpredict.modules.assessment.entities.FraudCase;
 import com.talentpredict.modules.assessment.entities.TestType;
 import com.talentpredict.modules.assessment.repositories.CandidateBadgeRepository;
@@ -40,7 +41,7 @@ public class AssessmentPersistenceService {
                 .user(user)
                 .overallScore(result.path("real_score").asInt())
                 .skillScoresJson(result.path("skill_scores").toString())
-                .fraudFlagsJson(extractFraudJson(result))
+                .fraudFlags(fraudCaseService.extractFraudFlags(result.path("_fraud_verdict")))
                 .passed(result.path("passed").asBoolean(false))
                 .testType(TestType.MCQ)
                 .build();
@@ -90,12 +91,6 @@ public class AssessmentPersistenceService {
         candidateBadgeRepository.save(b);
     }
 
-    private String extractFraudJson(JsonNode result) {
-        if (result.has("_fraud_verdict")) {
-            return result.get("_fraud_verdict").toString();
-        }
-        return "{}";
-    }
 
     public JsonNode stripFraudForCandidate(JsonNode result) {
         if (!(result instanceof ObjectNode obj)) {

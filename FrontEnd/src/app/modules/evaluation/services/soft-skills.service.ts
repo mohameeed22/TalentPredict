@@ -16,12 +16,10 @@ export class SoftSkillsService {
   private readonly api = `${environment.apiUrl}/soft-skills`;
 
   constructor(private http: HttpClient) {
-    console.log('[SoftSkillsService] Initialized with baseUrl:', this.api);
   }
 
   analyze(request: SoftSkillsAnalysisRequest): Observable<SoftSkillsResult> {
     const url = `${this.api}/analyze`;
-    console.log('[SoftSkillsService] POST', url, request);
     return this.http.post<SoftSkillsResult>(url, request).pipe(
       tap(res => console.log('[SoftSkillsService] POST Response:', res)),
       catchError(err => {
@@ -33,7 +31,6 @@ export class SoftSkillsService {
 
   reevaluate(request: SoftSkillsAnalysisRequest): Observable<SoftSkillsResult> {
     const url = `${this.api}/reevaluate`;
-    console.log('[SoftSkillsService] POST', url, request);
     return this.http.post<SoftSkillsResult>(url, request).pipe(
       tap(res => console.log('[SoftSkillsService] POST Response:', res)),
       catchError(err => {
@@ -45,7 +42,6 @@ export class SoftSkillsService {
 
   getProgress(): Observable<SoftSkillsProgress[]> {
     const url = `${this.api}/progress`;
-    console.log('[SoftSkillsService] GET', url);
     return this.http.get<SoftSkillsProgress[]>(url).pipe(
       tap(res => console.log('[SoftSkillsService] GET Response:', res)),
       catchError(err => {
@@ -57,7 +53,6 @@ export class SoftSkillsService {
 
   getLastAnalysis(): Observable<SoftSkillsResult> {
     const url = `${this.api}/last`;
-    console.log('[SoftSkillsService] GET', url);
     return this.http.get<SoftSkillsResult>(url).pipe(
       tap(res => console.log('[SoftSkillsService] GET Response:', res)),
       catchError(err => {
@@ -102,11 +97,9 @@ export class SoftSkillsService {
       q18: payload.q18,
     };
 
-    console.log('[SoftSkillsService] POST (extracted text via backend)', url, requestBody);
     return this.http.post<any>(url, requestBody, {
       headers: { 'Content-Type': 'application/json' },
     }).pipe(
-      tap(res => console.log('[SoftSkillsService] POST Response:', res)),
       catchError(err => {
         console.error('[SoftSkillsService] POST Error:', err.status, err.message);
         return throwError(() => err);

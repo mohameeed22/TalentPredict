@@ -38,11 +38,18 @@ CREATE TABLE IF NOT EXISTS candidate_test_results (
     user_id UUID NOT NULL REFERENCES users (id),
     overall_score INTEGER,
     skill_scores TEXT,
-    fraud_flags TEXT,
+    fraud_flags JSONB,
     taken_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     passed BOOLEAN,
     test_type VARCHAR(20)
 );
+
+ALTER TABLE IF EXISTS candidate_test_results
+    ALTER COLUMN fraud_flags TYPE JSONB
+    USING CASE
+        WHEN fraud_flags IS NULL OR TRIM(fraud_flags::text) = '' THEN '{}'::jsonb
+        ELSE fraud_flags::jsonb
+    END;
 
 CREATE INDEX IF NOT EXISTS idx_ctr_user_taken ON candidate_test_results (user_id, taken_at DESC);
 
@@ -56,7 +63,7 @@ CREATE TABLE IF NOT EXISTS fraud_cases (
     score_confidence DOUBLE PRECISION,
     recommendation VARCHAR(40),
     explanation TEXT,
-    flags_json TEXT,
+    flags_json JSONB,
     review_status VARCHAR(30) NOT NULL DEFAULT 'OPEN',
     reviewed_by_user_id UUID REFERENCES users (id),
     reviewed_at TIMESTAMPTZ,
@@ -70,6 +77,13 @@ CREATE INDEX IF NOT EXISTS idx_fraud_cases_risk_created ON fraud_cases (risk_lev
 CREATE INDEX IF NOT EXISTS idx_fraud_cases_review_status ON fraud_cases (review_status);
 CREATE INDEX IF NOT EXISTS idx_fraud_cases_source_created ON fraud_cases (source, created_at DESC);
 
+ALTER TABLE IF EXISTS fraud_cases
+    ALTER COLUMN flags_json TYPE JSONB
+    USING CASE
+        WHEN flags_json IS NULL OR TRIM(flags_json::text) = '' THEN '{"flags": []}'::jsonb
+        ELSE flags_json::jsonb
+    END;
+
 CREATE TABLE IF NOT EXISTS job_matches (
     id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users (id),
@@ -79,6 +93,27 @@ CREATE TABLE IF NOT EXISTS job_matches (
     skill_breakdown TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS campaigns (
+    id UUID PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    template_id VARCHAR(80),
+    template_name VARCHAR(200),
+    channel VARCHAR(20),
+    target_group VARCHAR(40),
+    recipient_count INTEGER,
+    status VARCHAR(20),
+    scheduled_at TIMESTAMPTZ,
+    sent_count INTEGER,
+    failed_count INTEGER,
+    open_rate DOUBLE PRECISION,
+    click_rate DOUBLE PRECISION,
+    is_paused BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_campaigns_created_at ON campaigns (created_at DESC);
 
 CREATE TABLE IF NOT EXISTS candidate_badges (
     id UUID PRIMARY KEY,
@@ -152,3 +187,159 @@ CREATE TABLE IF NOT EXISTS user_privacy_settings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_privacy_user_id ON user_privacy_settings (user_id);
+
+-- Skills table
+CREATE TABLE IF NOT EXISTS skills (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users (id),
+    nom VARCHAR(200) NOT NULL,
+    type VARCHAR(20) NOT NULL,
+    niveau INTEGER NOT NULL,
+    description TEXT,
+    source VARCHAR(30),
+    date_evaluation TIMESTAMP NOT NULL DEFAULT NOW(),
+    validee BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_skills_user_id ON skills (user_id);
+CREATE INDEX IF NOT EXISTS idx_skills_type ON skills (type);
+
+-- Predictions table
+CREATE TABLE IF NOT EXISTS predictions (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users (id),
+    analyse_text TEXT NOT NULL,
+    recommandation_soft TEXT,
+    recommandation_tech TEXT,
+    score_confiance DOUBLE PRECISION,
+    statut VARCHAR(30) NOT NULL DEFAULT 'EN_ANALYSE',
+    date_prediction TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_predictions_user_id ON predictions (user_id);
+
+-- Formations table
+CREATE TABLE IF NOT EXISTS formations (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users (id),
+    prediction_id UUID REFERENCES predictions (id),
+    titre VARCHAR(300) NOT NULL,
+    description TEXT,
+    duree INTEGER,
+    fournisseur VARCHAR(200),
+    url VARCHAR(500),
+    date_proposition TIMESTAMP NOT NULL DEFAULT NOW(),
+    date_debut TIMESTAMP,
+    date_fin TIMESTAMP,
+    progression INTEGER NOT NULL DEFAULT 0,
+    review_note TEXT,
+    next_action VARCHAR(500),
+    reviewed_by VARCHAR(255),
+    reviewed_at TIMESTAMP,
+    mini_test_score INTEGER,
+    mini_test_passed BOOLEAN,
+    mini_test_taken_at TIMESTAMP,
+    mini_test_notes TEXT,
+    certificate_url VARCHAR(600),
+    certificate_uploaded_at TIMESTAMP,
+    requested_at TIMESTAMP,
+    admin_note TEXT,
+    type VARCHAR(30) NOT NULL,
+    statut VARCHAR(30) NOT NULL DEFAULT 'PROPOSEE'
+);
+
+CREATE INDEX IF NOT EXISTS idx_formations_user_id ON formations (user_id);
+CREATE INDEX IF NOT EXISTS idx_formations_prediction_id ON formations (prediction_id);
+CREATE INDEX IF NOT EXISTS idx_formations_statut ON formations (statut);
+
+-- Tickets (Jira)
+CREATE TABLE IF NOT EXISTS tickets (
+    id UUID PRIMARY KEY,
+    formation_id UUID NOT NULL REFERENCES formations (id),
+    jira_key VARCHAR(50) UNIQUE,
+    titre VARCHAR(300) NOT NULL,
+    description TEXT,
+    statut VARCHAR(30) NOT NULL DEFAULT 'OUVERT',
+    priorite VARCHAR(20) DEFAULT 'MOYENNE',
+    assignee VARCHAR(200),
+    url_jira VARCHAR(500),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_tickets_formation_id ON tickets (formation_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_jira_key ON tickets (jira_key);
+
+-- PCM and Personality Tests
+CREATE TABLE IF NOT EXISTS pcm_results (
+    id UUID PRIMARY KEY,
+    profile_id UUID NOT NULL REFERENCES profiles (id),
+    type_pcm VARCHAR(30),
+    score_travail INTEGER,
+    score_secondaire INTEGER,
+    score_reactif INTEGER,
+    score_rebelle INTEGER,
+    date_evaluation TIMESTAMP NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_pcm_results_profile_id ON pcm_results (profile_id);
+
+CREATE TABLE IF NOT EXISTS tests_personnalite (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users (id),
+    date_test TIMESTAMP NOT NULL DEFAULT NOW(),
+    type_test VARCHAR(50),
+    resultats TEXT,
+    analyse_llm TEXT,
+    score INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_tp_user_id ON tests_personnalite (user_id);
+
+CREATE TABLE IF NOT EXISTS test_reponses (
+    test_id UUID NOT NULL REFERENCES tests_personnalite (id),
+    question_key VARCHAR(255) NOT NULL,
+    reponse_value TEXT,
+    PRIMARY KEY (test_id, question_key)
+);
+
+-- Audit and Security tokens
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id UUID PRIMARY KEY,
+    user_id UUID REFERENCES users (id),
+    event_type VARCHAR(50) NOT NULL,
+    email VARCHAR(255),
+    ip_address VARCHAR(50),
+    user_agent VARCHAR(500),
+    device_id VARCHAR(255),
+    location VARCHAR(255),
+    details TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs (user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_event_type ON audit_logs (event_type);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs (created_at);
+
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id UUID PRIMARY KEY,
+    token VARCHAR(120) NOT NULL UNIQUE,
+    user_id UUID NOT NULL REFERENCES users (id),
+    expiry_date TIMESTAMP NOT NULL,
+    used BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_prt_user_id ON password_reset_tokens (user_id);
+
+CREATE TABLE IF NOT EXISTS token_blocklist (
+    id UUID PRIMARY KEY,
+    token_hash VARCHAR(255) NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    reason VARCHAR(100),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_tb_token_hash ON token_blocklist (token_hash);

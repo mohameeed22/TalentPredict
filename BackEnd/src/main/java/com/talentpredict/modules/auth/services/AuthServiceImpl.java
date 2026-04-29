@@ -82,22 +82,24 @@ public class AuthServiceImpl implements IAuthService {
         user.setEmail(request.getEmail());
         user.setPhoneNumber(request.getPhoneNumber());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setEmailVerified(false);
-        user.setEmailVerifiedAt(null);
+        user.setEmailVerified(true);
+        user.setEmailVerifiedAt(Instant.now());
         user.setTwoFactorEnabled(false);
         user.setTwoFactorMethod("NONE");
 
         // Set role from request — default to USER for safety
-        User.Role role = (request.getRole() != null) ? request.getRole() : User.Role.USER;
+        User.Role role = User.Role.USER;
+        if (StringUtils.hasText(request.getRole())) {
+            try {
+                role = User.Role.valueOf(request.getRole().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid role provided: {}, defaulting to USER", request.getRole());
+            }
+        }
         user.setRole(role);
 
         log.info("Creating user for {} with role={}", request.getEmail(), role);
         User created = userRepository.save(user);
-        try {
-            sendVerificationEmail(created);
-        } catch (RuntimeException ex) {
-            log.warn("Unable to send verification email to {}", created.getEmail(), ex);
-        }
         return created;
     }
 

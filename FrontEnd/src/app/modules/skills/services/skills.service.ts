@@ -22,4 +22,8 @@ export class SkillsService {
   deleteSkill(skillId: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${skillId}`);
   }
+
+  validateSkill(skillId: string): Observable<SkillResponse> {
+    return this.http.put<SkillResponse>(`${this.baseUrl}/${skillId}/valider`, {});
+  }
 }

@@ -35,8 +35,9 @@ public class CandidateTestResult {
     @Column(name = "skill_scores", columnDefinition = "TEXT")
     private String skillScoresJson;
 
-    @Column(name = "fraud_flags", columnDefinition = "TEXT")
-    private String fraudFlagsJson;
+    @Convert(converter = FraudFlagsConverter.class)
+    @Column(name = "fraud_flags", columnDefinition = "jsonb")
+    private FraudFlags fraudFlags;
 
     @CreationTimestamp
     @Column(name = "taken_at", nullable = false, updatable = false)

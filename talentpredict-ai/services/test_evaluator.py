@@ -1,11 +1,10 @@
-"""Evaluate MCQ answers with confidence and time modifiers."""
-
-from __future__ import annotations
-
 import statistics
+import logging
 from typing import Any
 
 from services.ollama_client import call_ollama
+
+logger = logging.getLogger(__name__)
 
 
 def _confidence_mult(correct: bool, confidence: str) -> float:
@@ -131,7 +130,8 @@ Output ONLY the summary sentence."""
     try:
         text = await call_ollama(prompt)
         return text.strip()
-    except Exception:
+    except Exception as e:
+        logger.warning("Failed to generate test summary: %s", e)
         parts = []
         if strong:
             parts.append(f"Strong in {', '.join(strong[:4])}")

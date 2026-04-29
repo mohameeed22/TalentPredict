@@ -34,7 +34,7 @@ export const routes: Routes = [
     path: 'admin',
     canActivate: [authGuard, roleGuard(['ADMIN'])],
     children: [
-      { path: 'dashboard', loadComponent: () => import('./modules/dashboard/components/admin-dashboard/admin-dashboard.component').then(m => m.AdminDashboardComponent) },
+      { path: 'dashboard', loadComponent: () => import('./modules/admin/components/executive-dashboard/executive-dashboard.component').then(m => m.ExecutiveDashboardComponent) },
       { path: 'campaigns', loadComponent: () => import('./modules/admin/components/campaign-manager/campaign-manager.component').then(m => m.CampaignManagerComponent) },
       { path: 'profile', loadComponent: () => import('./modules/dashboard/components/admin-profile/admin-profile.component').then(m => m.AdminProfileComponent) },
       { path: 'users', loadComponent: () => import('./modules/admin/components/user-management/user-management.component').then(m => m.UserManagementComponent) },

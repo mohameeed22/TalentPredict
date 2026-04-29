@@ -14,4 +14,7 @@ public interface CandidateTestResultRepository extends JpaRepository<CandidateTe
     List<CandidateTestResult> findByUser_IdOrderByTakenAtDesc(UUID userId);
 
     long countByUser_Id(UUID userId);
+    
+    @org.springframework.data.jpa.repository.Query("SELECT AVG(r.overallScore) FROM CandidateTestResult r WHERE r.user.id = :userId")
+    Double findAvgScoreByUserId(UUID userId);
 }

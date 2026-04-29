@@ -19,4 +19,7 @@ public interface PersonalityTestRepository extends JpaRepository<PersonalityTest
 
     @Query("select t.user.id, count(t) from PersonalityTest t where t.user.id in :userIds group by t.user.id")
     List<Object[]> countGroupedByUserIds(@Param("userIds") List<UUID> userIds);
+
+    @Query("SELECT AVG(t.score) FROM PersonalityTest t WHERE t.user.id = :userId")
+    Double findAvgScoreByUserId(UUID userId);
 }

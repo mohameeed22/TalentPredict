@@ -33,7 +33,6 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/api/analysis")
 @RequiredArgsConstructor
 @Slf4j
-@SuppressWarnings("null")
 public class AnalysisProxyController {
 
     private final TalentPredictAiProxyService aiProxyService;
@@ -51,6 +50,8 @@ public class AnalysisProxyController {
         assertCandidate(principal.getUser(), body);
         return ResponseEntity.ok(aiProxyService.postJson("/api/analysis/github-deep", objectToMap(body)));
     }
+
+
 
     @PostMapping("/fraud-check")
     @PreAuthorize("isAuthenticated()")

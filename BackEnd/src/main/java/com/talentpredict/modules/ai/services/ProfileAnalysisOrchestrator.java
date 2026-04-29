@@ -4,6 +4,7 @@ package com.talentpredict.modules.ai.services;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -15,8 +16,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import com.talentpredict.modules.evaluation.dto.PersonalityTestDto;
-import com.talentpredict.modules.evaluation.services.PersonalityTestService;
+import com.talentpredict.modules.ai.repositories.PredictionRepository;
+import com.talentpredict.modules.ai.entities.Prediction;
 import com.talentpredict.modules.skills.dto.SkillDto;
 import com.talentpredict.modules.skills.services.SkillService;
 import com.talentpredict.modules.user.dto.ProfileDto;
@@ -37,7 +38,7 @@ public class ProfileAnalysisOrchestrator {
     private final PythonAiClient pythonAiClient;
     private final SkillService skillService;
     private final ProfileService profileService;
-    private final PersonalityTestService personalityTestService;
+    private final PredictionRepository predictionRepository;
     private final AnalysisStatusService analysisStatusService;
     @Qualifier("aiAnalysisExecutor")
     private final Executor aiAnalysisExecutor;
@@ -195,22 +196,23 @@ public class ProfileAnalysisOrchestrator {
 
     private List<SkillDto.CreateRequest> analyserPCM(UUID accountId) {
         try {
-            PersonalityTestDto.PersonalityTestResponse lastTest =
-                personalityTestService.getLatestTestByUser(accountId);
+            Optional<Prediction> latest = predictionRepository.findFirstByUserIdOrderByDatePredictionDesc(accountId);
 
-            if (lastTest == null) {
-                log.info("PCM: aucun test trouve, etape ignoree");
+            if (latest.isEmpty()) {
+                log.info("PCM: aucune prediction trouvee, etape ignoree");
                 return List.of();
             }
 
-            if (lastTest.getAnalyseLlm() == null || lastTest.getAnalyseLlm().isBlank()) {
-                log.info("PCM: test trouve mais pas encore analyse par IA, etape ignoree");
+            Prediction p = latest.get();
+            String analyseText = p.getAnalyse();
+            if (analyseText == null || analyseText.isBlank()) {
+                log.info("PCM: prediction trouvee mais analyse vide, etape ignoree");
                 return List.of();
             }
 
-            log.info("PCM: analyse du test du {}", lastTest.getDateTest());
+            log.info("PCM: extraction des skills depuis la derniere prediction du {}", p.getDatePrediction());
             List<SkillDto.CreateRequest> skills =
-                openRouterService.extraireSkillsDuPCM(lastTest.getAnalyseLlm());
+                openRouterService.extraireSkillsDuPCM(analyseText);
             log.info("PCM: {} soft skills detectes", skills.size());
             return skills;
 

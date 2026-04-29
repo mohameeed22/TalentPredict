@@ -7,7 +7,7 @@ import {
   FraudKpiResponse,
   RecruiterApiService,
   RecruiterCandidateRow,
-  TopFraudFlag
+  FraudFlags
 } from '../../services/recruiter-api.service';
 import { catchError, forkJoin, of } from 'rxjs';
 
@@ -95,11 +95,6 @@ export class RecruiterFraudAlertsComponent implements OnInit {
     return `${hours}h ${mins > 0 ? mins + 'm' : ''}`;
   }
 
-  formatFlagLabel(flag: TopFraudFlag): string {
-    const type = (flag.type ?? 'signal').replace(/_/g, ' ');
-    const severity = flag.severity ? ` (${flag.severity})` : '';
-    return `${type}${severity}`;
-  }
 
   onReviewDecisionChange(caseId: string, value: FraudCaseReviewRequest['decision']): void {
     this.reviewDecisionByCase[caseId] = value;

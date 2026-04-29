@@ -6,8 +6,7 @@ import java.util.List;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.talentpredict.modules.evaluation.entities.PersonalityTest;
-import com.talentpredict.modules.evaluation.repositories.PersonalityTestRepository;
+import com.talentpredict.modules.assessment.repositories.CandidateTestResultRepository;
 import com.talentpredict.modules.user.entities.User;
 
 import lombok.RequiredArgsConstructor;
@@ -18,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ReevaluationScheduler {
 
-    private final PersonalityTestRepository testRepository;
+    private final CandidateTestResultRepository testRepository;
 
     /**
      * S'exécute tous les jours à 2h du matin.

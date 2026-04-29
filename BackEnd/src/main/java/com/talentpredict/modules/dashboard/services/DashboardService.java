@@ -20,7 +20,6 @@ import com.talentpredict.modules.assessment.repositories.CandidateTestResultRepo
 import com.talentpredict.modules.auth.services.AuthServiceImpl;
 import com.talentpredict.modules.dashboard.dto.DashboardDto;
 import com.talentpredict.modules.evaluation.repositories.PersonalityTestRepository;
-import com.talentpredict.modules.evaluation.services.PersonalityTestService;
 import com.talentpredict.modules.formation.dto.FormationDto;
 import com.talentpredict.modules.formation.entities.Formation;
 import com.talentpredict.modules.formation.repositories.FormationRepository;
@@ -44,7 +43,6 @@ import lombok.extern.slf4j.Slf4j;
 public class DashboardService {
 
     private final AuthServiceImpl authServiceImpl;
-    private final PersonalityTestService personalityTestService;
     private final SkillService skillService;
     private final FormationService formationService;
     private final PredictionService predictionService;
@@ -68,9 +66,11 @@ public class DashboardService {
         dashboard.setFirstName(user.getFirstName());
         dashboard.setLastName(user.getLastName());
 
-        // Tests
-        var tests = personalityTestService.getTestsByUser(userId);
-        dashboard.setNombreTests(tests.size());
+        // Tests (Aggregate legacy and new assessment flow)
+        long legacyCount = personalityTestRepository.countByUserId(userId);
+        long assessmentCount = candidateTestResultRepository.countByUser_Id(userId);
+        int totalTestsCount = (int) (legacyCount + assessmentCount);
+        dashboard.setNombreTests(totalTestsCount);
 
         // Skills
         var skills = skillService.getSkillsByUser(userId);
@@ -106,15 +106,14 @@ public class DashboardService {
         dashboard.setFormationsRecentes(formationsRecentes);
 
         // Score moyen
-        if (!tests.isEmpty()) {
-            double scoreMoyen = tests.stream()
-                                        .mapToInt(t -> {
-                                                Integer score = t.getScore();
-                                                return score != null ? score : 0;
-                                        })
-                    .average()
-                    .orElse(0.0);
-            dashboard.setScoreEvaluationMoyen(scoreMoyen);
+        // Score moyen (Focus on new assessment flow if available, else legacy)
+        if (totalTestsCount > 0) {
+            Double avgScore = candidateTestResultRepository.findAvgScoreByUserId(userId);
+            if (avgScore == null && legacyCount > 0) {
+                // Fallback to legacy personality test scores if no new assessments exist
+                avgScore = personalityTestRepository.findAvgScoreByUserId(userId);
+            }
+            dashboard.setScoreEvaluationMoyen(avgScore != null ? avgScore : 0.0);
         }
 
         // Dernière prédiction

@@ -255,30 +255,30 @@
             <div class="deep-analysis-card">
               <div class="card-header-v2">
                  <div class="icon-v2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
-                 <h3>Rapport d'Architecture Profonde</h3>
+                 <h3>Rapport d'Architecture Profonde & Profiling GitHub</h3>
                  <div class="global-gh-score">
-                    Score Global : <strong>{{ githubDeepResult.github_score }}</strong>/100
+                    Score Global Technique : <strong>{{ githubDeepResult.github_score }}</strong>/100
                  </div>
               </div>
 
               <div class="metrics-grid">
                 <div class="metric-v2">
-                   <span class="m-label">Qualité des Commits</span>
+                   <span class="m-label">Lisibilité & Qualité des Commits</span>
                    <div class="m-bar"><div class="m-fill" [style.width.%]="githubDeepResult.commit_quality_score"></div></div>
                    <span class="m-val">{{ githubDeepResult.commit_quality_score }}%</span>
                 </div>
                 <div class="metric-v2">
-                   <span class="m-label">CI/CD & Tests</span>
+                   <span class="m-label">Infrastructure (CI/CD, Docker, Tests)</span>
                    <div class="m-bar"><div class="m-fill" [style.width.%]="githubDeepResult.code_quality_proxy_score"></div></div>
                    <span class="m-val">{{ githubDeepResult.code_quality_proxy_score }}%</span>
                 </div>
                 <div class="metric-v2">
-                   <span class="m-label">Impact Projets</span>
+                   <span class="m-label">Impact Architecturale & Complexité</span>
                    <div class="m-bar"><div class="m-fill" [style.width.%]="githubDeepResult.project_impact_score"></div></div>
                    <span class="m-val">{{ githubDeepResult.project_impact_score }}%</span>
                 </div>
                 <div class="metric-v2">
-                   <span class="m-label">Collaboration</span>
+                   <span class="m-label">Rayonnement & Collaboration Open Source</span>
                    <div class="m-bar"><div class="m-fill" [style.width.%]="githubDeepResult.collaboration_score"></div></div>
                    <span class="m-val">{{ githubDeepResult.collaboration_score }}%</span>
                 </div>
@@ -286,15 +286,16 @@
 
               @if (githubDeepResult.top_projects?.length) {
                 <div class="projects-section">
-                  <h4>Top Projets & Dépôts Analysés</h4>
+                  <h4>Inventaire des Dépôts Moteurs</h4>
                   <div class="projects-list">
                     @for (p of githubDeepResult.top_projects; track p.name) {
                       <div class="project-item">
-                        <div class="p-icon">📦</div>
-                        <div class="p-info">
+                        <div class="p-header">
+                          <span class="p-icon">📦</span>
                           <span class="p-name">{{ p.name }}</span>
-                          <span class="p-impact">Impact IA : {{ p.impact_score }}%</span>
+                          <span class="p-badge" [class.high]="p.impact_score > 70">Impact: {{ p.impact_score }}%</span>
                         </div>
+                        <p class="p-reason" *ngIf="p.contribution_type">Rôle: {{ p.contribution_type }}</p>
                       </div>
                     }
                   </div>
@@ -303,8 +304,10 @@
 
               @if (githubDeepResult.ai_summary) {
                 <div class="narrative-section">
-                  <h4>Résumé de l'Expert IA</h4>
-                  <p>{{ githubDeepResult.ai_summary }}</p>
+                  <h4>Synthèse de l'Architecte IA</h4>
+                  <div class="narrative-p">
+                    <p>{{ githubDeepResult.ai_summary }}</p>
+                  </div>
                 </div>
               }
             </div>

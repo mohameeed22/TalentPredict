@@ -30,6 +30,7 @@ public class TwoFactorService {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final TwoFactorCodeRepository twoFactorCodeRepository;
+    private final com.talentpredict.shared.sms.SmsService smsService;
 
     @Value("${auth.two-factor.code-expiration-minutes:10}")
     private long twoFactorCodeExpirationMinutes;
@@ -53,6 +54,10 @@ public class TwoFactorService {
 
         twoFactorCodeRepository.save(code);
         sendCodeByEmail(user, purpose, rawCode);
+        
+        if (StringUtils.hasText(user.getPhoneNumber())) {
+            smsService.send2FACode(user.getPhoneNumber(), rawCode);
+        }
     }
 
     @Transactional

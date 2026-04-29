@@ -1,10 +1,14 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { AdminService } from '../../services/admin.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { User, Role, UserRequest } from '../../../auth/models/user.model';
 import { UserDto } from '../../models/user-dto.model'; // I'll need to create this or import it
+import { SkillsService } from '../../../skills/services/skills.service';
+import { SkillResponse } from '../../../skills/models/skill.model';
+import { AuthService } from '../../../auth/services/auth.service';
 import { RouterModule } from '@angular/router';
 
 @Component({
@@ -17,10 +21,17 @@ import { RouterModule } from '@angular/router';
 export class UserManagementComponent implements OnInit {
   private adminService = inject(AdminService);
   private notificationService = inject(NotificationService);
+  private skillsService = inject(SkillsService);
+  private authService = inject(AuthService);
 
   users = signal<User[]>([]);
   loading = signal(false);
   error = signal<string | null>(null);
+
+  userSkills = signal<SkillResponse[]>([]);
+  skillsLoading = signal(false);
+  skillsError = signal<string | null>(null);
+  validatingSkillIds = signal<Set<string>>(new Set());
 
   // Modals and Drawer state
   showRoleConfirm = signal(false);
@@ -132,6 +143,10 @@ export class UserManagementComponent implements OnInit {
     this.loadUsers();
   }
 
+  isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+
   loadUsers(): void {
     this.loading.set(true);
     this.error.set(null);
@@ -157,6 +172,52 @@ export class UserManagementComponent implements OnInit {
         console.error('Error loading users:', err);
       }
     });
+  }
+
+  private loadUserSkills(userId: string): void {
+    this.skillsLoading.set(true);
+    this.skillsError.set(null);
+    this.skillsService.getUserSkills(userId)
+      .pipe(finalize(() => this.skillsLoading.set(false)))
+      .subscribe({
+        next: (skills) => this.userSkills.set(skills),
+        error: () => {
+          this.userSkills.set([]);
+          this.skillsError.set('Erreur lors du chargement des compétences');
+        }
+      });
+  }
+
+  validateSkill(skillId: string, event?: Event): void {
+    if (event) event.stopPropagation();
+    if (!this.isAdmin()) return;
+
+    this.setSkillValidating(skillId, true);
+    this.skillsService.validateSkill(skillId)
+      .pipe(finalize(() => this.setSkillValidating(skillId, false)))
+      .subscribe({
+        next: (updated) => {
+          this.userSkills.update(list => list.map(s => s.id === updated.id ? updated : s));
+          this.notificationService.success('Compétence validée.');
+        },
+        error: () => {
+          this.notificationService.error('Erreur lors de la validation.');
+        }
+      });
+  }
+
+  isSkillValidating(skillId: string): boolean {
+    return this.validatingSkillIds().has(skillId);
+  }
+
+  private setSkillValidating(skillId: string, validating: boolean): void {
+    const next = new Set(this.validatingSkillIds());
+    if (validating) {
+      next.add(skillId);
+    } else {
+      next.delete(skillId);
+    }
+    this.validatingSkillIds.set(next);
   }
 
   // Formatting helpers
@@ -355,6 +416,7 @@ export class UserManagementComponent implements OnInit {
     this.selectedUserForDrawer.set(user);
     this.activeDrawerTab.set('profil');
     this.isDrawerOpen.set(true);
+    this.loadUserSkills(user.id);
     // Prevent body scrolling
     document.body.style.overflow = 'hidden';
   }
@@ -364,6 +426,8 @@ export class UserManagementComponent implements OnInit {
     setTimeout(() => {
       this.selectedUserForDrawer.set(null);
     }, 300); // Wait for animation
+    this.userSkills.set([]);
+    this.skillsError.set(null);
     document.body.style.overflow = '';
   }
 

@@ -294,7 +294,7 @@ export class RecruiterCandidateListComponent implements OnInit {
     if (!this.selectedCandidate) return;
     this.interviewQuestionsLoading = true;
     this.api.interviewQuestions({
-      weak_skills: (this.selectedCandidate.topFraudFlags ?? []).map(f => f.type ?? 'unknown'),
+      weak_skills: (this.selectedCandidate.fraudFlags?.flags ?? []),
       strong_skills: this.selectedCandidate.githubUsername ? ['git', 'collaboration'] : [],
       job_title: 'Software Engineer'
     }).subscribe({

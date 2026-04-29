@@ -97,16 +97,20 @@
       </div>
 
       <!-- Signal chips -->
-      <div class="signals-section" *ngIf="r.topFraudFlags?.length">
+      <div class="signals-section" *ngIf="r.fraudFlags?.flags?.length">
         <span class="signals-label">Signaux détectés</span>
         <div class="signal-chips">
           <span class="signal-chip"
-                *ngFor="let f of r.topFraudFlags"
-                [ngClass]="'chip-' + (f.severity || 'low')">
+                *ngFor="let flag of r.fraudFlags?.flags"
+                [ngClass]="'chip-' + (flag.severity || 'low')"
+                [title]="flag.description">
             <span class="chip-dot"></span>
-            {{ formatFlagLabel(f) }}
+            {{ flag.type.replace('_', ' ') }}
           </span>
         </div>
+        <p class="signal-message" *ngIf="r.fraudFlags?.message" style="margin-top: 10px; font-size: 0.85rem; color: #64748b; font-style: italic;">
+          {{ r.fraudFlags?.message }}
+        </p>
       </div>
 
       <!-- Stats row -->

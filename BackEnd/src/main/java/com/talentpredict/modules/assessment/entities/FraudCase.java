@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.talentpredict.modules.user.entities.User;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -92,8 +93,9 @@ public class FraudCase {
     @Column(name = "explanation", columnDefinition = "TEXT")
     private String explanation;
 
-    @Column(name = "flags_json", columnDefinition = "TEXT")
-    private String flagsJson;
+    @Convert(converter = FraudFlagsConverter.class)
+    @Column(name = "flags_json", columnDefinition = "jsonb")
+    private FraudFlags flags;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)

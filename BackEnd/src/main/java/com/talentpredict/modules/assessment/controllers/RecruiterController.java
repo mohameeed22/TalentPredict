@@ -26,6 +26,7 @@ import com.talentpredict.modules.assessment.services.TalentPredictAiProxyService
 import com.talentpredict.modules.assessment.dto.CampaignEmailRequest;
 import com.talentpredict.modules.assessment.dto.FraudCaseDto;
 import com.talentpredict.modules.assessment.dto.RecruiterCandidateRow;
+import com.talentpredict.modules.assessment.entities.FraudFlags;
 import com.talentpredict.modules.assessment.entities.FraudCase;
 import com.talentpredict.modules.assessment.repositories.FraudCaseRepository;
 import com.talentpredict.modules.assessment.services.CampaignEmailService;
@@ -84,7 +85,7 @@ public class RecruiterController {
                     null,
                     null,
                     null,
-                    List.of());
+                    null);
         }).collect(Collectors.toList());
         return ResponseEntity.ok(rows);
     }
@@ -113,9 +114,7 @@ public class RecruiterController {
                 String risk = fraudCase != null && fraudCase.getRiskLevel() != null
                     ? fraudCase.getRiskLevel()
                     : p.getFraudRisk();
-                List<Map<String, Object>> topFlags = fraudCase != null
-                    ? fraudCaseService.extractTopFlags(fraudCase.getFlagsJson(), 3)
-                    : List.of();
+                FraudFlags fraudFlags = fraudCase != null ? fraudCase.getFlags() : null;
 
                     return new RecruiterCandidateRow(
                             u.getId(),
@@ -134,7 +133,7 @@ public class RecruiterController {
                     fraudCase != null ? fraudCase.getCreatedAt() : null,
                     fraudCase != null ? fraudCase.getReviewStatus().name() : null,
                     fraudCase != null ? fraudCase.getSource().name() : null,
-                    topFlags);
+                    fraudFlags);
                 })
                 .collect(Collectors.toList());
         return ResponseEntity.ok(rows);
