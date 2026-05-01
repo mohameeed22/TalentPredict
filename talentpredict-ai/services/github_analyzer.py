@@ -98,21 +98,24 @@ The candidate ({username}) claims these skills: {claimed_skills}
 Here are their {len(repo_summary)} most recent original public repositories:
 {json.dumps(repo_summary, indent=2)}
 
-Analyze their repositories and verify their claimed skills based on the real code evidence.
+Analyze their repositories and verify their claimed skills. Focus on architectural patterns, code quality, and consistency across projects.
 Return ONLY valid JSON with this exact schema:
 {{
   "verified_skills": [
     {{
-      "skill": "string (e.g. TypeScript, Python, React)",
+      "skill": "string",
       "confidence": "low|medium|high",
-      "evidence": "brief justification based on their actual repos"
+      "evidence": "detailed justification",
+      "depth": "beginner|intermediate|advanced"
     }}
   ],
-  "missing_claimed_skills": ["skill1", "skill2"],
-  "additional_skills_detected": ["skill1", "skill2"],
+  "missing_claimed_skills": ["skill1"],
+  "additional_skills_detected": ["skill1"],
   "code_complexity_estimate": "beginner|intermediate|advanced",
   "activity_level": "low|moderate|high",
-  "summary": "2-3 sentences summarizing their actual tech stack reality"
+  "architectural_style": "e.g. Microservices, Monolithic, Event-driven",
+  "gaps_identified": ["detailed gap 1", "detailed gap 2"],
+  "summary": "Profound summary of technical maturity"
 }}
 """
 
@@ -143,6 +146,7 @@ Return ONLY valid JSON with this exact schema:
                 "additional_skills_detected": detected_langs,
                 "code_complexity_estimate": "intermediate",
                 "activity_level": "moderate",
-                "summary": f"Rule-based analysis (LLM unavailable): detected languages {', '.join(detected_langs)} across {len(repo_summary)} repositories.",
+                "summary": f"Analyse heuristique (IA indisponible) : stack technique identifiée via {len(repo_summary)} dépôts publics. Les langages {', '.join(detected_langs)} sont confirmés. Une revue manuelle est suggérée pour évaluer la complexité architecturale exacte.",
+                "gaps": f"Incertitude sur les compétences : {', '.join(missing)} - non détectées dans les dépôts publics GitHub récents." if missing else "Aucune divergence majeure détectée sur les langages de base."
             },
         }

@@ -147,8 +147,22 @@ public class ProfileController {
             log.warn("CV storage failed (continuing with analysis): {}", e.getMessage());
         }
 
-        // Analyze CV and extract skills
-        List<SkillDto.CreateRequest> skillsDetectes = cvAnalysisService.analyserCvFile(file);
+        // Analyze CV and extract EVERYTHING (Profile info + Skills)
+        OpenRouterService.FullProfileExtraction extraction = cvAnalysisService.analyserCvFileComplet(file);
+
+        // Update profile fields (Title, Bio, Years of Exp)
+        try {
+            ProfileDto.UpdateRequest profileUpdate = new ProfileDto.UpdateRequest();
+            profileUpdate.setTitreProfessionnel(extraction.getTitreProfessionnel());
+            profileUpdate.setDescription(extraction.getDescription());
+            profileUpdate.setExperienceAns(extraction.getExperienceAns());
+            profileService.updateProfileByAccountId(id, profileUpdate);
+            log.info("Profile fields updated from CV for account {}", id);
+        } catch (Exception e) {
+            log.warn("Failed to update profile fields from CV: {}", e.getMessage());
+        }
+
+        List<SkillDto.CreateRequest> skillsDetectes = extraction.getSkills();
 
         // Save skills without duplicates
         List<String> skillsAjoutes = new ArrayList<>();
@@ -176,11 +190,15 @@ public class ProfileController {
         log.info("CV analysé: {} ajoutés, {} déjà existants", skillsAjoutes.size(), skillsExistants.size());
 
         return ResponseEntity.ok(Map.of(
-            "message", skillsAjoutes.size() + " nouveaux skills détectés et ajoutés depuis votre CV",
+            "message", "Votre profil a été mis à jour et " + skillsAjoutes.size() + " nouveaux skills ont été détectés depuis votre CV",
             "status", "SUCCESS",
             "skillsAjoutes", skillsAjoutes,
             "skillsDejaPresentss", skillsExistants,
-            "totalDetectes", skillsDetectes.size()
+            "totalDetectes", skillsDetectes.size(),
+            "extractedInfo", Map.of(
+                "title", extraction.getTitreProfessionnel() != null ? extraction.getTitreProfessionnel() : "",
+                "experience", extraction.getExperienceAns() != null ? extraction.getExperienceAns() : 0
+            )
         ));
     }
 

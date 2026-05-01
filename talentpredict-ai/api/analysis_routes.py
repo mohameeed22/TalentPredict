@@ -38,6 +38,7 @@ class FraudCheckBody(BaseModel):
     code_submission: str | None = None
     challenge_description: str | None = None
     github_activity_years: list[int] | None = None
+    biometrics: dict[str, Any] | None = None
 
 
 @router.post("/fraud-check")
@@ -51,6 +52,7 @@ async def fraud_check(body: FraudCheckBody) -> dict[str, Any]:
         test_answers=body.test_answers,
         code_submission=body.code_submission,
         github_activity_years=body.github_activity_years,
+        biometrics=body.biometrics,
     )
     copy_risk: dict[str, Any] = {}
     if body.code_submission and body.challenge_description:

@@ -99,61 +99,6 @@ export class TestApiService {
     );
   }
 
-  // ── AI Voice Interview ────────────────────────────────────────────
-  private readonly interviewTimeoutMs = 60_000;
-
-  getInterviewQuestion(body: {
-    role: string;
-    level?: string;
-    focus_area?: string;
-    history?: unknown[];
-    language?: string;
-  }): Observable<unknown> {
-    return this.http.post(`${this.base}/assessment/interview/question`, body).pipe(
-      timeout({ first: this.interviewTimeoutMs })
-    );
-  }
-
-  evaluateInterviewTurn(body: {
-    role: string;
-    level?: string;
-    question: string;
-    answer: string;
-    turn_number?: number;
-    max_turns?: number;
-    language?: string;
-  }): Observable<unknown> {
-    return this.http.post(`${this.base}/assessment/interview/evaluate-turn`, body).pipe(
-      timeout({ first: this.interviewTimeoutMs })
-    );
-  }
-
-  getInterviewSummary(body: {
-    role: string;
-    level?: string;
-    history: unknown[];
-    language?: string;
-  }): Observable<unknown> {
-    return this.http.post(`${this.base}/assessment/interview/summary`, body).pipe(
-      timeout({ first: this.interviewTimeoutMs })
-    );
-  }
-
-  saveInterviewResult(userId: string, body: {
-    overallScore: number;
-    recommendation: string;
-    role: string;
-    level: string;
-    avgScores: Record<string, number>;
-    summaryData: unknown;
-  }): Observable<unknown> {
-    return this.http.post(`${this.base}/candidates/${userId}/interview-results`, body);
-  }
-
-  getInterviewResults(userId: string): Observable<unknown> {
-    return this.http.get(`${this.base}/candidates/${userId}/interview-results`);
-  }
-
   // ── Advanced Forensics & Analysis ──────────────────────────────────
   analyzeGithubDeep(body: {
     github_username: string;

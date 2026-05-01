@@ -139,12 +139,12 @@ public class GlobalExceptionHandler {
         String message = ex.getMessage() != null ? ex.getMessage() : "An unexpected runtime error occurred";
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                "Bad Request",
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Internal Server Error",
                 message,
                 request.getRequestURI());
         log.error("Runtime exception [{}]: {}", ex.getClass().getSimpleName(), message, ex);
-        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(Exception.class)

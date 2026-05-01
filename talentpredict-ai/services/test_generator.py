@@ -18,7 +18,7 @@ MAX_QUESTIONS = 20
 MAX_PER_SKILL = 5
 OPTION_KEYS = ("A", "B", "C", "D")
 MAX_SKILLS_TO_QUERY = 4
-PER_SKILL_TIMEOUT_SECONDS = 18
+PER_SKILL_TIMEOUT_SECONDS = 45
 MIN_QUESTIONS_TARGET = 6
 DEFAULT_MIN_QUESTIONS = 6
 DEFAULT_MAX_QUESTIONS = 12
@@ -166,26 +166,65 @@ def _fallback_questions(skills: list[str], level: str, target_count: int | None 
     count = target_count if target_count is not None else max(len(skills), MIN_QUESTIONS_TARGET)
     count = min(MAX_QUESTIONS, max(1, count))
     difficulty = "hard" if level.strip().upper() in ("ADVANCED", "EXPERT") else "medium"
+    
+    # Pool of generic question templates to avoid "question replay"
+    templates = [
+        {
+            "q": "In {skill}, which practice is most effective to reduce production bugs while keeping code maintainable?",
+            "options": {
+                "A": "Skip tests to move faster and rely on manual checks after release.",
+                "B": "Write large files with mixed concerns to centralize logic.",
+                "C": "Use clear interfaces, focused tests, and enforce input validation.",
+                "D": "Duplicate working code in multiple places to avoid refactoring.",
+            },
+            "correct": "C"
+        },
+        {
+            "q": "When optimizing a {skill} application for performance, what is the most recommended first step?",
+            "options": {
+                "A": "Rewrite the entire codebase in a lower-level language immediately.",
+                "B": "Profile the application to identify bottlenecks before making changes.",
+                "C": "Add more hardware resources without checking software efficiency.",
+                "D": "Disable all logging and monitoring to save CPU cycles.",
+            },
+            "correct": "B"
+        },
+        {
+            "q": "Regarding security in {skill}, which approach provides the most robust protection against common vulnerabilities?",
+            "options": {
+                "A": "Trusting all user input by default to improve user experience.",
+                "B": "Storing sensitive credentials directly in the source code.",
+                "C": "Implementing a multi-layered security strategy with regular audits.",
+                "D": "Hiding the source code and assuming security through obscurity.",
+            },
+            "correct": "C"
+        },
+        {
+            "q": "What is a core benefit of using modular architecture in a {skill} project?",
+            "options": {
+                "A": "It makes the codebase harder to understand for new developers.",
+                "B": "It allows for better separation of concerns and easier testing.",
+                "C": "It significantly increases the time required for any small change.",
+                "D": "It forces all developers to work on the same file simultaneously.",
+            },
+            "correct": "B"
+        }
+    ]
+
     questions: list[dict[str, Any]] = []
     for idx in range(1, count + 1):
         skill = skills[(idx - 1) % len(skills)]
+        template = templates[(idx - 1) % len(templates)]
+        
         questions.append(
             {
                 "id": f"q{idx}",
                 "skill": skill,
                 "difficulty": difficulty,
                 "type": "mcq",
-                "question": (
-                    f"In {skill}, which practice is most effective to reduce production bugs "
-                    "while keeping code maintainable?"
-                ),
-                "options": {
-                    "A": "Skip tests to move faster and rely on manual checks after release.",
-                    "B": "Write large files with mixed concerns to centralize logic.",
-                    "C": "Use clear interfaces, focused tests, and enforce input validation.",
-                    "D": "Duplicate working code in multiple places to avoid refactoring.",
-                },
-                "correct": "C",
+                "question": template["q"].format(skill=skill),
+                "options": template["options"],
+                "correct": template["correct"],
                 "confidence_required": difficulty == "hard" or (idx % 3 == 0),
             }
         )

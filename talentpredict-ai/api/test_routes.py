@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter
@@ -20,21 +21,26 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/test", tags=["test"])
 
-SUMMARY_TIMEOUT_SECONDS = 12
-FRAUD_TIMEOUT_SECONDS = 5
-CODE_EVAL_TIMEOUT_SECONDS = 18
+SUMMARY_TIMEOUT_SECONDS = 45
+FRAUD_TIMEOUT_SECONDS = 30
+CODE_EVAL_TIMEOUT_SECONDS = 60
 
 
 def _summary_fallback(skill_scores: dict[str, int], weak_threshold: int = 60) -> str:
     weak = [k for k, v in skill_scores.items() if int(v) < weak_threshold]
     strong = [k for k, v in skill_scores.items() if int(v) >= 75]
+    
+    msg = ""
     if strong and weak:
-        return f"Strong in {', '.join(strong[:3])}; needs improvement in {', '.join(weak[:3])}."
-    if strong:
-        return f"Strong in {', '.join(strong[:4])}."
-    if weak:
-        return f"Needs improvement in {', '.join(weak[:4])}."
-    return "Test completed."
+        msg = f"Points forts en {', '.join(strong[:3])}; axes d'amélioration en {', '.join(weak[:3])}."
+    elif strong:
+        msg = f"Excellente maîtrise en {', '.join(strong[:4])}."
+    elif weak:
+        msg = f"Nécessite un renforcement en {', '.join(weak[:4])}."
+    else:
+        msg = "Test complété avec succès."
+        
+    return f"{msg} (Note: Synthèse générée par algorithme heuristique suite à un délai de réponse de l'IA)."
 
 
 def _fraud_fallback(signals: list[dict[str, Any]]) -> dict[str, Any]:
@@ -48,7 +54,8 @@ def _fraud_fallback(signals: list[dict[str, Any]]) -> dict[str, Any]:
         "flags": signals,
         "signal_contributions": calibrated.get("signal_contributions", []),
         "recommendation": "manual_review" if risk != "low" else "proceed",
-        "explanation": "Heuristic assessment (LLM timeout).",
+        "explanation": "L'audit comportemental IA a expiré. Une analyse de risque basée sur les signaux bruts a été appliquée.",
+        "remediation": "Vérifiez manuellement les captures d'écran de proctoring pour confirmer l'intégrité du test." if risk != "low" else "Aucune anomalie majeure détectée par le moteur heuristique."
     }
 
 
@@ -59,26 +66,24 @@ def _code_eval_timeout_fallback(
     hints_used: int,
     time_spent_seconds: int,
 ) -> dict[str, Any]:
-    # Keep a usable result if model-based scoring times out.
-    base = 45 if submitted_code.strip() else 0
     penalty = min(40, int(hints_used) * 10)
-    total = max(0, base - penalty)
+    score = max(0, 50 - penalty)
     return {
         "challenge_id": challenge_id,
         "skill": skill,
-        "score": total,
+        "score": score,
         "breakdown": {
-            "correctness": max(0, total - 15),
-            "code_quality": min(15, total // 3),
-            "efficiency": min(10, total // 4),
-            "readability": min(10, total // 5),
+            "correctness": 20,
+            "code_quality": 15,
+            "efficiency": 10,
+            "readability": 5,
             "hints_penalty": penalty,
         },
-        "feedback": "Evaluation timed out on model analysis; fallback scoring was applied.",
-        "issues_found": ["Model timeout during code evaluation"],
-        "strengths": ["Submission received" if submitted_code.strip() else "No submission provided"],
+        "feedback": "L'analyse IA a été interrompue (Délai d'attente dépassé ou surcharge du modèle).",
+        "issues_found": ["Évaluation automatique indisponible momentanément. Le code est préservé pour audit manuel."],
+        "strengths": ["Code soumis avec succès." if submitted_code.strip() else "Aucun code soumis."],
         "time_spent_seconds": time_spent_seconds,
-        "evaluated_at": "",
+        "evaluated_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -332,133 +337,3 @@ async def fraud_check(body: FraudCheckBody) -> dict[str, Any]:
         verdict = _fraud_fallback(signals)
 
     return verdict
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# ▼  AI VOICE INTERVIEW ENDPOINTS
-# ──────────────────────────────────────────────────────────────────────────────
-
-from services.voice_interview import (
-    evaluate_interview_turn,
-    generate_interview_question,
-    generate_interview_summary,
-)
-
-
-class InterviewQuestionRequest(BaseModel):
-    role: str = Field(..., description="Target job role")
-    level: str = Field(default="mid", description="junior|mid|senior")
-    focus_area: str = Field(default="general", description="Technical area or soft skill to focus on")
-    history: list[dict] = Field(default_factory=list, description="Previous Q&A turns")
-    language: str = Field(default="fr", description="fr|en")
-
-
-class InterviewEvalRequest(BaseModel):
-    role: str
-    level: str = "mid"
-    question: str
-    answer: str
-    turn_number: int = 1
-    max_turns: int = 5
-    language: str = "fr"
-
-
-class InterviewSummaryRequest(BaseModel):
-    role: str
-    level: str = "mid"
-    history: list[dict]
-    language: str = "fr"
-    fraud_context: dict[str, Any] | None = None
-
-
-@router.post("/interview/question")
-async def get_interview_question(body: InterviewQuestionRequest):
-    """Generate the next AI voice interview question given conversation history."""
-    question = await generate_interview_question(
-        role=body.role,
-        level=body.level,
-        focus_area=body.focus_area,
-        history=body.history,
-        language=body.language,
-    )
-    return question
-
-
-@router.post("/interview/evaluate-turn")
-async def evaluate_interview_turn_endpoint(body: InterviewEvalRequest):
-    """Evaluate a single spoken answer and return coaching feedback + next action."""
-    result = await evaluate_interview_turn(
-        role=body.role,
-        level=body.level,
-        question=body.question,
-        answer=body.answer,
-        turn_number=body.turn_number,
-        max_turns=body.max_turns,
-        language=body.language,
-    )
-    return result
-
-
-@router.post("/interview/summary")
-async def get_interview_summary(body: InterviewSummaryRequest):
-    """Generate a holistic debrief after all interview turns are complete."""
-    summary = await generate_interview_summary(
-        role=body.role,
-        level=body.level,
-        history=body.history,
-        language=body.language,
-    )
-
-    # ── Fraud detection pipeline (same as scenario evaluate) ───────────
-    fc = body.fraud_context or {}
-    biometrics = fc.get("biometrics")
-    signals = collect_signals(
-        cv_text=fc.get("cv_text"),
-        cv_claimed_years_by_skill=fc.get("cv_claimed_years_by_skill"),
-        github_first_year_by_skill=fc.get("github_first_year_by_skill"),
-        candidate_skills=list(fc.get("candidate_skills") or []),
-        repos_languages=list(fc.get("repos_languages") or []),
-        test_answers=None,
-        code_submission=None,
-        github_activity_years=fc.get("github_activity_years"),
-        biometrics=biometrics,
-    )
-
-    # Voice interview specific: suspiciously fast session for an interview
-    if biometrics and isinstance(biometrics, dict):
-        session_dur = int(biometrics.get("sessionDurationSeconds", 0) or 0)
-        if 0 < session_dur < 30:
-            signals.append(
-                {
-                    "type": "interview_session_too_fast",
-                    "description": f"Full interview completed in only {session_dur}s — highly suspicious.",
-                    "severity": "high",
-                }
-            )
-
-    # Check if history answers are too short on average
-    if body.history:
-        total_len = sum(len(str(turn.get("answer", ""))) for turn in body.history if "answer" in turn)
-        avg_len = total_len / max(1, len(body.history))
-        if avg_len < 20:
-            signals.append(
-                {
-                    "type": "interview_responses_too_short",
-                    "description": f"Average response length is only {avg_len:.1f} characters — likely avoiding the questions.",
-                    "severity": "medium",
-                }
-            )
-
-    try:
-        verdict = await asyncio.wait_for(
-            ollama_fraud_verdict(signals),
-            timeout=FRAUD_TIMEOUT_SECONDS,
-        )
-    except asyncio.TimeoutError:
-        logger.warning("Interview fraud verdict timed out, using heuristic fallback")
-        verdict = _fraud_fallback(signals)
-
-    summary["fraud_flags"] = verdict.get("flags", signals)
-    summary["_fraud_verdict"] = verdict
-
-    return summary

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["oauth-callback.component.ts"],
+  "sourcesContent": ["\n    .auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg,#f0f4ff 0%,#faf5ff 100%); padding: 1rem; }\n    .auth-card { background: white; border-radius: 1.25rem; padding: 2rem 2.5rem; box-shadow: 0 20px 60px rgba(99,102,241,.12); text-align: center; }\n    .spinner { width: 36px; height: 36px; border: 3px solid #e5e7eb; border-top-color: #6366f1; border-radius: 50%; margin: 0 auto 1rem; animation: spin .8s linear infinite; }\n    .status { color: #374151; font-weight: 600; }\n    @keyframes spin { to { transform: rotate(360deg); } }\n  "],
+  "mappings": ";AACI,CAAA;AAAa,cAAA;AAAmB,WAAA;AAAe,eAAA;AAAqB,mBAAA;AAAyB;IAAA;MAAA,MAAA;MAAA,QAAA,EAAA;MAAA,QAAA;AAA6D,WAAA;AAAe;AACzK,CAAA;AAAa,cAAA;AAAmB,iBAAA;AAAwB,WAAA,KAAA;AAAsB,cAAA,EAAA,KAAA,KAAA,KAAA,EAAA,EAAA,GAAA,EAAA,GAAA,EAAA;AAA8C,cAAA;AAAoB;AAChJ,CAAA;AAAW,SAAA;AAAa,UAAA;AAAc,UAAA,IAAA,MAAA;AAA2B,oBAAA;AAA2B,iBAAA;AAAoB,UAAA,EAAA,KAAA;AAAqB,aAAA,KAAA,IAAA,OAAA;AAAqC;AAC1K,CAAA;AAAU,SAAA;AAAgB,eAAA;AAAkB;AAC5C,WAFqI;AAEnH;AAAK,eAAA,OAAA;AAA2B;AAAE;",
+  "names": []
+}

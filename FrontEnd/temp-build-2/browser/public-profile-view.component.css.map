@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/modules/public-profile/components/public-profile-view/public-profile-view.component.scss", "src/app/modules/public-profile/components/public-profile-view/public-profile-view.component.scss"],
+  "sourcesContent": [".wrap {\r\n  max-width: 640px;\r\n  margin: 2rem auto;\r\n  padding: 1rem;\r\n}\r\n.err {\r\n  color: #b91c1c;\r\n}\r\n.title {\r\n  color: #64748b;\r\n}\r\n", ".wrap {\n  max-width: 640px;\n  margin: 2rem auto;\n  padding: 1rem;\n}\n\n.err {\n  color: #b91c1c;\n}\n\n.title {\n  color: #64748b;\n}\n/*# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJmaWxlOi8vL0M6L1Byb2pldC9UYWxlbnRQcmVkaWN0LXd0LWNsZWFuLW1lcmdlZC9Gcm9udEVuZC9zcmMvYXBwL21vZHVsZXMvcHVibGljLXByb2ZpbGUvY29tcG9uZW50cy9wdWJsaWMtcHJvZmlsZS12aWV3L3B1YmxpYy1wcm9maWxlLXZpZXcuY29tcG9uZW50LnNjc3MiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUE7RUFDRTtFQUNBO0VBQ0E7OztBQUVGO0VBQ0U7OztBQUVGO0VBQ0UiLCJzb3VyY2VzQ29udGVudCI6WyIud3JhcCB7XHJcbiAgbWF4LXdpZHRoOiA2NDBweDtcclxuICBtYXJnaW46IDJyZW0gYXV0bztcclxuICBwYWRkaW5nOiAxcmVtO1xyXG59XHJcbi5lcnIge1xyXG4gIGNvbG9yOiAjYjkxYzFjO1xyXG59XHJcbi50aXRsZSB7XHJcbiAgY29sb3I6ICM2NDc0OGI7XHJcbn1cclxuIl19 */"],
+  "mappings": ";AAAA,CAAA;AACE,aAAA;AACA,UAAA,KAAA;AACA,WAAA;ACCF;ADCA,CAAA;AACE,SAAA;ACEF;ADAA,CAAA;AACE,SAAA;ACGF;",
+  "names": []
+}

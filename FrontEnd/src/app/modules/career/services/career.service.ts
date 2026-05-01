@@ -32,6 +32,7 @@ export interface CareerLearningPlanResponse {
     estimated_time_to_ready?: string;
     strengths?: string[];
     overall_readiness_pct?: number;
+    time_management_strategy?: string;
   };
   skill_gap_analysis: {
     target_role_requirements?: any[];
@@ -52,6 +53,7 @@ export interface CareerLearningPlanResponse {
     goals?: string[];
     success_criteria?: string[];
     exit_criteria?: string[];
+    time_management_tips?: string;
   }[];
   formations: {
     skill: string;

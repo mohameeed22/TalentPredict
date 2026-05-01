@@ -7,11 +7,13 @@ import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonDeserialize(using = FraudFlagsDeserializer.class)
 public class FraudFlags {
     private Double score;
     private String severity;

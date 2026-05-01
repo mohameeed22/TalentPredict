@@ -295,13 +295,14 @@ CV TEXT (first 4000 chars):
 Return ONLY valid JSON:
 {{
   "authenticity_risk": "low|medium|high",
-  "authenticity_score": <0-100, higher=more suspicious>,
+  "authenticity_score": <0-100>,
   "ai_generated_probability": <0.0-1.0>,
-  "timeline_issues": ["..."],
-  "style_issues": ["..."],
-  "content_issues": ["..."],
+  "timeline_gaps": ["detailed issue 1", "..."],
+  "style_anomalies": ["..."],
+  "integrity_concerns": ["..."],
   "recommendation": "proceed|flag_for_review|reject",
-  "explanation": "2-3 sentence plain English summary for a recruiter"
+  "explanation": "Detailed forensic summary focusing on WHY specific parts look fake or mismatched.",
+  "remediation": "Actionable steps for the recruiter (e.g. 'Ask for original project links', 'Verify employment at Company X')"
 }}"""
 
     try:

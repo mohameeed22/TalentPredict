@@ -59,39 +59,44 @@ public class CvAnalysisService {
     //  CAS 1 : CV uploadé directement (MultipartFile depuis le frontend)
     // ================================================================
 
-    public List<SkillDto.CreateRequest> analyserCvFile(MultipartFile file) {
+    public OpenRouterService.FullProfileExtraction analyserCvFileComplet(MultipartFile file) {
         try {
-            log.info("📄 Analyse CV depuis fichier uploadé: {}", file.getOriginalFilename());
+            log.info("📄 Analyse CV complète depuis fichier uploadé: {}", file.getOriginalFilename());
 
             if (file.isEmpty()) {
                 log.warn("⚠️ Fichier CV vide");
-                return List.of();
+                return new OpenRouterService.FullProfileExtraction();
             }
 
             String texte = extraireTextePDF(file.getInputStream());
             if (texte.isBlank()) {
                 log.warn(" Aucun texte extrait du CV (PDF scanné ou protégé?)");
-                return List.of();
+                return new OpenRouterService.FullProfileExtraction();
             }
 
             log.info(" {} caractères extraits du CV", texte.length());
-            return openRouterService.extraireSkillsDuTexteCV(texte);
+            return openRouterService.extraireProfilCompletDuTexteCV(texte);
 
         } catch (Exception e) {
             log.error(" Erreur lecture CV fichier: {}", e.getMessage());
-            return List.of();
+            return new OpenRouterService.FullProfileExtraction();
         }
+    }
+
+    public List<SkillDto.CreateRequest> analyserCvFile(MultipartFile file) {
+        return analyserCvFileComplet(file).getSkills();
     }
 
     // ================================================================
     //  CAS 2 : CV depuis une URL publique (déjà stocké quelque part)
     // ================================================================
 
-    public List<SkillDto.CreateRequest> analyserCvUrl(String cvUrl) {
-        if (cvUrl == null || cvUrl.isBlank()) return List.of();
+    public OpenRouterService.FullProfileExtraction analyserCvUrlComplet(String cvUrl) {
+        OpenRouterService.FullProfileExtraction fallback = new OpenRouterService.FullProfileExtraction();
+        if (cvUrl == null || cvUrl.isBlank()) return fallback;
 
         try {
-            log.info("Analyse CV depuis URL: {}", cvUrl);
+            log.info("Analyse CV complète depuis URL: {}", cvUrl);
 
             String texte;
 
@@ -103,7 +108,7 @@ public class CvAnalysisService {
 
                 if (!Files.exists(filePath)) {
                     log.warn("Fichier CV introuvable sur le disque: {}", filePath);
-                    return List.of();
+                    return fallback;
                 }
 
                 try (InputStream stream = Files.newInputStream(filePath)) {
@@ -124,16 +129,20 @@ public class CvAnalysisService {
 
             if (texte.isBlank()) {
                 log.warn("Aucun texte extrait du CV (PDF scanne?)");
-                return List.of();
+                return fallback;
             }
 
             log.info("{} caracteres extraits du CV", texte.length());
-            return openRouterService.extraireSkillsDuTexteCV(texte);
+            return openRouterService.extraireProfilCompletDuTexteCV(texte);
 
         } catch (Exception e) {
             log.error("Erreur analyse CV: {} - {}", cvUrl, e.getMessage(), e);
-            return List.of();
+            return fallback;
         }
+    }
+
+    public List<SkillDto.CreateRequest> analyserCvUrl(String cvUrl) {
+        return analyserCvUrlComplet(cvUrl).getSkills();
     }
 
     // ================================================================

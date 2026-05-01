@@ -98,7 +98,7 @@ export class DashboardService {
    * Prediction entity integration — POST /api/predictions/users/{userId}/generer
    */
   generatePrediction(userId: string): Observable<PredictionResponse> {
-    return this.http.post<PredictionResponse>(`${this.predictionsUrl}/users/${userId}/generer`, {});
+    return this.http.post<PredictionResponse>(`${this.predictionsUrl}/users/${userId}/generer`, null);
   }
 
   /**

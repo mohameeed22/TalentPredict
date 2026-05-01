@@ -139,47 +139,114 @@ public class OpenRouterService {
 
     public List<SkillDto.CreateRequest> extraireSkillsDuTexteCV(String texteCV) {
         if (texteCV == null || texteCV.isBlank()) return List.of();
+        FullProfileExtraction extraction = extraireProfilCompletDuTexteCV(texteCV);
+        return extraction.getSkills();
+    }
 
-        // Limite le texte pour ne pas dépasser le contexte
+    /**
+     * DTO interne pour porter l'extraction complète du CV
+     */
+    @lombok.Data
+    public static class FullProfileExtraction {
+        private String titreProfessionnel;
+        private String description;
+        private Integer experienceAns;
+        private List<SkillDto.CreateRequest> skills = new ArrayList<>();
+    }
+
+    /**
+     * Analyse complète du CV pour remplir le profil utilisateur + skills
+     */
+    public FullProfileExtraction extraireProfilCompletDuTexteCV(String texteCV) {
+        FullProfileExtraction result = new FullProfileExtraction();
+        if (texteCV == null || texteCV.isBlank()) return result;
+
         String texteLimite = texteCV.length() > 4000 ? texteCV.substring(0, 4000) : texteCV;
 
         String prompt = """
-            Tu es un expert RH spécialisé en analyse de CV.
+            Tu es un expert RH et recruteur technique de haut niveau.
             Voici le contenu textuel d'un CV:
             ---
             %s
             ---
             
-            Extrais toutes les compétences techniques (langages, frameworks, outils, bases de données)
-            et les soft skills (communication, leadership, travail en équipe, etc.).
+            Analyse ce CV et extrais les informations suivantes pour un profil professionnel.
             
             Réponds UNIQUEMENT avec ce JSON exact, sans texte avant ou après, sans markdown:
             {
+              "titreProfessionnel": "Développeur Fullstack Senior",
+              "description": "Expert en Java/Spring et React avec 8 ans d'expérience dans le secteur bancaire...",
+              "experienceAns": 8,
               "skills": [
                 {
                   "nom": "Java",
                   "type": "TECH",
                   "niveau": 4,
-                  "description": "Développement Spring Boot - 3 ans d'expérience"
+                  "description": "Maîtrise de Spring Boot et architectures microservices"
                 },
                 {
                   "nom": "Leadership",
                   "type": "SOFT",
                   "niveau": 3,
-                  "description": "Chef de projet Agile mentionné"
+                  "description": "Gestion d'une équipe de 5 développeurs"
                 }
               ]
             }
             
             Règles STRICTES:
-            - type: exactement "TECH" ou "SOFT" (majuscules, rien d'autre)
-            - niveau: entier entre 1 (débutant) et 5 (expert), déduit du contexte
-            - Maximum 15 skills au total
-            - description: courte explication du contexte dans le CV
+            1. titreProfessionnel: Le titre de poste actuel ou principal (court, max 60 chars).
+            2. description: Une bio professionnelle captivante basée sur son parcours (entre 150 et 400 chars).
+            3. experienceAns: Nombre total d'années d'expérience cumulées (entier).
+            4. skills:
+               - type: exactement "TECH" ou "SOFT"
+               - niveau: entier entre 1 et 5
+               - Maximum 15 skills au total
+            5. Si une info est manquante, mets null ou une liste vide.
             """.formatted(texteLimite);
 
         String response = executePrompt(prompt);
-        return parseSkillsFromJson(response);
+        if (response == null || response.isBlank()) return result;
+
+        try {
+            String json = response.replaceAll("(?s)```json\\s*", "").replaceAll("(?s)```\\s*", "").trim();
+            JsonNode root = objectMapper.readTree(json);
+            
+            result.setTitreProfessionnel(root.path("titreProfessionnel").asText(null));
+            result.setDescription(root.path("description").asText(null));
+            if (root.has("experienceAns") && !root.get("experienceAns").isNull()) {
+                result.setExperienceAns(root.path("experienceAns").asInt());
+            }
+            
+            JsonNode skillsNode = root.path("skills");
+            if (skillsNode.isArray()) {
+                List<SkillDto.CreateRequest> skillsList = new ArrayList<>();
+                for (JsonNode node : skillsNode) {
+                    try {
+                        SkillDto.CreateRequest skill = new SkillDto.CreateRequest();
+                        skill.setNom(node.path("nom").asText(""));
+                        skill.setType(com.talentpredict.modules.skills.entities.Skill.TypeSkill.valueOf(
+                            node.path("type").asText("TECH").toUpperCase()
+                        ));
+                        int niveau = node.path("niveau").asInt(1);
+                        skill.setNiveau(Math.max(1, Math.min(5, niveau)));
+                        skill.setDescription(node.path("description").asText("Extrait du CV"));
+                        
+                        if (!skill.getNom().isBlank()) {
+                            skillsList.add(skill);
+                        }
+                    } catch (Exception e) {
+                        log.warn("Erreur parsing un skill du CV: {}", e.getMessage());
+                    }
+                }
+                result.setSkills(skillsList);
+            }
+        } catch (Exception e) {
+            log.error("Erreur parsing extraction complète CV: {}", e.getMessage());
+            // Fallback to basic skill parsing if full parse fails
+            result.setSkills(parseSkillsFromJson(response));
+        }
+        
+        return result;
     }
 
     // ================================================================

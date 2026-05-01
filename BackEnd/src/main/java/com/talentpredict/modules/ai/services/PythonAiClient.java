@@ -38,12 +38,15 @@ public class PythonAiClient {
     private final RestTemplate restTemplate;
 
     /**
-     * Extract GitHub username from profile URL (e.g. https://github.com/foo -> foo).
+     * Extract GitHub username from profile URL (e.g. https://github.com/foo ->
+     * foo).
      */
     public static String extractGithubUsername(String githubUrl) {
-        if (githubUrl == null || githubUrl.isBlank()) return null;
+        if (githubUrl == null || githubUrl.isBlank())
+            return null;
         String s = githubUrl.trim();
-        if (s.endsWith("/")) s = s.substring(0, s.length() - 1);
+        if (s.endsWith("/"))
+            s = s.substring(0, s.length() - 1);
         int last = s.lastIndexOf('/');
         return last >= 0 ? s.substring(last + 1) : s;
     }
@@ -65,9 +68,9 @@ public class PythonAiClient {
         }
 
         String url = UriComponentsBuilder.fromUriString(baseUrl)
-            .path("/analyze-candidate")
-            .build()
-            .toUriString();
+                .path("/analyze-candidate")
+                .build()
+                .toUriString();
 
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("github", username);
@@ -78,11 +81,12 @@ public class PythonAiClient {
         try {
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            org.springframework.http.HttpEntity<MultiValueMap<String, String>> request =
-                new org.springframework.http.HttpEntity<>(form, headers);
+            org.springframework.http.HttpEntity<MultiValueMap<String, String>> request = new org.springframework.http.HttpEntity<>(
+                    form, headers);
 
             String response = restTemplate.postForObject(url, request, String.class);
-            if (response == null) return List.of();
+            if (response == null)
+                return List.of();
 
             JsonNode root = objectMapper.readTree(response);
             if (root.has("error")) {
@@ -100,12 +104,15 @@ public class PythonAiClient {
     private List<SkillDto.CreateRequest> parseSkillsFromResponse(JsonNode root) {
         List<SkillDto.CreateRequest> list = new ArrayList<>();
         JsonNode skills = root.path("skills");
-        if (!skills.isArray()) return list;
+        if (!skills.isArray())
+            return list;
 
         for (JsonNode s : skills) {
-            if (!s.has("name")) continue;
+            if (!s.has("name"))
+                continue;
             String name = s.get("name").asText().trim();
-            if (name.isEmpty()) continue;
+            if (name.isEmpty())
+                continue;
 
             String levelStr = s.path("level").asText("Intermediate");
             int niveau = levelToNiveau(levelStr);
@@ -122,7 +129,8 @@ public class PythonAiClient {
     }
 
     private static int levelToNiveau(String level) {
-        if (level == null) return 3;
+        if (level == null)
+            return 3;
         return switch (level.toUpperCase()) {
             case "BEGINNER" -> 1;
             case "INTERMEDIATE" -> 2;

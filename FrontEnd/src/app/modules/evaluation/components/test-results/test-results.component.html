@@ -1,5 +1,5 @@
 <div class="results-container" id="report-content">
-  
+
   <!-- Top Banner / Confidentiality -->
   <div class="top-confidential">
     <span>CONFIDENTIEL • RAPPORT D'ÉVALUATION RH</span>
@@ -11,7 +11,7 @@
     <div class="hero-body">
       <div class="candidate-info">
         <div class="header-meta">
-          <span class="badge-premium">TALENT PREDICT ENGINE v2.4</span>
+          <span class="badge-premium">TALENT PREDICT ENGINE </span>
           <span class="date">{{ today | date:'MMMM yyyy' }}</span>
         </div>
         <h1>Analyse Cognitive <br><span class="gradient-text">Soft Skills</span></h1>
@@ -31,7 +31,7 @@
         <div class="score-circle">
           <svg viewBox="0 0 100 100">
             <circle class="track" cx="50" cy="50" r="45" />
-            <circle class="fill" cx="50" cy="50" r="45" 
+            <circle class="fill" cx="50" cy="50" r="45"
               [style.stroke-dashoffset]="283 - (result?.overallScore / 10 * 283)"
               [style.stroke]="getScoreColor(result?.overallScore || 0)" />
           </svg>
@@ -48,8 +48,11 @@
 
     <div class="hero-actions" id="ignore-pdf-actions">
       <button class="btn-export" (click)="exportResultPdf()" [disabled]="exportingPdf">
-        <svg *ngIf="!exportingPdf" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        <svg *ngIf="!exportingPdf" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
         </svg>
         <span *ngIf="exportingPdf" class="loader"></span>
         {{ exportingPdf ? 'Finalisation...' : 'Exporter le Rapport Officiel' }}
@@ -59,14 +62,15 @@
   </section>
 
   <div class="results-grid">
-    
+
     <!-- Expert Verdict (The "Agent" part) -->
     <section class="card verdict-card full-width">
       <div class="card-header">
         <div class="agent-avatar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/>
-            <path d="M12 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm0 10a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm-4-4a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm8 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
+            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z" />
+            <path
+              d="M12 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm0 10a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm-4-4a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm8 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z" />
           </svg>
         </div>
         <div class="header-txt">
@@ -79,7 +83,7 @@
           <p>{{ result?.summary }}</p>
           <div class="agent-signature">
             <div class="sig-line"></div>
-            <span>Signature Numérique: TalentPredict_Agent_Neural_Scan_Verified</span>
+
           </div>
         </div>
         <div class="personality-mini-card">
@@ -97,9 +101,7 @@
         <h2>Matrice des Soft Skills</h2>
       </div>
       <div class="chart-wrapper">
-        <app-radar-chart 
-          [axes]="getRadarAxes()" 
-          [size]="280">
+        <app-radar-chart [axes]="getRadarAxes()" [size]="280">
         </app-radar-chart>
       </div>
     </section>
@@ -117,7 +119,8 @@
               <span class="source-icon">{{ getSourceIcon(s) }}</span>
               <span class="source-label">{{ getSourceLabel(s) }}</span>
             </div>
-            <span class="source-score" [style.color]="getScoreColor(getSourceScore(s))">{{ getSourceScore(s) }}/10</span>
+            <span class="source-score" [style.color]="getScoreColor(getSourceScore(s))">{{ getSourceScore(s)
+              }}/10</span>
           </div>
           <div class="source-text">{{ getSourceDetails(s) }}</div>
           <div class="source-footer">
@@ -143,7 +146,8 @@
             </div>
           </div>
           <div class="pcm-cards-grid">
-            <div class="pcm-mini-card" *ngFor="let card of personalityCards" [class.active]="getActivePersonalityKey() === card.key">
+            <div class="pcm-mini-card" *ngFor="let card of personalityCards"
+              [class.active]="getActivePersonalityKey() === card.key">
               <span class="p-icon">{{ card.icon }}</span>
               <span class="p-label">{{ card.label }}</span>
               <p class="p-desc">{{ card.desc }}</p>
@@ -214,7 +218,8 @@
           </div>
           <div class="sd-progress">
             <div class="sd-bar-bg">
-              <div class="sd-bar-fill" [style.width.%]="entry[1] * 10" [style.background]="getScoreColor(entry[1])"></div>
+              <div class="sd-bar-fill" [style.width.%]="entry[1] * 10" [style.background]="getScoreColor(entry[1])">
+              </div>
             </div>
             <span class="sd-val">{{ entry[1] }}/10</span>
           </div>
@@ -234,7 +239,8 @@
           <h3>Conseils Stratégiques IA</h3>
           <p>{{ result?.careerAdvice }}</p>
           <div class="expert-note">
-            <strong>Note de l'Expert:</strong> L'analyse montre une forte corrélation entre votre type {{ result?.personalityType }} et vos scores en {{ result?.top3Strengths?.[0] }}.
+            <strong>Note de l'Expert:</strong> L'analyse montre une forte corrélation entre votre type {{
+            result?.personalityType }} et vos scores en {{ result?.top3Strengths?.[0] }}.
           </div>
         </div>
         <div class="roadmap-col">

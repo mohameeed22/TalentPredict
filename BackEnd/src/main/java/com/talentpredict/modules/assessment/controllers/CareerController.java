@@ -73,6 +73,10 @@ public class CareerController {
     public ResponseEntity<JsonNode> generateLearningPlan(
             @RequestBody(required = false) JsonNode body,
             @AuthenticationPrincipal UserDetailsImpl principal) {
+        if (principal == null || principal.getUser() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
+        }
+
         User actor = principal.getUser();
         UUID candidateId = resolveCandidateId(body, actor);
         assertSelfOrRecruiter(actor, candidateId);
@@ -82,14 +86,35 @@ public class CareerController {
 
         try {
             JsonNode aiResponse = aiProxyService.postJson("/api/career/learning-plan", payload);
-            return ResponseEntity.ok(ensureSoftCoverageInLearningPlan(aiResponse, payload));
-        } catch (ResponseStatusException ex) {
-            int status = ex.getStatusCode().value();
-            if (status == 404 || status >= 500) {
-                log.warn("AI learning-plan endpoint unavailable (status {}). Returning backend fallback plan.", status);
-                return ResponseEntity.ok(buildLearningPlanFallback(payload));
+            JsonNode finalPlan = ensureSoftCoverageInLearningPlan(aiResponse, payload);
+            
+            // Save to profile for future fallbacks
+            try {
+                profileRepository.findByUser_Id(candidateId).ifPresent(p -> {
+                    p.setLastLearningPlanJson(finalPlan.toString());
+                    profileRepository.save(p);
+                });
+            } catch (Exception e) {
+                log.error("Failed to save learning plan to profile: {}", e.getMessage());
             }
-            throw ex;
+
+            return ResponseEntity.ok(finalPlan);
+        } catch (Exception ex) {
+            log.error("Learning plan generation failed: {}", ex.getMessage());
+            
+            // Try fallback to last saved plan
+            try {
+                Profile profile = profileRepository.findByUser_Id(candidateId).orElse(null);
+                if (profile != null && profile.getLastLearningPlanJson() != null) {
+                    log.info("Returning last saved learning plan for candidate {}", candidateId);
+                    return ResponseEntity.ok(objectMapper.readTree(profile.getLastLearningPlanJson()));
+                }
+            } catch (Exception e) {
+                log.error("Failed to retrieve last saved plan: {}", e.getMessage());
+            }
+
+            log.warn("No saved plan found. Returning backend fallback plan.");
+            return ResponseEntity.ok(buildLearningPlanFallback(payload));
         }
     }
 

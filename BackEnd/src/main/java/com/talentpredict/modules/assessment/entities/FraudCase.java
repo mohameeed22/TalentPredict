@@ -5,6 +5,8 @@ import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.talentpredict.modules.user.entities.User;
@@ -93,7 +95,7 @@ public class FraudCase {
     @Column(name = "explanation", columnDefinition = "TEXT")
     private String explanation;
 
-    @Convert(converter = FraudFlagsConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "flags_json", columnDefinition = "jsonb")
     private FraudFlags flags;
 

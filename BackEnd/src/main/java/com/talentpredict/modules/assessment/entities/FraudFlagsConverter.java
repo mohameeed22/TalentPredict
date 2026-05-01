@@ -2,6 +2,7 @@ package com.talentpredict.modules.assessment.entities;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import lombok.extern.slf4j.Slf4j;
@@ -10,7 +11,14 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class FraudFlagsConverter implements AttributeConverter<FraudFlags, String> {
 
-    private final static ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper;
+
+    static {
+        objectMapper = new ObjectMapper();
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(FraudFlags.class, new FraudFlagsDeserializer());
+        objectMapper.registerModule(module);
+    }
 
     @Override
     public String convertToDatabaseColumn(FraudFlags attribute) {
@@ -27,14 +35,15 @@ public class FraudFlagsConverter implements AttributeConverter<FraudFlags, Strin
 
     @Override
     public FraudFlags convertToEntityAttribute(String dbData) {
-        if (dbData == null || dbData.isEmpty()) {
+        if (dbData == null || dbData.isBlank()) {
             return new FraudFlags();
         }
         try {
             return objectMapper.readValue(dbData, FraudFlags.class);
-        } catch (JsonProcessingException e) {
-            log.error("Error deserializing JSON to FraudFlags: {}", dbData, e);
+        } catch (Exception e) {
+            log.warn("Error deserializing FraudFlags from DB (returning empty): data='{}', error={}", dbData, e.getMessage());
             return new FraudFlags();
         }
     }
 }
+

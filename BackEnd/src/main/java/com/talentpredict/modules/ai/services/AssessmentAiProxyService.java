@@ -99,7 +99,7 @@ public class AssessmentAiProxyService {
     }
 
     // ── Standalone Fraud Check (used by formation mini-quiz) ────────────────
-
+    
     public Map<String, Object> checkFraud(
             String candidateId, String testType, Map<String, Object> fraudContext) {
         String url = aiBaseUrl + "/api/test/fraud/check";
@@ -122,48 +122,32 @@ public class AssessmentAiProxyService {
         }
     }
 
-    // ── AI Voice Interview ───────────────────────────────────────────────────
+    public Map<String, Object> generateCareerPrediction(
+            String candidateId, String fullName, List<Map<String, Object>> skills, 
+            List<Map<String, Object>> testResults, String targetRole) {
+        String url = aiBaseUrl + "/api/career/prediction";
+        log.info("Proxying career prediction request for user: {}", fullName);
 
-    public Map<String, Object> getInterviewQuestion(Map<String, Object> payload) {
-        String url = aiBaseUrl + "/api/test/interview/question";
-        log.info("Proxying interview question request for role={}", payload.get("role"));
         try {
+            Map<String, Object> payload = new java.util.HashMap<>();
+            payload.put("candidate_id", candidateId);
+            payload.put("full_name", fullName);
+            payload.put("skills", skills);
+            payload.put("test_results", testResults);
+            payload.put("target_role", targetRole);
+            payload.put("language", "fr");
+
             HttpEntity<Map<String, Object>> request = buildJsonEntity(payload);
             ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
             return parseResponse(response.getBody());
         } catch (Exception e) {
-            log.error("Interview question proxy failed: {}", e.getMessage());
-            return Map.of("question", "Parlez-nous un peu de vos motivations et de ce que vous recherchez dans votre carrière.",
-                "follow_up_cue", "Qu'est-ce qui vous passionne ?", "topic", "discovery", "difficulty", "easy");
-        }
-    }
-
-    public Map<String, Object> evaluateInterviewTurn(Map<String, Object> payload) {
-        String url = aiBaseUrl + "/api/test/interview/evaluate-turn";
-        log.info("Proxying interview turn evaluation");
-        try {
-            HttpEntity<Map<String, Object>> request = buildJsonEntity(payload);
-            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-            return parseResponse(response.getBody());
-        } catch (Exception e) {
-            log.error("Interview turn evaluation proxy failed: {}", e.getMessage());
-            return Map.of("scores", Map.of("relevance", 50, "depth", 50, "clarity", 50, "confidence", 50),
-                "feedback", "Merci pour ce partage.", "next_action", "continue", "red_flags", List.of());
-        }
-    }
-
-    public Map<String, Object> getInterviewSummary(Map<String, Object> payload) {
-        String url = aiBaseUrl + "/api/test/interview/summary";
-        log.info("Proxying interview summary request");
-        try {
-            HttpEntity<Map<String, Object>> request = buildJsonEntity(payload);
-            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-            return parseResponse(response.getBody());
-        } catch (Exception e) {
-            log.error("Interview summary proxy failed: {}", e.getMessage());
-            return Map.of("overall_score", 0, "recommendation", "borderline",
-                "strengths", List.of("Motivation", "Curiosité"), "areas_for_improvement", List.of(),
-                "summary_paragraph", "Merci d'avoir partagé votre expérience. Cette synthèse met en lumière votre parcours et vos aspirations. Vos compétences techniques et vos soft skills montrent un profil intéressant et en constante évolution.");
+            log.error("Career prediction proxy failed: {}", e.getMessage());
+            return Map.of(
+                "analysis", "Service d'analyse IA temporairement indisponible. Veuillez réessayer plus tard.",
+                "recommendations_soft", "Leadership, Adaptabilité",
+                "recommendations_tech", "Développement continu",
+                "confidence_score", 0.5
+            );
         }
     }
 

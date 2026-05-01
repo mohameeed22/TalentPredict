@@ -30,14 +30,41 @@ export class PcmIntroComponent implements OnInit {
 
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
+    
+    // Construct full name from current user as fallback
+    const initialName = this.currentUser 
+      ? `${this.currentUser.prenom || ''} ${this.currentUser.nom || ''}`.trim() 
+      : '';
+
     this.profileForm = this.fb.group({
-      fullName: [this.currentUser?.username || '', Validators.required],
+      fullName: [initialName, Validators.required],
       email: [this.currentUser?.email || '', [Validators.required, Validators.email]],
       githubUsername: [''],
       linkedinUrl: [''],
     });
 
-    // Auto-fill URLs from profile cache
+    // 1. Try loading from session cache first for instant UX
+    this.loadFromCache();
+
+    // 2. Fetch fresh profile data to ensure all fields are correctly auto-filled
+    if (this.currentUser?.id) {
+      this.authService.getProfile(this.currentUser.id).subscribe({
+        next: (profile) => {
+          if (profile) {
+            const name = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+            if (name) this.profileForm.patchValue({ fullName: name });
+            if (profile.githubUrl) this.profileForm.patchValue({ githubUsername: profile.githubUrl });
+            if (profile.lienLinkedin) this.profileForm.patchValue({ linkedinUrl: profile.lienLinkedin });
+          }
+        },
+        error: () => {
+          // If profile fetch fails, we still have the session cache and initial name
+        }
+      });
+    }
+  }
+
+  private loadFromCache(): void {
     try {
       const cached = sessionStorage.getItem('userProfileUrls');
       if (cached) {

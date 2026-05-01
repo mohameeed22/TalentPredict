@@ -104,6 +104,9 @@ public class Profile {
     @Column(name = "public_slug", unique = true, length = 80)
     private String publicSlug;
 
+    @Column(name = "last_learning_plan", columnDefinition = "TEXT")
+    private String lastLearningPlanJson;
+
     // Relationships
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", unique = true, nullable = false)

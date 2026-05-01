@@ -71,9 +71,6 @@
           @if (profile.ville) {
           <span class="tag tag-teal">📍 {{ profile.ville }}</span>
           }
-          @if (profile.disponibilite) {
-          <span class="tag tag-green">🟢 {{ profile.disponibilite }}</span>
-          }
           @if (profile.experienceAns != null) {
           <span class="tag tag-orange">⭐ {{ profile.experienceAns }} ans d'expérience</span>
           }
@@ -157,7 +154,6 @@
           
           <div class="preview-meta">
             @if (profile.ville) { <span class="preview-meta-item">📍 {{ profile.ville }}</span> }
-            @if (profile.disponibilite) { <span class="preview-meta-item">🟢 {{ profile.disponibilite }}</span> }
           </div>
 
           <!-- AI Verdict / Summary -->
@@ -194,14 +190,6 @@
             </div>
           </div>
 
-          <!-- New: Contract Types -->
-          @if (profile.typeContrat && profile.typeContrat.length > 0) {
-          <div class="preview-contracts">
-            @for (contract of profile.typeContrat; track contract) {
-            <span class="contract-badge">{{ contract }}</span>
-            }
-          </div>
-          }
 
           @if (profile.poste || profile.departementEditable) {
           <div class="preview-tags">
@@ -333,36 +321,12 @@
           </div>
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label for="ville">Ville / Localisation</label>
-            <input id="ville" type="text" formControlName="ville"
-              placeholder="Ex: Tunis, Tunisie" />
-          </div>
-          <div class="form-group">
-            <label for="disponibilite">Disponibilité</label>
-            <select id="disponibilite" formControlName="disponibilite" class="form-select">
-              <option value="">— Sélectionner —</option>
-              @for (opt of DISPONIBILITE_OPTIONS; track opt) {
-              <option [value]="opt">{{ opt }}</option>
-              }
-            </select>
-          </div>
+        <div class="form-group">
+          <label for="ville">Ville / Localisation</label>
+          <input id="ville" type="text" formControlName="ville"
+            placeholder="Ex: Tunis, Tunisie" />
         </div>
 
-        <div class="form-group">
-          <label>Type de contrat recherché</label>
-          <div class="contract-chips">
-            @for (type of CONTRACT_TYPES; track type) {
-            <button type="button"
-              class="contract-chip"
-              [class.selected]="isContractSelected(type)"
-              (click)="toggleContract(type)">
-              {{ type }}
-            </button>
-            }
-          </div>
-        </div>
 
         <div class="form-group bio-group">
           <div class="bio-label-row">

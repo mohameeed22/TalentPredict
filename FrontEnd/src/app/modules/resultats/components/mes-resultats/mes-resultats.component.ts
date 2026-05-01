@@ -8,15 +8,12 @@ import { NotificationService } from '../../../../core/services/notification.serv
 import { FormsModule } from '@angular/forms';
 import { AuthUser } from '../../../auth/models/user.model';
 import { SoftSkillsResult } from '../../../evaluation/models/soft-skills.model';
+import { SkillResponse } from '../../../skills/models/skill.model';
 
-interface TechSkill {
-  id: string;
-  name: string;
-  niveau: number;
-  type: string;
+type TechSkill = SkillResponse & {
   delta: number;
   score100: number;
-}
+};
 
 interface TechTestResult {
   finalScore: number;
@@ -53,15 +50,6 @@ export class MesResultatsComponent implements OnInit {
   // Soft data
   softResult: SoftSkillsResult | null = null;
 
-  // Interview data
-  voiceResult: any = null;
-  showVoiceInterview = true;
-
-  get isLocked(): boolean {
-    // If no voiceResult exists in sessionStorage or from backend, the page is locked
-    return !this.voiceResult;
-  }
-
   // LinkedIn analysis from profile
   linkedinUrl = '';
 
@@ -83,22 +71,18 @@ export class MesResultatsComponent implements OnInit {
 
   // Overall readiness
   get overallReadiness(): number {
-    if (this.isLocked) return 0;
     const techScore = this.formattedTechScore;
     const softScore = this.formattedSoftScore;
-    const voiceScore = this.voiceResult?.overall_score ?? 0;
 
     let total = 0;
     let count = 0;
     if (techScore > 0) { total += techScore; count++; }
     if (softScore > 0) { total += softScore; count++; }
-    if (voiceScore > 0) { total += voiceScore; count++; }
 
     return count > 0 ? Math.round(total / count) : 0;
   }
 
   get readinessLabel(): string {
-    if (this.isLocked) return 'Complétez votre entretien pour débloquer vos résultats';
     const r = this.overallReadiness;
     if (r >= 80) return 'Prêt pour un entretien senior';
     if (r >= 65) return 'Profil solide — quelques axes à consolider';
@@ -107,7 +91,6 @@ export class MesResultatsComponent implements OnInit {
   }
 
   get readinessColor(): string {
-    if (this.isLocked) return '#94a3b8'; // Slate 400
     const r = this.overallReadiness;
     if (r >= 80) return '#22c55e';
     if (r >= 50) return '#f59e0b';
@@ -155,9 +138,9 @@ export class MesResultatsComponent implements OnInit {
 
   // Career Match data
   careerMatches = [
-    { role: 'Frontend Developer', match: 87, gaps: ['Angular Advanced', 'Leadership'], reason: 'Excellente maîtrise de l\'écosystème frontend avec une base technique solide.' },
-    { role: 'Full Stack Developer', match: 72, gaps: ['Node.js', 'System Design', 'Communication'], reason: 'Compétences polyvalentes, nécessite une montée en puissance sur le backend.' },
-    { role: 'Tech Lead', match: 55, gaps: ['Team Management', 'Architecture', 'Agile'], reason: 'Potentiel identifié, mais nécessite plus d\'expérience en gestion d\'équipe.' }
+    { role: 'Frontend Developer', match: 87, gaps: ['Angular Advanced', 'Testing (Jest)', 'Leadership'], reason: 'Excellente maîtrise de l\'écosystème frontend avec une base technique solide.' },
+    { role: 'Full Stack Developer', match: 72, gaps: ['Node.js', 'System Design', 'Communication', 'DevOps'], reason: 'Compétences polyvalentes, nécessite une montée en puissance sur le backend.' },
+    { role: 'Tech Lead', match: 55, gaps: ['Team Management', 'Architecture Système', 'Agile / Scrum', 'Gestion de conflits'], reason: 'Potentiel identifié, mais nécessite plus d\'expérience en gestion d\'équipe.' }
   ];
 
   ngOnInit(): void {
@@ -165,22 +148,13 @@ export class MesResultatsComponent implements OnInit {
     if (!this.currentUser?.id) return;
     const userId = this.currentUser.id;
 
-    // 1. Check Voice Interview First (The Lock)
-    const vCtx = sessionStorage.getItem('voiceInterviewResult');
-    if (vCtx) {
-      try { 
-        this.voiceResult = JSON.parse(vCtx); 
-        this.showVoiceInterview = false; 
-      } catch {}
-    }
-
     try {
       const cached = sessionStorage.getItem('userProfileUrls');
       if (cached) {
         const urls = JSON.parse(cached);
         this.linkedinUrl = urls.linkedinUrl ?? '';
       }
-    } catch {}
+    } catch { }
 
     this.skillsService.getUserSkills(userId).subscribe({
       next: (skills) => {
@@ -201,13 +175,13 @@ export class MesResultatsComponent implements OnInit {
     if (!this.latestTechTest) {
       const storedTech = sessionStorage.getItem('latestTechResult');
       if (storedTech) {
-        try { this.latestTechTest = JSON.parse(storedTech); } catch {}
+        try { this.latestTechTest = JSON.parse(storedTech); } catch { }
       }
     }
 
     const stored = sessionStorage.getItem('softSkillsResult');
     if (stored) {
-      try { this.softResult = JSON.parse(stored); } catch {}
+      try { this.softResult = JSON.parse(stored); } catch { }
     }
     this.softSkillsService.getLastAnalysis().subscribe({
       next: (res) => { if (res) this.softResult = res; this.loadingSoft = false; },
@@ -216,7 +190,7 @@ export class MesResultatsComponent implements OnInit {
 
     const ctx = sessionStorage.getItem('techIntakeContext');
     if (ctx) {
-      try { this.githubResult = JSON.parse(ctx)?.githubResult ?? null; } catch {}
+      try { this.githubResult = JSON.parse(ctx)?.githubResult ?? null; } catch { }
     }
   }
 
@@ -224,8 +198,8 @@ export class MesResultatsComponent implements OnInit {
     if (!this.softResult?.mergedSoftSkills) return [];
     return Object.entries(this.softResult.mergedSoftSkills)
       .sort((a: any, b: any) => b[1] - a[1])
-      .map(([name, score]) => ({ 
-        name, 
+      .map(([name, score]) => ({
+        name,
         score: Number(score),
         delta: Math.floor(Math.random() * 3) - 1 // Mock delta
       }));
@@ -236,7 +210,7 @@ export class MesResultatsComponent implements OnInit {
     const entries = this.getSoftSkillEntries().slice(0, 5);
     if (entries.length === 0) return '';
     const cx = 130, cy = 130, radius = 90;
-    
+
     return entries.map((entry, i) => {
       const angle = (Math.PI * 2 * i) / entries.length - Math.PI / 2;
       const normalizedScore = Math.max(0.1, entry.score / 10);
@@ -251,7 +225,7 @@ export class MesResultatsComponent implements OnInit {
     const entries = this.getSoftSkillEntries().slice(0, 5);
     if (entries.length === 0) return [];
     const cx = 130, cy = 130, radius = 90;
-    
+
     return entries.map((_, i) => {
       const angle = (Math.PI * 2 * i) / entries.length - Math.PI / 2;
       return {
@@ -288,13 +262,13 @@ export class MesResultatsComponent implements OnInit {
   get radarLabels(): { text: string; x: number; y: number; anchor: string }[] {
     const entries = this.getSoftSkillEntries().slice(0, 5);
     if (entries.length === 0) return [];
-    const cx = 130, cy = 130, radius = 110; 
-    
+    const cx = 130, cy = 130, radius = 110;
+
     return entries.map((entry, i) => {
       const angle = (Math.PI * 2 * i) / entries.length - Math.PI / 2;
       const x = cx + radius * Math.cos(angle);
       const y = cy + radius * Math.sin(angle);
-      
+
       let anchor = 'middle';
       if (Math.cos(angle) > 0.1) anchor = 'start';
       if (Math.cos(angle) < -0.1) anchor = 'end';
@@ -309,53 +283,33 @@ export class MesResultatsComponent implements OnInit {
     if (pct >= 50) return '#f59e0b';
     return '#ef4444';
   }
-  
+
   getDotColorClass(score100: number): string {
     if (score100 >= 80) return 'dot-green';
     if (score100 >= 50) return 'dot-orange';
     return 'dot-red';
   }
 
-  toggleVoiceInterview() {
-    this.showVoiceInterview = !this.showVoiceInterview;
-  }
-  
   toggleShareProfile() {
     this.shareableLinkVisible = !this.shareableLinkVisible;
   }
-  
+
   copyShareLink() {
     navigator.clipboard.writeText(window.location.origin + '/public/profile/' + this.currentUser?.id);
     this.notify.success('Lien copié dans le presse-papiers');
   }
 
-  exportTechPdf(): void {
-    this.notify.info('Export Tech PDF en cours…');
-    this.router.navigate(['/competences/results']);
-  }
-
-  exportSoftPdf(): void {
-    this.notify.info('Export Soft Skills PDF en cours…');
-    this.router.navigate(['/evaluation/results']);
-  }
-
-  exportVoicePdf(): void {
-    this.notify.info('Génération du rapport IA en cours...');
-    setTimeout(() => {
-      window.print();
-    }, 500);
-  }
-
   exportGlobalPdf(): void {
-    this.notify.info('Génération du rapport Global en cours...');
+    this.notify.info('Génération du rapport PDF complet en cours...');
     setTimeout(() => {
       window.print();
-    }, 500);
+    }, 600);
   }
 
   goToTech(): void { this.router.navigate(['/competences']); }
+  goToTechResults(): void { this.router.navigate(['/competences/results']); }
   goToSoft(): void { this.router.navigate(['/evaluation/intro']); }
-  goToVoiceInterview(): void { this.router.navigate(['/skill-test/voice-interview']); }
-  goToProgress(): void { this.router.navigate(['/competences/progress']); }
+  goToSoftResults(): void { this.router.navigate(['/evaluation/results']); }
+  goToFormations(): void { this.router.navigate(['/formations']); }
+  goToProgress(): void { this.router.navigate(['/mes-resultats/progress']); }
 }
-

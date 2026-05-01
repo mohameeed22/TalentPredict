@@ -17,19 +17,28 @@ import com.talentpredict.modules.ai.services.PredictionService;
 
 import lombok.RequiredArgsConstructor;
 
+import lombok.extern.slf4j.Slf4j;
+
 @RestController
 @RequestMapping("/api/predictions")
 @RequiredArgsConstructor
+@Slf4j
 public class PredictionController {
     
     private final PredictionService predictionService;
     
     @PostMapping("/users/{userId}/generer")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<PredictionDto.Response> genererPrediction(@PathVariable UUID userId) {
-        PredictionDto.Response prediction = predictionService.genererPrediction(userId);
-        return ResponseEntity.ok(prediction);
+    public ResponseEntity<PredictionDto.Response> genererPrediction(@PathVariable String userId) {
+        try {
+            PredictionDto.Response prediction = predictionService.genererPrediction(java.util.UUID.fromString(userId));
+            return ResponseEntity.ok(prediction);
+        } catch (Exception e) {
+            log.error("Failed to generate prediction for user {}: {}", userId, e.getMessage(), e);
+            throw e;
+        }
     }
+
 
     @GetMapping("/users/{userId}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")

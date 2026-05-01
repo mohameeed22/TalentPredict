@@ -129,7 +129,7 @@ public class NotificationCenterService {
         UserNotification created = createNotification(
                 target,
                 isSuccess ? UserNotification.NotificationType.SUCCESS : UserNotification.NotificationType.WARNING,
-                UserNotification.NotificationCategory.COURSE_APPROVAL,
+                UserNotification.NotificationCategory.SYSTEM,
                 title,
                 body,
                 "/formations",

@@ -81,6 +81,15 @@ class InterviewEvaluateBody(BaseModel):
     job_description: str | None = None
 
 
+class CareerPredictionBody(BaseModel):
+    candidate_id: str
+    full_name: str
+    skills: list[dict[str, Any]] = Field(default_factory=list)
+    test_results: list[dict[str, Any]] = Field(default_factory=list)
+    target_role: str | None = None
+    language: str = "fr"
+
+
 async def _safe_get_json(url: str) -> Any:
     async with httpx.AsyncClient(timeout=25.0, follow_redirects=True, headers=_HTTP_HEADERS) as client:
         response = await client.get(url)
@@ -295,14 +304,54 @@ Candidate answer:
     }
 
 
-# ---------------------------------------------------------------------------
-# Learning Plan — request model
-# ---------------------------------------------------------------------------
+@router.post("/prediction")
+async def generate_career_prediction(body: CareerPredictionBody) -> dict[str, Any]:
+    """Generate a rich AI career prediction and recommendations."""
+    
+    prompt = f"""You are an elite career coach and talent analyst.
+Analyze the following candidate profile and provide a professional career prediction.
+Return the result as valid JSON ONLY.
+
+SCHEMA:
+{{
+  "analysis": "A detailed 2-3 paragraph analysis of the profile, strengths and career trajectory.",
+  "recommendations_soft": "3-4 specific soft skills to develop.",
+  "recommendations_tech": "3-4 specific technical skills or tools to learn.",
+  "confidence_score": 0.0 to 1.0
+}}
+
+CANDIDATE: {body.full_name} (ID: {body.candidate_id})
+SKILLS: {body.skills}
+TEST RESULTS: {body.test_results}
+TARGET ROLE: {body.target_role or 'Strategic growth'}
+LANGUAGE: {body.language}
+"""
+
+    try:
+        data = await call_ollama_json(prompt, temperature=0.5)
+        if isinstance(data, dict) and "analysis" in data:
+            return {
+                "analysis": str(data.get("analysis")),
+                "recommendations_soft": str(data.get("recommendations_soft", "Développer le leadership et l'autonomie.")),
+                "recommendations_tech": str(data.get("recommendations_tech", "Se perfectionner sur les frameworks modernes.")),
+                "confidence_score": float(data.get("confidence_score", 0.85))
+            }
+    except Exception as e:
+        logger.error(f"Career prediction failed: {e}")
+
+    # Fallback
+    return {
+        "analysis": f"Basé sur vos {len(body.skills)} compétences et {len(body.test_results)} tests, votre profil est très prometteur. Vous démontrez une bonne capacité d'adaptation.",
+        "recommendations_soft": "Leadership, Communication interculturelle, Gestion du stress.",
+        "recommendations_tech": "Architectures Cloud, CI/CD, GraphQL.",
+        "confidence_score": 0.65
+    }
 
 
 # ---------------------------------------------------------------------------
 # Learning Plan — request model
 # ---------------------------------------------------------------------------
+
 
 class WeakSkill(BaseModel):
     name: str
@@ -430,38 +479,28 @@ def _build_learning_plan_fallback(body: LearningPlanBody) -> dict[str, Any]:
             "gap": g,
             "priority": pri,
         })
-
     avg_score = (sum(s.score for s in sorted_skills) / len(sorted_skills)) if sorted_skills else 50
     readiness_score = max(5, min(90, round(avg_score * 0.85)))
 
-    # Roadmap — 3 phases
-    phase_size = max(1, len(sorted_skills) // 3 or 1)
+    # Detailed phases (up to 5)
     phases: list[dict[str, Any]] = []
-    chunks = [
-        sorted_skills[:phase_size],
-        sorted_skills[phase_size: phase_size * 2],
-        sorted_skills[phase_size * 2:],
-    ]
-    phase_labels = ["Foundations", "Core Proficiency", "Advanced & Portfolio"]
-    week_cursor = 1
-    for idx, (chunk, label) in enumerate(zip(chunks, phase_labels), start=1):
-        if not chunk:
-            continue
-        focus_skills = [s.name for s in chunk]
-        duration_weeks = max(2, len(chunk) * 2)
+    num_phases = min(5, len(sorted_skills)) if sorted_skills else 3
+    phase_size = math.ceil(len(sorted_skills) / num_phases) if sorted_skills else 1
+
+    for i in range(num_phases):
+        p_skills = sorted_skills[i * phase_size : (i + 1) * phase_size]
+        if not p_skills and i > 0:
+            break
+        
+        p_names = [s.name for s in p_skills] if p_skills else ["Foundations"]
         phases.append({
-            "phase": f"Phase {idx} — {label}",
-            "duration": f"{duration_weeks} weeks",
-            "start_week": week_cursor,
-            "end_week": week_cursor + duration_weeks - 1,
-            "focus": focus_skills,
-            "goals": [f"Reach working proficiency in {', '.join(focus_skills)}"],
-            "success_criteria": [
-                f"Complete at least 1 hands-on project using {focus_skills[0]}",
-                "Pass the phase micro-assessment with ≥70%",
-            ],
+            "phase": i + 1,
+            "title": f"Phase {i + 1}: {' & '.join(p_names[:2])}",
+            "duration_weeks": 2,
+            "focus_skills": p_names,
+            "goals": [f"Gain deep understanding of {name}" for name in p_names],
+            "success_criteria": [f"Can build a small functional module using {name}" for name in p_names],
         })
-        week_cursor += duration_weeks
 
     # Formations
     formations: list[dict[str, Any]] = []
@@ -554,7 +593,7 @@ def _build_learning_plan_fallback(body: LearningPlanBody) -> dict[str, Any]:
     daily_plan: list[dict[str, Any]] = []
     for day in range(1, 15):
         skill_for_day = sorted_skills[(day - 1) % max(1, len(sorted_skills))]
-        phase_for_day = 1 if day <= 5 else (2 if day <= 10 else 3)
+        phase_for_day = (day - 1) // 5 + 1
         daily_plan.append({
             "day": day,
             "phase": phase_for_day,
@@ -601,13 +640,13 @@ def _build_learning_plan_fallback(body: LearningPlanBody) -> dict[str, Any]:
     assessments: list[dict[str, Any]] = [
         {
             "skill": s.name,
-            "phase": 1 if i < phase_size else (2 if i < phase_size * 2 else 3),
+            "phase": 1,
             "type": "code-challenge",
             "passing_score": 70,
             "description": f"Short challenge covering {s.name} fundamentals — 5-10 exercises.",
             "resource_url": _platform_search_url("freeCodeCamp", s.name),
         }
-        for i, s in enumerate(sorted_skills[:6])
+        for s in sorted_skills[:6]
     ]
 
     # Re-evaluation
@@ -635,10 +674,10 @@ def _build_learning_plan_fallback(body: LearningPlanBody) -> dict[str, Any]:
         "avg_salary_range": "$60k - $100k (varies by region and seniority)",
         "most_requested_skills_in_job_posts": skill_names[:5],
         "job_search_keywords": [role, f"Junior {role}", f"{role} Developer"],
-        "time_to_first_interview_estimate": f"~{week_cursor} weeks after completing this plan",
+        "time_to_first_interview_estimate": f"~8 weeks after completing this plan",
     }
 
-    # Weekly check-ins
+    # Weekly checkins
     weekly_checkins: list[dict[str, Any]] = [
         {
             "week": w,
@@ -650,7 +689,7 @@ def _build_learning_plan_fallback(body: LearningPlanBody) -> dict[str, Any]:
                 "Did you push any code to GitHub this week?",
             ],
         }
-        for w in range(1, (week_cursor // 7) + 2)
+        for w in range(1, 4)
     ]
 
     # Summary
@@ -658,7 +697,7 @@ def _build_learning_plan_fallback(body: LearningPlanBody) -> dict[str, Any]:
     profile_eval = (
         f"Candidate targeting {role} at {body.experience_level} level. "
         f"Main skill gaps are: {', '.join(main_gaps)}. "
-        f"Estimated readiness score: {readiness_score}/100 — focused, structured study can close these gaps in {week_cursor} weeks."
+        f"Estimated readiness score: {readiness_score}/100 — focused, structured study can close these gaps."
     )
 
     return {
@@ -669,7 +708,7 @@ def _build_learning_plan_fallback(body: LearningPlanBody) -> dict[str, Any]:
         "summary": {
             "profile_evaluation": profile_eval,
             "main_gaps": main_gaps,
-            "estimated_time_to_ready": f"{week_cursor} weeks",
+            "estimated_time_to_ready": "8 weeks",
         },
         "skill_gap_analysis": {
             "target_role_requirements": gap_rows,
@@ -761,7 +800,8 @@ todayDate: {today_str}
   "summary": {{
     "profile_evaluation": "2-3 sentence honest assessment",
     "main_gaps": ["skill1", "skill2"],
-    "estimated_time_to_ready": "X weeks"
+    "estimated_time_to_ready": "X weeks",
+    "time_management_strategy": "A specific paragraph on how this candidate should manage their study time based on their profile."
   }},
   "skill_gap_analysis": {{
     "target_role_requirements": [
@@ -772,13 +812,19 @@ todayDate: {today_str}
   }},
   "roadmap": [
     {{
-      "phase": "Phase 1 — Foundations",
-      "duration": "2-3 weeks",
-      "start_week": 1,
-      "end_week": 3,
-      "focus": ["skill1"],
-      "goals": ["concrete measurable goal"],
-      "success_criteria": ["how to know phase is complete"]
+      "phase": 1,
+      "title": "Phase 1 — Foundations & Time Blocking",
+      "duration_weeks": 3,
+      "focus_skills": ["skill1", "skill2"],
+      "goals": [
+        "Master the basic syntax and core concepts of {{skill1}}",
+        "Establish a consistent 1.5h daily study routine"
+      ],
+      "time_management_tips": "Specific advice for this phase (e.g., 'Focus on deep work sessions of 45 mins')",
+      "success_criteria": [
+        "Can explain the lifecycle of a basic {{skill1}} application",
+        "Successfully completed 5 coding challenges on {{skill1}}"
+      ]
     }}
   ],
   "formations": [

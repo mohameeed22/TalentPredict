@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FormationService } from '../../services/formation.service';
@@ -46,6 +46,22 @@ interface MiniQuizQuestion {
   correctIndex: number;
 }
 
+// Interfaces for new features
+interface LeaderboardEntry {
+  userId: string;
+  username: string;
+  xp: number;
+  level: number;
+  rank: number;
+}
+
+interface CalendarEvent {
+  date: Date;
+  title: string;
+  type: 'course' | 'quiz' | 'milestone';
+  formationId?: string;
+}
+
 @Component({
   selector: 'app-formation-list',
   standalone: true,
@@ -69,6 +85,7 @@ export class FormationListComponent implements OnInit, OnDestroy {
     { status: StatutFormation.EN_ATTENTE, title: 'En attente' },
     { status: StatutFormation.ACCEPTEE, title: 'Acceptées' },
     { status: StatutFormation.EN_COURS, title: 'En cours' },
+    { status: StatutFormation.EN_ATTENTE_VALIDATION, title: 'Validation Admin' },
     { status: StatutFormation.TERMINEE, title: 'Terminées' }
   ];
   
@@ -93,7 +110,7 @@ export class FormationListComponent implements OnInit, OnDestroy {
 
   currentUserGamification = signal<{ xp: number; level: number } | null>(null);
 
-  certificateUploadingId = signal<string | null>(null);
+  certificateUploadStatus = signal<Record<string, boolean>>({});
 
   learningPlan = signal<CareerLearningPlanResponse | null>(null);
   learningPlanLoading = signal(false);
@@ -104,8 +121,8 @@ export class FormationListComponent implements OnInit, OnDestroy {
   courseActionSuccess = signal<string | null>(null);
   private softWeakSkillSet = new Set<string>();
 
-  // ── Tabs ──────────────────────────────────────────────────────────────
-  activeTab = signal<'VUE_ENSEMBLE' | 'ROADMAP' | 'FORMATIONS' | 'KANBAN'>('VUE_ENSEMBLE');
+  // ── Tabs (Sidebar) ──────────────────────────────────────────────────
+  activeTab = signal<'DASHBOARD' | 'ROADMAP' | 'RECOMMANDATIONS' | 'KANBAN' | 'GAMIFICATION'>('DASHBOARD');
 
   // ── Recommendation filters ──────────────────────────────────────────────
   recoFilterSkill = signal<string>('ALL');
@@ -120,18 +137,40 @@ export class FormationListComponent implements OnInit, OnDestroy {
   readonly StatutFormation = StatutFormation;
   private readonly miniQuizPassingScore = 70;
   
+  // Mock data for new features
+  leaderboard = signal<LeaderboardEntry[]>([
+    { userId: '1', username: 'Alex M.', xp: 4500, level: 12, rank: 1 },
+    { userId: '2', username: 'Sarah J.', xp: 4200, level: 11, rank: 2 },
+    { userId: 'me', username: 'Vous', xp: 3800, level: 10, rank: 3 },
+    { userId: '3', username: 'David K.', xp: 3100, level: 8, rank: 4 }
+  ]);
+
+  dailyChallenge = signal<{title: string, desc: string, xp: number, completed: boolean}>({
+    title: 'Focus sur l\'Architecture',
+    desc: 'Terminez 1 module de conception de microservices aujourd\'hui.',
+    xp: 50,
+    completed: false
+  });
+
   private readonly miniQuizTemplates: Record<'tech' | 'soft' | 'certification', QuizTemplateQuestion[]> = {
     tech: [
       { key: 't-1', prompt: 'Pour valider {topic}, quelle action démontre le mieux la maîtrise ?', options: ['Regarder uniquement les vidéos du cours', 'Appliquer les concepts sur un cas concret', 'Lire le résumé final sans pratiquer', 'Installer uniquement les outils'], correctIndex: 1 },
-      { key: 't-2', prompt: 'Quel réflexe réduit le plus les erreurs en production sur {topic} ?', options: ['Ne pas tester pour aller plus vite', 'Tester, vérifier les logs et documenter les changements', 'Modifier directement en production', 'Ignorer les conventions de code'], correctIndex: 1 }
+      { key: 't-2', prompt: 'Quel réflexe réduit le plus les erreurs en production sur {topic} ?', options: ['Ne pas tester pour aller plus vite', 'Tester, vérifier les logs et documenter les changements', 'Modifier directement en production', 'Ignorer les conventions de code'], correctIndex: 1 },
+      { key: 't-3', prompt: 'Quelle est la meilleure approche pour apprendre une nouvelle technologie comme {topic} ?', options: ['Apprendre par coeur toute la documentation', 'Construire un petit projet "Bac à sable"', 'Demander à quelqu\'un d\'autre de coder', 'Attendre d\'avoir un projet client'], correctIndex: 1 },
+      { key: 't-4', prompt: 'Sur {topic}, comment gérez-vous une erreur bloquante complexe ?', options: ['Abandonner le sujet', 'Analyse méthodique, lecture des erreurs et recherche dans la communauté/docs', 'Recoder tout depuis le début sans réfléchir', 'Ignorer l\'erreur si elle n\'est pas visible'], correctIndex: 1 },
+      { key: 't-5', prompt: 'Quelle pratique assure la maintenabilité sur le long terme ?', options: ['Code complexe et dense', 'Code propre, commenté et modulaire', 'Pas de commentaires pour gagner du temps', 'Tout mettre dans un seul fichier'], correctIndex: 1 }
     ],
     soft: [
-      { key: 's-1', prompt: 'Dans un échange difficile lié à {topic}, quelle approche est la plus efficace ?', options: ['Parler plus fort pour imposer votre point de vue', 'Écouter activement, clarifier le besoin puis proposer une solution', 'Éviter la discussion', 'Répondre uniquement par message court'], correctIndex: 1 },
-      { key: 's-2', prompt: 'Quel comportement renforce le plus la confiance de l’équipe ?', options: ['Ne jamais demander de feedback', 'Partager l’avancement, les risques et demander un retour', 'Promettre des délais irréalistes', 'Travailler en silo'], correctIndex: 1 }
+      { key: 's-1', prompt: 'En travaillant sur {topic}, comment réagissez-vous à un feedback critique ?', options: ['Le prendre personnellement', 'L\'écouter, demander des précisions et s\'améliorer', 'Ignorer le feedback', 'Se justifier sans écouter'], correctIndex: 1 },
+      { key: 's-2', prompt: 'Quel est l\'ingrédient clé pour exceller en {topic} ?', options: ['Travailler uniquement seul', 'Empathie, écoute active et communication claire', 'Parler le plus fort possible', 'Ne jamais admettre ses erreurs'], correctIndex: 1 },
+      { key: 's-3', prompt: 'Comment gérez-vous un conflit d\'équipe sur {topic} ?', options: ['Éviter le sujet', 'Discussion ouverte et recherche d\'un compromis constructif', 'Imposer son point de vue', 'Se plaindre au manager sans parler à l\'intéressé'], correctIndex: 1 },
+      { key: 's-4', prompt: 'Quelle est l\'importance de {topic} dans un rôle technique ?', options: ['Secondaire par rapport au code', 'Cruciale pour la collaboration et la réussite du projet', 'Inutile si on est un expert technique', 'Uniquement pour les managers'], correctIndex: 1 },
+      { key: 's-5', prompt: 'Comment développez-vous votre {topic} au quotidien ?', options: ['En lisant uniquement des livres', 'Par la pratique consciente et l\'observation des pairs', 'On naît avec, on ne peut pas changer', 'En évitant les interactions sociales'], correctIndex: 1 }
     ],
     certification: [
-      { key: 'c-1', prompt: 'Avant de passer la certification {topic}, quelle stratégie est la plus robuste ?', options: ['Réviser uniquement les dernières 24h', 'Faire des examens blancs et corriger les lacunes ciblées', 'Ignorer le syllabus officiel', 'Mémoriser sans comprendre les cas pratiques'], correctIndex: 1 },
-      { key: 'c-2', prompt: 'Quel est un bon indicateur de préparation à l’examen ?', options: ['Résultats stables au-dessus du seuil sur plusieurs tests blancs', 'Un seul test réussi par hasard', 'Aucune simulation chronométrée', 'Aucune revue des erreurs'], correctIndex: 0 }
+      { key: 'c-1', prompt: 'Le certificat pour {topic} prouve que vous avez...', options: ['Terminé le temps imparti', 'Validé les acquis théoriques et pratiques essentiels', 'Payé la formation', 'Simplement ouvert tous les modules'], correctIndex: 1 },
+      { key: 'c-2', prompt: 'Après avoir obtenu votre certif sur {topic}, quelle est la suite ?', options: ['Tout oublier immédiatement', 'Continuer à pratiquer et partager ses connaissances', 'Ne plus jamais étudier ce sujet', 'Mettre le diplôme au placard'], correctIndex: 1 },
+      { key: 'c-3', prompt: 'Pourquoi la validation administrative est-elle nécessaire après l\'upload ?', options: ['Pour perdre du temps', 'Pour assurer l\'authenticité du certificat et la conformité au plan', 'C\'est une erreur système', 'Ce n\'est pas nécessaire'], correctIndex: 1 }
     ]
   };
 
@@ -151,9 +190,6 @@ export class FormationListComponent implements OnInit, OnDestroy {
         },
         error: () => {}
       });
-      
-      // Auto generate plan based on weaknesses
-      this.generateLearningPlan();
     } else {
       this.error.set("Utilisateur non identifié.");
     }
@@ -229,6 +265,13 @@ export class FormationListComponent implements OnInit, OnDestroy {
     });
   }
 
+  completeDailyChallenge() {
+    this.dailyChallenge.update(c => ({...c, completed: true}));
+    if (this.currentUserGamification()) {
+      this.currentUserGamification.update(g => g ? {...g, xp: g.xp + 50} : null);
+    }
+  }
+
   // ── Filters & Computed ──────────────────────────────────────────────
 
   get filteredRecoFormations() {
@@ -255,10 +298,10 @@ export class FormationListComponent implements OnInit, OnDestroy {
 
   platformIcon(platform: string): string {
     const p = platform.toLowerCase();
-    if (p.includes('udemy')) return '🎓';
-    if (p.includes('coursera')) return '📚';
-    if (p.includes('linkedin')) return '💼';
-    return '🌐';
+    if (p.includes('udemy')) return 'udemy';
+    if (p.includes('coursera')) return 'coursera';
+    if (p.includes('linkedin')) return 'linkedin';
+    return 'globe';
   }
 
   formationsEnCoursCount(): number {
@@ -278,58 +321,38 @@ export class FormationListComponent implements OnInit, OnDestroy {
 
   formationsByStatusFiltered(status: StatutFormation): FormationResponse[] {
     const typeFilter = this.kanbanTypeFilter();
-    let list = this.formations().filter(f => {
+    return this.formations().filter(f => {
       if (f.statut !== status) return false;
       if (typeFilter === 'ALL') return true;
       return f.type?.toString().includes(typeFilter);
     });
-
-    if (status === StatutFormation.PROPOSEE) {
-      const plan = this.learningPlan();
-      if (plan && plan.formations) {
-        plan.formations.forEach(f => {
-          f.courses.forEach(c => {
-            const exists = this.formations().some(dbF => dbF.url === c.url || dbF.titre === c.title);
-            if (!exists) {
-              const type = this.resolveFormationType(f.skill);
-              if (typeFilter === 'ALL' || type.toString().includes(typeFilter)) {
-                list.push({
-                  id: `virtual_${f.skill}_${c.id || c.title}`,
-                  titre: c.title,
-                  description: `Cible: ${f.skill}. ${c.reason || 'Suggéré par IA'}`,
-                  type: type,
-                  statut: StatutFormation.PROPOSEE,
-                  duree: Math.max(1, Math.round(Number(c.duration_hours) || 1)),
-                  progression: 0,
-                  dateProposition: new Date(),
-                  fournisseur: c.platform,
-                  url: c.url
-                } as any);
-              }
-            }
-          });
-        });
-      }
-    }
-    return list;
   }
 
   startCoursePractice(skill: string, course: any): void {
     this.courseActionLoadingKey.set(`${skill}::${course.id}`);
+    
+    // Ensure duration is a valid integer for backend
+    const numericDuration = Math.max(1, Math.round(typeof course.duration_hours === 'number' 
+      ? course.duration_hours 
+      : (parseFloat(String(course.duration_hours)) || 1)));
+
     this.formationService.createFormation(this.currentUserId, {
       titre: course.title,
       description: `Cible: ${skill}. ${course.reason}`,
       type: this.resolveFormationType(skill),
-      duree: course.duration_hours || 1,
-      fournisseur: course.platform,
-      url: course.url,
-      statut: StatutFormation.EN_ATTENTE
+      duree: numericDuration,
+      fournisseur: course.platform || 'Autre',
+      url: course.url || '',
+      statut: StatutFormation.PROPOSEE
     }).subscribe({
       next: () => {
         this.courseActionSuccess.set(`Le cours "${course.title}" a été ajouté.`);
         this.loadFormations();
       },
-      error: () => this.courseActionError.set('Erreur lors de l\'ajout du cours.'),
+      error: (err) => {
+        console.error("Erreur ajout cours:", err);
+        this.courseActionError.set('Erreur lors de l\'ajout du cours.');
+      },
       complete: () => this.courseActionLoadingKey.set(null)
     });
   }
@@ -343,7 +366,7 @@ export class FormationListComponent implements OnInit, OnDestroy {
 
   exportToPdf(): void {
     this.isExportingPdf.set(true);
-    const element = document.querySelector('.dashboard-root') as HTMLElement;
+    const element = document.querySelector('.main-content') as HTMLElement;
     if (!element) return;
 
     html2canvas(element, { scale: 2 }).then(canvas => {
@@ -548,21 +571,40 @@ export class FormationListComponent implements OnInit, OnDestroy {
 
   canUploadCertificate(f: FormationResponse) { return f.miniTestPassed === true; }
 
-  onCertificateSelected(event: Event, formation: FormationResponse) {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (file && this.canUploadCertificate(formation)) {
-      this.certificateUploadingId.set(formation.id);
-      this.formationService.uploadCertificate(formation.id, file).subscribe({
-        next: (res) => {
-           this.upsertUpdatedFormation(res);
-           this.miniQuizMessage.set('Certificat téléversé avec succès.');
-        },
-        complete: () => this.certificateUploadingId.set(null)
-      });
+  validateCertificate(formation: FormationResponse): void {
+    if (!formation.certificateUrl) return;
+
+    // Set status to PENDING VALIDATION instead of TERMINATED directly
+    this.formationService.updateFormationStatus(formation.id, StatutFormation.EN_ATTENTE_VALIDATION).subscribe({
+      next: (res) => {
+        this.upsertUpdatedFormation(res);
+        this.activeQuizFormation.set(null);
+        this.miniQuizMessage.set('Votre demande de validation a été soumise à l\'administration.');
+      }
+    });
+  }
+
+  onCertificateSelected(event: any, formation: FormationResponse): void {
+    const file = event.target.files[0];
+    if (file) {
+      this.uploadCertificate(formation.id, file);
     }
   }
 
-  isCertificateUploading(id: string) { return this.certificateUploadingId() === id; }
+  private uploadCertificate(formationId: string, file: File): void {
+    this.certificateUploadStatus.update(s => ({ ...s, [formationId]: true }));
+    this.formationService.uploadCertificate(formationId, file).subscribe({
+      next: (res) => {
+        this.upsertUpdatedFormation(res);
+        this.certificateUploadStatus.update(s => ({ ...s, [formationId]: false }));
+      },
+      error: () => {
+        this.certificateUploadStatus.update(s => ({ ...s, [formationId]: false }));
+      }
+    });
+  }
+
+  isCertificateUploading(id: string) { return !!this.certificateUploadStatus()[id]; }
 
   // ── Admin / Review Notes ─────────────────────────────────────────────
   
@@ -644,11 +686,40 @@ export class FormationListComponent implements OnInit, OnDestroy {
     const formations = raw.formations || [];
     
     return {
-      meta: { estimated_ready_date: raw.meta?.estimated_ready_date || raw.generated_at || new Date().toISOString() },
-      summary: { overall_readiness_pct: raw.summary?.overall_readiness_pct || 40, profile_evaluation: raw.summary?.profile_evaluation || 'Analyse en cours...' },
-      skill_gap_analysis: { breakdown: (skillGap.breakdown || skillGap.target_role_requirements || []).map((b:any) => ({ skill: b.skill, current_level: b.current_level||0, required_level: b.required_level||10 })) },
-      roadmap: roadmap.map((r:any) => ({ phase: r.phase||1, title: r.title||r.phase||'', duration_weeks: r.duration_weeks||r.duration||2, focus_skills: r.focus_skills||r.focus||[] })),
-      formations: formations.map((f:any) => ({ skill: f.skill, priority: f.priority, courses: (f.courses||[]).map((c:any) => ({ id: c.id||Date.now(), title: c.title, platform: c.platform, url: c.url, duration_hours: c.duration_hours || c.duration, level: c.level, reason: c.reason })) }))
+      meta: { 
+        estimated_ready_date: raw.meta?.estimated_ready_date || raw.generated_at || new Date().toISOString() 
+      },
+      summary: { 
+        overall_readiness_pct: raw.summary?.overall_readiness_pct || 40, 
+        profile_evaluation: raw.summary?.profile_evaluation || 'Analyse IA en attente...' 
+      },
+      skill_gap_analysis: { 
+        breakdown: (skillGap.breakdown || skillGap.target_role_requirements || []).map((b:any) => ({ 
+          skill: b.skill, 
+          current_level: b.current_level||0, 
+          required_level: b.required_level||10 
+        })) 
+      },
+      roadmap: roadmap.map((r:any) => ({ 
+        phase: r.phase || 1, 
+        title: r.title || `Phase ${r.phase}`, 
+        duration_weeks: r.duration_weeks || r.duration || 2, 
+        focus_skills: r.focus_skills || r.focus || [],
+        goals: r.goals || []
+      })),
+      formations: formations.map((f:any) => ({ 
+        skill: f.skill, 
+        priority: f.priority, 
+        courses: (f.courses||[]).map((c:any) => ({ 
+          id: c.id || Math.random().toString(36).substr(2, 9), 
+          title: c.title, 
+          platform: c.platform, 
+          url: c.url, 
+          duration_hours: c.duration_hours || c.duration || 0, 
+          level: c.level || 'Beginner', 
+          reason: c.reason || 'Recommandé par IA'
+        })) 
+      }))
     } as any;
   }
 }

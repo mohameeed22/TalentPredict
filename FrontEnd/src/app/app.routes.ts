@@ -78,13 +78,7 @@ export const routes: Routes = [
             m => m.SkillTestQuizComponent
           )
       },
-      {
-        path: 'progress',
-        loadComponent: () =>
-          import('./modules/skill-test/components/skill-progress/skill-progress.component').then(
-            m => m.SkillProgressComponent
-          )
-      },
+
       {
         path: 'code',
         loadComponent: () =>
@@ -104,10 +98,22 @@ export const routes: Routes = [
   {
     path: 'mes-resultats',
     canActivate: [authGuard],
-    loadComponent: () =>
-      import('./modules/resultats/components/mes-resultats/mes-resultats.component').then(
-        m => m.MesResultatsComponent
-      )
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./modules/resultats/components/mes-resultats/mes-resultats.component').then(
+            m => m.MesResultatsComponent
+          )
+      },
+      {
+        path: 'progress',
+        loadComponent: () =>
+          import('./modules/skill-test/components/skill-progress/skill-progress.component').then(
+            m => m.SkillProgressComponent
+          )
+      }
+    ]
   },
   {
     path: 'recruiter',
@@ -145,13 +151,6 @@ export const routes: Routes = [
     path: 'skill-test',
     canActivate: [authGuard],
     children: [
-      {
-        path: 'voice-interview',
-        loadComponent: () =>
-          import('./modules/skill-test/components/voice-interview/voice-interview.component').then(
-            m => m.VoiceInterviewComponent
-          )
-      }
     ]
   },
   { path: '**', redirectTo: '/' }

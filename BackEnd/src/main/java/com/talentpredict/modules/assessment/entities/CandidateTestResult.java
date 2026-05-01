@@ -9,6 +9,8 @@ import com.talentpredict.modules.user.entities.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Getter
@@ -35,7 +37,7 @@ public class CandidateTestResult {
     @Column(name = "skill_scores", columnDefinition = "TEXT")
     private String skillScoresJson;
 
-    @Convert(converter = FraudFlagsConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "fraud_flags", columnDefinition = "jsonb")
     private FraudFlags fraudFlags;
 

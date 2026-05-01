@@ -83,8 +83,7 @@
   }
 
   .btn-security,
-  .btn-competences,
-  .btn-voice-interview {
+  .btn-competences {
     display: flex;
     align-items: center;
     gap: 0.375rem;
@@ -118,18 +117,6 @@
     &:hover {
       background: #dbeafe;
       border-color: #bfdbfe;
-      transform: translateY(-2px);
-    }
-  }
-
-  .btn-voice-interview {
-    background: #f5f3ff;
-    color: #6d28d9;
-    border-color: #ede9fe;
-
-    &:hover {
-      background: #ede9fe;
-      border-color: #ddd6fe;
       transform: translateY(-2px);
     }
   }

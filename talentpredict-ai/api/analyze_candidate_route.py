@@ -56,7 +56,7 @@ async def analyze_candidate(
         github_username = github.strip()
         linkedin_url_val = linkedin_url.strip() or None
         linkedin_content_val = linkedin_content.strip() or None
-        # stripe() make a new copy of string
+        # strip() make a new copy of string
         logger.info(
             "Analyzing candidate: github=%s, portfolio=%s, cv=%s, linkedin_url=%s",
             github_username,

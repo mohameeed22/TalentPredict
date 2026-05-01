@@ -57,7 +57,13 @@ public class CandidateAssessmentController {
             @PathVariable UUID userId,
             @AuthenticationPrincipal UserDetailsImpl principal) {
         assertSelfOrRecruiter(principal.getUser(), userId);
-        List<CandidateTestResult> rows = candidateTestResultRepository.findByUser_IdOrderByTakenAtDesc(userId);
+        List<CandidateTestResult> rows;
+        try {
+            rows = candidateTestResultRepository.findByUser_IdOrderByTakenAtDesc(userId);
+        } catch (Exception e) {
+            log.warn("Error loading progress for user {}: {}", userId, e.getMessage());
+            return ResponseEntity.ok(java.util.List.of());
+        }
         List<Map<String, Object>> list = rows.stream().map(r -> {
             Map<String, Object> m = new HashMap<>();
             m.put("taken_at", r.getTakenAt());
@@ -74,6 +80,7 @@ public class CandidateAssessmentController {
         }).toList();
         return ResponseEntity.ok(list);
     }
+
 
     @PostMapping("/{userId}/generate-report")
     @PreAuthorize("isAuthenticated()")
@@ -127,112 +134,5 @@ public class CandidateAssessmentController {
         if (!auth.getId().equals(userId)) {
             throw new org.springframework.security.access.AccessDeniedException("Forbidden");
         }
-    }
-
-    // ── Voice Interview Results ────────────────────────────────────────────────
-
-    @Data
-    public static class InterviewResultRequest {
-        private Double overallScore;
-        private String recommendation;
-        private String role;
-        private String level;
-        private Object avgScores;
-        private Object summaryData; // full summary JSON object
-    }
-
-    @PostMapping("/{userId}/interview-results")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Map<String, Object>> saveInterviewResult(
-            @PathVariable UUID userId,
-            @RequestBody InterviewResultRequest body,
-            @AuthenticationPrincipal UserDetailsImpl principal) {
-
-        assertSelfOrRecruiter(principal.getUser(), userId);
-        User user = userRepository.findById(userId).orElseThrow();
-
-        String skillScoresJson = "{}";
-        FraudFlags fraudFlags = new FraudFlags();
-        String summaryJson = "{}";
-
-        try {
-            if (body.getAvgScores() != null) {
-                skillScoresJson = objectMapper.writeValueAsString(body.getAvgScores());
-            }
-            if (body.getSummaryData() != null) {
-                summaryJson = objectMapper.writeValueAsString(body.getSummaryData());
-            }
-        } catch (Exception e) {
-            log.warn("Failed to serialize interview result data: {}", e.getMessage());
-        }
-
-        int score = body.getOverallScore() != null ? (int) Math.round(body.getOverallScore()) : 0;
-        boolean passed = score >= 60;
-
-        // Store the role+level in skillScoresJson as extra context alongside avg_scores
-        Map<String, Object> enrichedScores = new java.util.LinkedHashMap<>();
-        try {
-            if (body.getAvgScores() != null) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> parsed = objectMapper.convertValue(body.getAvgScores(), Map.class);
-                enrichedScores.putAll(parsed);
-            }
-        } catch (Exception ignored) {}
-        enrichedScores.put("_role", body.getRole());
-        enrichedScores.put("_level", body.getLevel());
-        enrichedScores.put("_recommendation", body.getRecommendation());
-        enrichedScores.put("_summary", summaryJson);
-
-        try {
-            skillScoresJson = objectMapper.writeValueAsString(enrichedScores);
-        } catch (Exception ignored) {}
-
-        CandidateTestResult result = CandidateTestResult.builder()
-                .user(user)
-                .overallScore(score)
-                .skillScoresJson(skillScoresJson)
-                .fraudFlags(fraudFlags)
-                .passed(passed)
-                .testType(TestType.VOICE_INTERVIEW)
-                .build();
-
-        candidateTestResultRepository.save(result);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("saved", true);
-        response.put("score", score);
-        response.put("recommendation", body.getRecommendation());
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/{userId}/interview-results")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<Map<String, Object>>> listInterviewResults(
-            @PathVariable UUID userId,
-            @AuthenticationPrincipal UserDetailsImpl principal) {
-
-        assertSelfOrRecruiter(principal.getUser(), userId);
-        List<CandidateTestResult> rows = candidateTestResultRepository
-                .findByUser_IdOrderByTakenAtDesc(userId)
-                .stream()
-                .filter(r -> r.getTestType() == TestType.VOICE_INTERVIEW)
-                .toList();
-
-        List<Map<String, Object>> list = rows.stream().map(r -> {
-            Map<String, Object> m = new HashMap<>();
-            m.put("id", r.getId());
-            m.put("taken_at", r.getTakenAt());
-            m.put("overall_score", r.getOverallScore());
-            m.put("passed", r.getPassed());
-            try {
-                m.put("details", objectMapper.readTree(
-                        r.getSkillScoresJson() != null ? r.getSkillScoresJson() : "{}"));
-            } catch (Exception e) {
-                m.put("details", objectMapper.createObjectNode());
-            }
-            return m;
-        }).toList();
-
-        return ResponseEntity.ok(list);
     }
 }

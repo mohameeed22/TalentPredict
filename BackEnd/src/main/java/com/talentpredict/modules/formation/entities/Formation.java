@@ -136,6 +136,7 @@ public class Formation {
         REJETEE,
         PROPOSEE_ADMIN,
         EN_COURS,
+        EN_ATTENTE_VALIDATION,
         TERMINEE,
         ANNULEE
     }

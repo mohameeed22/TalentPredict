@@ -40,15 +40,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   showCropModal = false;
   cropImageSrc: string | null = null;
 
-  // Contract types multi-select
-  readonly CONTRACT_TYPES = ['CDI', 'CDD', 'Freelance', 'Stage', 'Alternance'];
   readonly DEPARTMENTS = ['Engineering', 'Product', 'Design', 'Data', 'RH', 'Finance', 'Marketing', 'Operations'];
-  readonly DISPONIBILITE_OPTIONS = [
-    'Disponible immédiatement',
-    'Disponible sous 1 mois',
-    'En poste, à l\'écoute',
-    'Non disponible'
-  ];
 
   profileForm!: FormGroup;
   private profileSubscription?: Subscription;
@@ -64,9 +56,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
       portfolioUrl: [''],
       poste: [''],
       departementEditable: [''],
-      ville: [''],
-      disponibilite: [''],
-      typeContrat: [[]]
+      ville: ['']
     });
 
     setTimeout(() => {
@@ -138,9 +128,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
       portfolioUrl: profile.portfolioUrl ?? '',
       poste: profile.poste ?? '',
       departementEditable: profile.departementEditable ?? '',
-      ville: profile.ville ?? '',
-      disponibilite: profile.disponibilite ?? '',
-      typeContrat: profile.typeContrat ?? []
+      ville: profile.ville ?? ''
     });
   }
 
@@ -236,20 +224,6 @@ export class UserProfileComponent implements OnInit, OnDestroy {
     return colors[Math.abs(hash) % colors.length];
   }
 
-  // ========== Contract type multi-select ==========
-
-  isContractSelected(type: string): boolean {
-    const current: string[] = this.profileForm.get('typeContrat')?.value || [];
-    return current.includes(type);
-  }
-
-  toggleContract(type: string): void {
-    const current: string[] = [...(this.profileForm.get('typeContrat')?.value || [])];
-    const idx = current.indexOf(type);
-    if (idx === -1) current.push(type);
-    else current.splice(idx, 1);
-    this.profileForm.patchValue({ typeContrat: current });
-  }
 
   // ========== Bio counter ==========
 

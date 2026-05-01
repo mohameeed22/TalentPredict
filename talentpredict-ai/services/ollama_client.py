@@ -9,7 +9,6 @@ from typing import Any
 
 import httpx
 import json5
-import re
 
 from config.settings import (
     OLLAMA_BASE_URL,

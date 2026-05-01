@@ -6,6 +6,7 @@ import logging
 import os
 
 from dotenv import load_dotenv
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 #cros allows us to make requests from the frontend (angular) to the backend (fastapi)  
@@ -26,6 +27,22 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Create DB tables on startup (no-op if they already exist).
+
+    Failure is non-fatal: the service runs with in-memory (L1) cache only
+    when the PostgreSQL database is unavailable.
+    """
+    try:
+        await init_db()
+    except Exception as exc:
+        logging.getLogger(__name__).warning(
+            "DB init failed — running with in-memory cache only: %s", exc
+        )
+    yield
+
+
 app = FastAPI(
     title="TalentPredict AI Service",
     description=(
@@ -33,6 +50,7 @@ app = FastAPI(
         "GitHub, CV, and portfolio sources using ollama ."
     ),
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # CORS — allow Angular dev server and configurable origins
@@ -59,19 +77,6 @@ app.include_router(recruiter_router)
 app.include_router(career_router)
 #every router become an endpoint in the backend, for example: /api/analyze, /api/test, /api/analysis, /api/jobs, /api/career, /api/recruiter
 
-@app.on_event("startup")
-async def startup() -> None:
-    """Create DB tables on startup (no-op if they already exist).
-
-    Failure is non-fatal: the service runs with in-memory (L1) cache only
-    when the PostgreSQL database is unavailable.
-    """
-    try:
-        await init_db()
-    except Exception as exc:
-        logging.getLogger(__name__).warning(
-            "DB init failed — running with in-memory cache only: %s", exc
-        )
 
 
 @app.get("/health")

@@ -42,9 +42,9 @@ public class AssessmentController {
     }
 
     // ── Scenario Simulator ──────────────────────────────────────────────────
-
+    //generate scenario based on role and level
     @PostMapping("/scenario/generate")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')") 
     public ResponseEntity<Map<String, Object>> generateScenario(
             @RequestBody ScenarioGenerateRequestDto request) {
         log.info("POST /api/assessment/scenario/generate — role: {}", request.getRole());
@@ -52,8 +52,8 @@ public class AssessmentController {
                 request.getRole(), request.getLevel());
         return ResponseEntity.ok(result);
     }
-
-    @PostMapping("/scenario/evaluate")
+     //evaluation endpoint for scenario simulator 
+    @PostMapping("/scenario/evaluate") 
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<Map<String, Object>> evaluateScenario(
             @RequestBody ScenarioEvaluateRequestDto request) {
@@ -79,31 +79,5 @@ public class AssessmentController {
                 ? (Map<String, Object>) request.get("fraudContext") : null;
         Map<String, Object> result = proxyService.checkFraud(candidateId, testType, fraudContext);
         return ResponseEntity.ok(result);
-    }
-
-    // ── AI Voice Interview ───────────────────────────────────────────────────
-
-    @PostMapping("/interview/question")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Map<String, Object>> getInterviewQuestion(
-            @RequestBody Map<String, Object> request) {
-        log.info("POST /api/assessment/interview/question — role: {}", request.get("role"));
-        return ResponseEntity.ok(proxyService.getInterviewQuestion(request));
-    }
-
-    @PostMapping("/interview/evaluate-turn")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Map<String, Object>> evaluateInterviewTurn(
-            @RequestBody Map<String, Object> request) {
-        log.info("POST /api/assessment/interview/evaluate-turn");
-        return ResponseEntity.ok(proxyService.evaluateInterviewTurn(request));
-    }
-
-    @PostMapping("/interview/summary")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Map<String, Object>> getInterviewSummary(
-            @RequestBody Map<String, Object> request) {
-        log.info("POST /api/assessment/interview/summary");
-        return ResponseEntity.ok(proxyService.getInterviewSummary(request));
     }
 }

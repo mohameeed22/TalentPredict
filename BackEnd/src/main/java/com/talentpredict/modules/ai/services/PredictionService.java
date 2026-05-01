@@ -2,6 +2,7 @@
 package com.talentpredict.modules.ai.services;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -38,70 +39,92 @@ public class PredictionService {
     private final SkillRepository skillRepository;
     private final AuthServiceImpl authServiceImpl;
     private final OpenAIService openAIService;
+    private final AssessmentAiProxyService assessmentAiProxyService;
 
     @Transactional
     public PredictionDto.Response genererPrediction(UUID userId) {
+        log.info("Generating prediction for user: {}", userId);
         User user = authServiceImpl.getUserById(userId);
 
-        // Récupérer les données de l'utilisateur
-        List<CandidateTestResult> tests = candidateTestResultRepository.findByUser_IdOrderByTakenAtDesc(userId);
+        // Récupérer les données de l'utilisateur (safe load to avoid bad fraud_flags data crashing the prediction)
+        List<CandidateTestResult> tests;
+        try {
+            tests = candidateTestResultRepository.findByUser_IdOrderByTakenAtDesc(userId);
+        } catch (Exception e) {
+            log.warn("Could not load test results for user {} (non-fatal): {}", userId, e.getMessage());
+            tests = java.util.Collections.emptyList();
+        }
         List<Skill> skills = skillRepository.findByUserId(userId);
 
-        // Construire le profil complet
+        // Construire le profil complet pour l'IA
         StringBuilder profileBuilder = new StringBuilder();
-        profileBuilder.append("User: ").append(user.getFirstName()).append(" ").append(user.getLastName())
-                .append("\n\n");
+        profileBuilder.append("User: ").append(user.getFirstName()).append(" ").append(user.getLastName()).append("\n");
+        profileBuilder.append("Email: ").append(user.getEmail()).append("\n\n");
 
         if (!tests.isEmpty()) {
-            profileBuilder.append("Tests de personnalité:\n");
+            profileBuilder.append("--- Évaluations Récentes ---\n");
             tests.forEach(test -> {
                 profileBuilder.append("- Type: ").append(test.getTestType())
                         .append(", Score: ").append(test.getOverallScore())
-                        .append("\n  Analyse: ").append(test.getSkillScoresJson()).append("\n");
+                        .append(", Date: ").append(test.getTakenAt())
+                        .append("\n  Détails: ").append(test.getSkillScoresJson()).append("\n");
             });
+            profileBuilder.append("\n");
         }
 
         if (!skills.isEmpty()) {
-            profileBuilder.append("\nCompétences:\n");
+            profileBuilder.append("--- Compétences Détectées ---\n");
             skills.forEach(skill -> {
                 profileBuilder.append("- ").append(skill.getNom())
                         .append(" (").append(skill.getType()).append(", niveau ").append(skill.getNiveau())
-                        .append(")\n");
+                        .append("/5)\n");
             });
+            profileBuilder.append("\n");
         }
 
-        // Générer la prédiction avec OpenAI
-        String analyseLlm = openAIService.genererPrediction(profileBuilder.toString());
+        // Préparer les données pour le proxy IA
+        List<Map<String, Object>> skillsMap = skills.stream().map(s -> {
+            Map<String, Object> m = new java.util.HashMap<>();
+            m.put("name", s.getNom());
+            m.put("type", s.getType());
+            m.put("level", s.getNiveau());
+            return m;
+        }).collect(Collectors.toList());
 
-        // Créer la prédiction
-        Prediction prediction = new Prediction();
-        prediction.setUser(user);
-        prediction.setAnalyse(analyseLlm);
-        prediction.setDatePrediction(java.time.LocalDateTime.now());
-        // Bug fix: calculate score based on data richness instead of hardcoding 0.85
-        int testCount = tests.size();
-        int skillCount = skills.size();
-        double scoreConfiance = Math.min(1.0, (skillCount * 0.1) + (testCount * 0.15) + 0.4);
-        prediction.setScoreConfiance(scoreConfiance);
-        prediction.setStatut(Prediction.StatutPrediction.COMPLETEE);
-        log.info("Generated prediction for user {} with scoreConfiance={}", userId, scoreConfiance);
+        List<Map<String, Object>> testsMap = tests.stream().map(t -> {
+            Map<String, Object> m = new java.util.HashMap<>();
+            m.put("type", t.getTestType());
+            m.put("score", t.getOverallScore());
+            m.put("date", t.getTakenAt());
+            return m;
+        }).collect(Collectors.toList());
 
-        // Extraire les recommandations (simplifié)
-        String[] parts = analyseLlm.split("Recommandations");
-        if (parts.length > 1) {
-            String recommendations = parts[1];
-            if (recommendations.contains("soft")) {
-                int softIndex = recommendations.toLowerCase().indexOf("soft");
-                prediction.setRecommandationSoft(
-                        recommendations.substring(softIndex, Math.min(softIndex + 500, recommendations.length())));
-            }
-            if (recommendations.contains("tech")) {
-                int techIndex = recommendations.toLowerCase().indexOf("tech");
-                prediction.setRecommandationTech(
-                        recommendations.substring(techIndex, Math.min(techIndex + 500, recommendations.length())));
-            }
-        }
+        // Appeler le microservice IA via le proxy
+        Map<String, Object> aiResponse = assessmentAiProxyService.generateCareerPrediction(
+                userId.toString(),
+                user.getFirstName() + " " + user.getLastName(),
+                skillsMap,
+                testsMap,
+                user.getPosition()
+        );
 
+        String analyseLlm = aiResponse.get("analysis") != null ? aiResponse.get("analysis").toString() : "";
+        Double scoreConfiance = aiResponse.get("confidence_score") != null 
+                ? Double.valueOf(aiResponse.get("confidence_score").toString()) 
+                : 0.85;
+
+        // Créer la prédiction avec le Builder
+        Prediction prediction = Prediction.builder()
+                .user(user)
+                .analyse(analyseLlm)
+                .datePrediction(java.time.LocalDateTime.now())
+                .scoreConfiance(scoreConfiance)
+                .statut(Prediction.StatutPrediction.COMPLETEE)
+                .recommandationSoft(aiResponse.get("recommendations_soft") != null ? aiResponse.get("recommendations_soft").toString() : null)
+                .recommandationTech(aiResponse.get("recommendations_tech") != null ? aiResponse.get("recommendations_tech").toString() : null)
+                .build();
+
+        log.info("Saving prediction for user {} with confidence {}", userId, scoreConfiance);
         Prediction saved = predictionRepository.save(prediction);
         return convertToResponse(saved);
     }

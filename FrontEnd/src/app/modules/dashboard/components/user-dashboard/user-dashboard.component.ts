@@ -11,6 +11,7 @@ import {
 } from '../../services/dashboard.service';
 import { AuthService } from '../../../auth/services/auth.service';
 import { PredictionResponse } from '../../models/prediction.model';
+import { NotificationService } from '../../../../core/services/notification.service';
 
 type RadarToggle = 'tous' | 'tech' | 'soft';
 type MomentumDirection = 'up' | 'down' | 'flat';
@@ -78,19 +79,20 @@ export class UserDashboardComponent implements OnInit {
   Math = Math;
   private dashboardService = inject(DashboardService);
   private authService = inject(AuthService);
+  private notificationService = inject(NotificationService);
 
   private readonly roleBlueprints: CareerBlueprint[] = [
     {
       role: 'Frontend Developer',
       tech: ['angular', 'typescript', 'javascript'],
       soft: ['communication', 'adaptabilite'],
-      targetRoute: '/competences/progress'
+      targetRoute: '/mes-resultats/progress'
     },
     {
       role: 'Full Stack Developer',
       tech: ['java', 'spring', 'sql'],
       soft: ['collaboration', 'problem solving'],
-      targetRoute: '/competences/results'
+      targetRoute: '/mes-resultats'
     },
     {
       role: 'Tech Lead',
@@ -145,7 +147,12 @@ export class UserDashboardComponent implements OnInit {
         this.latestPrediction = p;
         this.generatingPrediction = false;
       },
-      error: () => { this.generatingPrediction = false; }
+      error: (err: any) => {
+        this.generatingPrediction = false;
+        console.error('Erreur lors de la génération de la prédiction:', err);
+        const errorMsg = err?.error?.message || 'Erreur inconnue';
+        this.notificationService.error('Échec de l\'analyse IA : ' + errorMsg);
+      }
     });
   }
 

@@ -22,7 +22,8 @@ export class FormationCardComponent {
       [StatutFormation.PROPOSEE_ADMIN]: 'status-proposed',
       [StatutFormation.EN_COURS]: 'status-in-progress',
       [StatutFormation.TERMINEE]: 'status-completed',
-      [StatutFormation.ANNULEE]: 'status-cancelled'
+      [StatutFormation.ANNULEE]: 'status-cancelled',
+      [StatutFormation.EN_ATTENTE_VALIDATION]: 'status-proposed'
     };
     return statusMap[statut] || '';
   }
@@ -50,7 +51,8 @@ export class FormationCardComponent {
       [StatutFormation.PROPOSEE_ADMIN]: 'Recommandée par RH',
       [StatutFormation.EN_COURS]: 'En cours',
       [StatutFormation.TERMINEE]: 'Terminée',
-      [StatutFormation.ANNULEE]: 'Annulée'
+      [StatutFormation.ANNULEE]: 'Annulée',
+      [StatutFormation.EN_ATTENTE_VALIDATION]: 'En attente de validation'
     };
     return statusLabels[statut] || statut;
   }

@@ -122,6 +122,74 @@
       </div>
     }
 
+    <!-- Code Challenge Detailed Results -->
+    @if (quizResult?.codeFeedback || quizResult?.codeBreakdown || quizResult?.rawCode?.issues_found) {
+      <div class="code-feedback-card">
+        <h3>💻 Analyse Détaillée du Code</h3>
+        
+        @if (quizResult?.rawCode?.submitted_code) {
+          <div class="code-snippet-block">
+            <h4>Code Soumis</h4>
+            <pre><code>{{ quizResult.rawCode.submitted_code }}</code></pre>
+          </div>
+        }
+
+        @if (quizResult?.codeFeedback) {
+          <div class="code-feedback-text">
+            <h4>Retour de l'Évaluateur</h4>
+            <p>{{ quizResult.codeFeedback }}</p>
+          </div>
+        }
+
+        @if (quizResult?.rawCode?.issues_found?.length) {
+          <div class="code-issues">
+            <h4>Erreurs et Améliorations (Pourquoi)</h4>
+            <ul>
+              @for (issue of quizResult.rawCode.issues_found; track issue) {
+                <li><span class="red-dot"></span> {{ issue }}</li>
+              }
+            </ul>
+          </div>
+        }
+
+        @if (quizResult?.rawCode?.strengths?.length) {
+          <div class="code-strengths">
+            <h4>Points Positifs</h4>
+            <ul>
+              @for (strength of quizResult.rawCode.strengths; track strength) {
+                <li><span class="green-dot"></span> {{ strength }}</li>
+              }
+            </ul>
+          </div>
+        }
+
+        @if (quizResult?.codeBreakdown) {
+          <div class="code-metrics-grid">
+            <div class="c-metric">
+              <span class="cm-label">Correctitude</span>
+              <div class="cm-bar"><div class="cm-fill" [style.width.%]="(quizResult.codeBreakdown.correctness / 40) * 100"></div></div>
+              <span class="cm-val">{{ quizResult.codeBreakdown.correctness }}/40</span>
+            </div>
+            <div class="c-metric">
+              <span class="cm-label">Qualité du Code</span>
+              <div class="cm-bar"><div class="cm-fill" [style.width.%]="(quizResult.codeBreakdown.code_quality / 30) * 100"></div></div>
+              <span class="cm-val">{{ quizResult.codeBreakdown.code_quality }}/30</span>
+            </div>
+            <div class="c-metric">
+              <span class="cm-label">Efficacité</span>
+              <div class="cm-bar"><div class="cm-fill" [style.width.%]="(quizResult.codeBreakdown.efficiency / 20) * 100"></div></div>
+              <span class="cm-val">{{ quizResult.codeBreakdown.efficiency }}/20</span>
+            </div>
+            <div class="c-metric">
+              <span class="cm-label">Lisibilité</span>
+              <div class="cm-bar"><div class="cm-fill" [style.width.%]="(quizResult.codeBreakdown.readability / 10) * 100"></div></div>
+              <span class="cm-val">{{ quizResult.codeBreakdown.readability }}/10</span>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
     <!-- CV Authenticity Forensics -->
     @if (loadingCvAuthenticity) {
       <div class="section-block loading-state">
@@ -157,18 +225,43 @@
           </div>
 
           <div class="forensics-explanation">
-            <h4>Analyse Détaillée</h4>
+            <h4>Analyse Détaillée et Incohérences (Gaps)</h4>
             <p>{{ cvAuthenticityResult.explanation }}</p>
           </div>
 
+          @if (cvAuthenticityResult.remediation) {
+            <div class="remediation-block">
+              <h5>💡 Étapes de remédiation recommandées</h5>
+              <p>{{ cvAuthenticityResult.remediation }}</p>
+            </div>
+          }
+
+          @if (cvAuthenticityResult.timeline_gaps?.length) {
+            <div class="forensics-sub-section">
+              <h5>Timeline Gaps & Incohérences de dates</h5>
+              <ul>
+                @for (gap of cvAuthenticityResult.timeline_gaps; track gap) {
+                  <li>{{ gap }}</li>
+                }
+              </ul>
+            </div>
+          }
+
           @if (cvAuthenticityResult.signals?.length) {
             <div class="forensics-signals">
-              <h4>Signaux Détectés</h4>
+              <h4>Signaux Détectés (Détails)</h4>
               <div class="signals-grid">
                 @for (s of cvAuthenticityResult.signals; track s.description) {
-                  <div class="signal-item">
-                    <span class="signal-dot"></span>
-                    {{ s.description }}
+                  <div class="signal-item detailed-signal">
+                    <div class="signal-icon">
+                      <span class="signal-dot" [class]="s.severity || 'medium'"></span>
+                    </div>
+                    <div class="signal-content">
+                      <span class="signal-desc">{{ s.description }}</span>
+                      @if (s.type) {
+                        <span class="signal-type badge">{{ s.type }}</span>
+                      }
+                    </div>
                   </div>
                 }
               </div>
@@ -220,7 +313,7 @@
   }
 
       @if (activeTab === 'github' || pdfMode) {
-      <div class="tab-content github-deep-tab" [class.pdf-section]="pdfMode">
+      <div class="tab-content github-deep-tab light-theme" [class.pdf-section]="pdfMode">
         @if (pdfMode) { <h2 class="pdf-section-title" style="margin-top: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; color: #0f172a;">3. Analyse GitHub & Architecturale</h2> }
         
         @if (githubResult) {
@@ -237,8 +330,27 @@
               </div>
             </div>
             @if (githubResult.data?.code_complexity_estimate) {
-              <div class="gh-complexity">
-                Niveau de complexité estimé : <strong>{{ githubResult.data.code_complexity_estimate }}</strong>
+              <div class="gh-complexity-meta">
+                <div class="meta-item">
+                  <span class="m-lbl">Niveau de complexité :</span>
+                  <strong>{{ githubResult.data.code_complexity_estimate | uppercase }}</strong>
+                </div>
+                @if (githubResult.data.architectural_style) {
+                  <div class="meta-item">
+                    <span class="m-lbl">Style Architectural dominant :</span>
+                    <strong>{{ githubResult.data.architectural_style }}</strong>
+                  </div>
+                }
+              </div>
+            }
+            @if (githubResult.data?.gaps_identified?.length) {
+              <div class="github-gap-warning">
+                <h5>⚠️ Anomalies & Gaps Identifiés (Analyse Profonde)</h5>
+                <ul>
+                  @for (gap of githubResult.data.gaps_identified; track gap) {
+                    <li>{{ gap }}</li>
+                  }
+                </ul>
               </div>
             }
           </div>

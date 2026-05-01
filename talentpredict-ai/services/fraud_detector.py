@@ -16,12 +16,13 @@ def collect_signals(
     test_answers: list[dict[str, Any]] | None,
     code_submission: str | None,
     github_activity_years: list[int] | None,
-    biometrics: dict[str, Any] 
+    biometrics: dict[str, Any] | None = None
 ) -> list[dict[str, Any]]:
     """Build structured fraud signals without LLM."""
     signals: list[dict[str, Any]] = []
     gh_year = github_first_year_by_skill or {}
     claims = cv_claimed_years_by_skill or {}
+    biometrics = biometrics or {}
 
     for skill, years in claims.items():
         fy = gh_year.get(skill) or gh_year.get(skill.title())
@@ -207,12 +208,18 @@ Schema:
         risk = "high"
     elif score >= 30:
         risk = "medium"
+    
+    explanation = "L'audit approfondi par IA est temporairement indisponible. Une analyse heuristique a été effectuée sur la base des signaux collectés."
+    if signals:
+        explanation += f" {len(signals)} signaux d'alerte ont été détectés, notamment: " + ", ".join([s.get('description', '') for s in signals[:2]])
+    
     return {
         "fraud_risk": risk,
         "fraud_score": score,
         "flags": signals,
         "recommendation": "manual_review" if risk != "low" else "proceed",
-        "explanation": "Heuristic assessment (LLM unavailable).",
+        "explanation": explanation,
+        "remediation": "Vérifiez manuellement les journaux de proctoring et les métadonnées du CV pour confirmer ces signaux." if risk != "low" else "Aucune action corrective requise."
     }
 
 
