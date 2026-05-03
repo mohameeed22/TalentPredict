@@ -1,18 +1,18 @@
 import { Component, Input, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
   selector: 'app-pcm-radar-chart',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './pcm-radar-chart.component.html',
   styleUrls: ['./pcm-radar-chart.component.scss']
 })
 export class PcmRadarChartComponent implements AfterViewInit {
   @Input() data: number[] = [];
   @Input() labels: string[] = ['Empathique', 'Travaillomane', 'Persévérant', 'Rebelle', 'Promoteur', 'Rêveur'];
-  @Input() width: number = 400;
-  @Input() height: number = 400;
+  @Input() width = 400;
+  @Input() height = 400;
 
   @ViewChild('canvas', { static: false }) canvas!: ElementRef<HTMLCanvasElement>;
 

@@ -391,3 +391,122 @@
     opacity: 0.8;
   }
 }
+
+/* ═══ Logout Modal ═══ */
+.logout-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 23, 42, .45);
+  backdrop-filter: blur(6px);
+  display: grid;
+  place-items: center;
+  animation: overlayIn .22s ease;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.logout-modal {
+  width: min(92vw, 380px);
+  padding: 2rem 1.5rem 1.5rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .96);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(29, 78, 216, .1);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, .18);
+  text-align: center;
+  animation: modalPop .3s cubic-bezier(.22, 1, .36, 1);
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(.92) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.logout-modal-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 1rem;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(239, 68, 68, .1), rgba(244, 63, 94, .12));
+  border: 1px solid rgba(239, 68, 68, .15);
+  display: grid;
+  place-items: center;
+  color: #dc2626;
+}
+
+.logout-modal h3 {
+  margin: 0 0 .4rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.logout-modal p {
+  margin: 0 0 1.5rem;
+  font-size: .9rem;
+  color: #64748b;
+}
+
+.logout-modal-actions {
+  display: flex;
+  gap: .6rem;
+}
+
+.logout-modal-cancel,
+.logout-modal-confirm {
+  flex: 1;
+  padding: .68rem 1rem;
+  border-radius: 10px;
+  font-size: .88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .18s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+}
+
+.logout-modal-cancel {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.logout-modal-cancel:hover {
+  background: #e2e8f0;
+}
+
+.logout-modal-confirm {
+  background: linear-gradient(135deg, #dc2626, #e11d48);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(220, 38, 38, .22);
+}
+
+.logout-modal-confirm:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(220, 38, 38, .3);
+}
+
+.logout-modal-confirm:disabled {
+  opacity: .65;
+  cursor: not-allowed;
+}
+
+.logout-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, .3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

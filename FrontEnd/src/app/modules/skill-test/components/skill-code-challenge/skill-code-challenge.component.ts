@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit, inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { take } from 'rxjs/operators';
@@ -13,7 +13,7 @@ import { BiometricsService } from '../../services/biometrics.service';
 @Component({
   selector: 'app-skill-code-challenge',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './skill-code-challenge.component.html',
   styleUrl: './skill-code-challenge.component.scss'
 })

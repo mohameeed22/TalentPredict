@@ -41,7 +41,7 @@ public class FormationController {
 
     @GetMapping("/utilisateur/{userId}")
 
-    @PreAuthorize("hasAnyRole('USER','ADMIN','RECRUITER')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<java.util.List<FormationDto.FormationResponse>> getFormationsByUser(@PathVariable UUID userId) {
         java.util.List<FormationDto.FormationResponse> formations = formationService.getFormationsByUser(userId);
         return ResponseEntity.ok(formations);
@@ -55,14 +55,14 @@ public class FormationController {
     }
     
     @GetMapping("/{formationId}")
-    @PreAuthorize("hasAnyRole('USER','ADMIN','RECRUITER')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<FormationDto.FormationResponse> getFormationById(@PathVariable UUID formationId) {
         FormationDto.FormationResponse formation = formationService.getFormationById(formationId);
         return ResponseEntity.ok(formation);
     }
     
     @PutMapping("/{formationId}/statut")
-    @PreAuthorize("hasAnyRole('USER','ADMIN','RECRUITER')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<FormationDto.FormationResponse> updateStatut(
             @PathVariable UUID formationId,
             @RequestParam Formation.StatutFormation statut) {
@@ -71,7 +71,7 @@ public class FormationController {
     }
     
     @PutMapping("/{formationId}/progression")
-    @PreAuthorize("hasAnyRole('USER','ADMIN','RECRUITER')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<FormationDto.FormationResponse> updateProgression(
             @PathVariable UUID formationId,
             @RequestParam Integer progression) {
@@ -80,7 +80,7 @@ public class FormationController {
     }
 
     @PutMapping("/{formationId}/review-notes")
-    @PreAuthorize("hasAnyRole('RECRUITER','ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<FormationDto.FormationResponse> updateReviewNotes(
             @PathVariable UUID formationId,
             @RequestBody FormationDto.ReviewNotesRequest request,
@@ -94,7 +94,7 @@ public class FormationController {
     }
 
     @PutMapping("/{formationId}/mini-test")
-    @PreAuthorize("hasAnyRole('USER','ADMIN','RECRUITER')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<FormationDto.FormationResponse> submitMiniTest(
             @PathVariable UUID formationId,
             @RequestBody FormationDto.MiniTestSubmissionRequest request) {
@@ -103,7 +103,7 @@ public class FormationController {
     }
 
     @PostMapping("/{formationId}/certificate")
-    @PreAuthorize("hasAnyRole('USER','ADMIN','RECRUITER')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<FormationDto.FormationResponse> uploadCertificate(
             @PathVariable UUID formationId,
             @RequestParam("file") MultipartFile file) {

@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -54,9 +53,6 @@ public class ProfileController {
 
     @Value("${app.base-url:http://localhost:8081}")
     private String appBaseUrl;
-
-    @Autowired
-    private OpenRouterService openRouterService;
 
 
     /** GET /api/profiles/users/{id} */
@@ -231,5 +227,13 @@ public class ProfileController {
             result.put("error", status.getError());
         }
         return ResponseEntity.ok(result);
+    }
+
+    /** POST /api/profiles/accounts/{id}/publish — explicitly publish profile */
+    @PostMapping("/accounts/{id}/publish")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<ProfileDto.Response> publishProfile(@PathVariable UUID id) {
+        log.info("Explicit profile publish requested for account: {}", id);
+        return ResponseEntity.ok(profileService.publishProfile(id));
     }
 }

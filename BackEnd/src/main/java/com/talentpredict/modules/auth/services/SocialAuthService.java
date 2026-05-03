@@ -57,6 +57,7 @@ public class SocialAuthService {
 
         validateProviderConfig("Google", resolvedGoogleClientId, resolvedGoogleClientSecret);
         String effectiveRedirect = resolveRedirectUri(redirectUri, resolvedGoogleRedirectUri, "Google");
+        log.info("Échange de code Google avec redirect_uri: {}", effectiveRedirect);
 
         try {
             MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
@@ -108,6 +109,7 @@ public class SocialAuthService {
 
         validateProviderConfig("GitHub", resolvedGithubClientId, resolvedGithubClientSecret);
         String effectiveRedirect = resolveRedirectUri(redirectUri, resolvedGithubRedirectUri, "GitHub");
+        log.info("Échange de code GitHub avec redirect_uri: {}", effectiveRedirect);
 
         try {
             MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
@@ -240,6 +242,7 @@ public class SocialAuthService {
                 .orElseGet(() -> {
                     User user = new User();
                     user.setEmail(email);
+                    user.setUsername(email);
                     user.setFirstName(firstName != null ? firstName : "Utilisateur");
                     user.setLastName(lastName != null ? lastName : "Social");
                     user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));

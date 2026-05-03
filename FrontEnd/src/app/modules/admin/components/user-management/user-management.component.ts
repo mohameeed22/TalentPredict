@@ -1,176 +1,244 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
-import { AdminService } from '../../services/admin.service';
+import { AdminService, UserSummary } from '../../services/admin.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { User, Role, UserRequest } from '../../../auth/models/user.model';
-import { UserDto } from '../../models/user-dto.model'; // I'll need to create this or import it
 import { SkillsService } from '../../../skills/services/skills.service';
 import { SkillResponse } from '../../../skills/models/skill.model';
 import { AuthService } from '../../../auth/services/auth.service';
 import { RouterModule } from '@angular/router';
+import { FormationService } from '../../../formation/services/formation.service';
+import { FormationResponse, StatutFormation } from '../../../formation/models/formation.model';
+
+type DrawerTab = 'profil' | 'resultats' | 'formations' | 'prediction' | 'activite';
+type SortField = 'name' | 'department' | 'role' | 'formations' | 'predictions' | 'createdAt';
+type SortDir = 'asc' | 'desc';
+
+const PAGE_SIZE = 15;
 
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './user-management.component.html',
   styleUrl: './user-management.component.scss'
 })
 export class UserManagementComponent implements OnInit {
-  private adminService = inject(AdminService);
-  private notificationService = inject(NotificationService);
-  private skillsService = inject(SkillsService);
-  private authService = inject(AuthService);
+  private adminService   = inject(AdminService);
+  private notifService   = inject(NotificationService);
+  private skillsService  = inject(SkillsService);
+  private authService    = inject(AuthService);
+  private formationSvc   = inject(FormationService);
+  private fb             = inject(FormBuilder);
 
-  users = signal<User[]>([]);
-  loading = signal(false);
-  error = signal<string | null>(null);
+  // ── Data ──────────────────────────────────────────────────────────────────
+  users        = signal<User[]>([]);
+  summaries    = signal<Map<string, UserSummary>>(new Map());
+  loading      = signal(false);
+  error        = signal<string | null>(null);
 
-  userSkills = signal<SkillResponse[]>([]);
-  skillsLoading = signal(false);
-  skillsError = signal<string | null>(null);
-  validatingSkillIds = signal<Set<string>>(new Set());
+  // ── Drawer data ───────────────────────────────────────────────────────────
+  userSkills        = signal<SkillResponse[]>([]);
+  skillsLoading     = signal(false);
+  skillsError       = signal<string | null>(null);
+  validatingSkillIds= signal<Set<string>>(new Set());
 
-  // Modals and Drawer state
-  showRoleConfirm = signal(false);
-  pendingRoleChange = signal<{ userId: string, newRole: string } | null>(null);
-  showDeleteConfirm = signal(false);
+  userFormations    = signal<FormationResponse[]>([]);
+  formationsLoading = signal(false);
+  formationsError   = signal<string | null>(null);
+
+  drawerSummary    = signal<UserSummary | null>(null);
+  summaryLoading   = signal(false);
+
+  // ── Drawer / Modal state ──────────────────────────────────────────────────
+  showRoleConfirm       = signal(false);
+  pendingRoleChange     = signal<{ userId: string; newRole: string } | null>(null);
+  showDeleteConfirm     = signal(false);
   selectedUserForDelete = signal<User | null>(null);
-
-  isDrawerOpen = signal(false);
+  isDrawerOpen          = signal(false);
   selectedUserForDrawer = signal<User | null>(null);
-  activeDrawerTab = signal<'profil' | 'resultats' | 'formations' | 'prediction' | 'activite'>('profil');
+  activeDrawerTab       = signal<DrawerTab>('profil');
+  showUserModal         = signal(false);
+  isEditing             = signal(false);
+  submitting            = signal(false);
 
-  // Filters & Search
-  searchTerm = signal('');
-  filterStatut = signal('');
-  filterRole = signal('');
-  filterDepartement = signal('');
-  filterRisque = signal('');
-  filterTest = signal('');
+  // ── Filters / Search ──────────────────────────────────────────────────────
+  searchTerm       = signal('');
+  filterStatut     = signal('');
+  filterRole       = signal('');
+  filterDepartement= signal('');
 
-  // Bulk selection
+  // ── Sorting ───────────────────────────────────────────────────────────────
+  sortField  = signal<SortField>('name');
+  sortDir    = signal<SortDir>('asc');
+
+  // ── Pagination ────────────────────────────────────────────────────────────
+  currentPage  = signal(0);
+  readonly pageSize = PAGE_SIZE;
+
+  // ── Bulk selection ────────────────────────────────────────────────────────
   selectedUserIds = signal<Set<string>>(new Set());
 
-  // Create/Edit Modal state
-  showUserModal = signal(false);
-  isEditing = signal(false);
-  userForm = signal<UserDto.CreateRequest>({
-    username: '',
-    email: '',
-    password: '',
-    firstName: '',
-    lastName: '',
-    department: '',
-    position: '',
-    role: Role.USER,
-    isActive: true
-  });
-  submitting = signal(false);
+  // ── Reactive Forms ────────────────────────────────────────────────────────
+  userForm!: FormGroup;
 
-  // Stats computed from users list
+  // ── Expose enums to template ──────────────────────────────────────────────
+  readonly Role = Role;
+  readonly StatutFormation = StatutFormation;
+
+  // ── Computed ──────────────────────────────────────────────────────────────
   stats = computed(() => {
     const all = this.users();
+    const sums = this.summaries();
     return {
-      total: all.length,
-      actifs: all.filter(u => u.statut === 'Actif' || u.isActive).length,
-      onboarding: all.filter(u => u.statut === 'Onboarding').length,
-      aRisque: all.filter(u => u.riskLevel === 'À risque').length,
-      sansTest: all.filter(u => !u.testsCount || u.testsCount === 0).length,
-      sansDepartement: all.filter(u => !u.department).length
+      total:          all.length,
+      actifs:         all.filter(u => u.isActive).length,
+      inactifs:       all.filter(u => !u.isActive).length,
+      avecPrediction: [...sums.values()].filter(s => (s.predictionsCount ?? 0) > 0).length,
+      avecFormation:  [...sums.values()].filter(s => (s.formationsTotal ?? 0) > 0).length,
+      sansFormation:  all.length - [...sums.values()].filter(s => (s.formationsTotal ?? 0) > 0).length
     };
   });
 
-  // Filtered users list
-  filteredUsers = computed(() => {
-    let filtered = this.users();
+  filteredSortedUsers = computed(() => {
+    let list = this.users();
     const term = this.searchTerm().toLowerCase();
-    
+
     if (term) {
-      filtered = filtered.filter(u => 
-        (u.firstName?.toLowerCase().includes(term)) ||
-        (u.lastName?.toLowerCase().includes(term)) ||
-        (u.email?.toLowerCase().includes(term)) ||
-        (u.department?.toLowerCase().includes(term)) ||
-        (u.position?.toLowerCase().includes(term))
+      list = list.filter(u =>
+        u.firstName?.toLowerCase().includes(term) ||
+        u.lastName?.toLowerCase().includes(term)  ||
+        u.email?.toLowerCase().includes(term)     ||
+        u.department?.toLowerCase().includes(term) ||
+        u.position?.toLowerCase().includes(term)
       );
     }
-
     if (this.filterStatut()) {
-      filtered = filtered.filter(u => u.statut === this.filterStatut() || (this.filterStatut() === 'Actif' && u.isActive));
+      const active = this.filterStatut() === 'actif';
+      list = list.filter(u => !!u.isActive === active);
     }
     if (this.filterRole()) {
-      filtered = filtered.filter(u => u.role === this.filterRole());
+      list = list.filter(u => u.role === this.filterRole());
     }
     if (this.filterDepartement()) {
-      filtered = filtered.filter(u => u.department === this.filterDepartement());
-    }
-    if (this.filterRisque() === 'a-risque') {
-      filtered = filtered.filter(u => u.riskLevel === 'À risque');
-    }
-    if (this.filterTest() === 'sans-test') {
-      filtered = filtered.filter(u => !u.testsCount || u.testsCount === 0);
-    }
-    if (this.filterTest() === 'sans-formation') {
-      filtered = filtered.filter(u => !u.formationsCount || u.formationsCount === 0);
+      list = list.filter(u => u.department === this.filterDepartement());
     }
 
-    return filtered;
+    // Sorting
+    const field = this.sortField();
+    const dir   = this.sortDir() === 'asc' ? 1 : -1;
+    const sums  = this.summaries();
+
+    list = [...list].sort((a, b) => {
+      let va: any, vb: any;
+      switch (field) {
+        case 'name':        va = `${a.firstName} ${a.lastName}`; vb = `${b.firstName} ${b.lastName}`; break;
+        case 'department':  va = a.department ?? ''; vb = b.department ?? ''; break;
+        case 'role':        va = a.role; vb = b.role; break;
+        case 'formations':  va = sums.get(a.id)?.formationsTotal ?? 0; vb = sums.get(b.id)?.formationsTotal ?? 0; break;
+        case 'predictions': va = sums.get(a.id)?.predictionsCount ?? 0; vb = sums.get(b.id)?.predictionsCount ?? 0; break;
+        case 'createdAt':   va = a.createdAt ?? ''; vb = b.createdAt ?? ''; break;
+        default:            return 0;
+      }
+      if (va < vb) return -dir;
+      if (va > vb) return  dir;
+      return 0;
+    });
+
+    return list;
   });
 
-  readonly Role = Role;
+  paginatedUsers = computed(() =>
+    this.filteredSortedUsers().slice(
+      this.currentPage() * this.pageSize,
+      (this.currentPage() + 1) * this.pageSize
+    )
+  );
 
-  // Mock data for drawer
-  mockTests = [
-    { name: 'Soft Skills - Leadership', date: '2023-10-15', score: 85 },
-    { name: 'Tech - Frontend Angular', date: '2023-11-02', score: 92 }
-  ];
+  totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredSortedUsers().length / this.pageSize))
+  );
 
-  mockFormations = [
-    { name: 'Architecture Angular Avancée', status: 'En cours', progress: 45 },
-    { name: 'Communication Bienveillante', status: 'Terminée', progress: 100 }
-  ];
+  pageNumbers = computed(() =>
+    Array.from({ length: this.totalPages() }, (_, i) => i)
+  );
 
-  mockActivities = [
-    { icon: '💻', text: 'Connexion depuis Paris', date: 'Il y a 2 heures' },
-    { icon: '📝', text: 'A complété le test Tech', date: 'Il y a 2 jours' },
-    { icon: '🎓', text: 'A commencé la formation Angular', date: 'Il y a 1 semaine' }
-  ];
+  departments = computed(() =>
+    [...new Set(this.users().map(u => u.department).filter(Boolean))] as string[]
+  );
+
+  drawerFormations = computed(() => {
+    const all = this.userFormations();
+    return {
+      total:   all.length,
+      enCours: all.filter(f => f.statut === StatutFormation.EN_COURS).length,
+      terminees: all.filter(f => f.statut === StatutFormation.TERMINEE).length,
+      attente: all.filter(f => f.statut === StatutFormation.EN_ATTENTE || f.statut === StatutFormation.EN_ATTENTE_VALIDATION).length,
+    };
+  });
 
   ngOnInit(): void {
+    this.buildForm();
     this.loadUsers();
   }
 
-  isAdmin(): boolean {
-    return this.authService.isAdmin();
+  // ── Form ──────────────────────────────────────────────────────────────────
+  private buildForm(user?: User): void {
+    this.userForm = this.fb.group({
+      firstName:  [user?.firstName  ?? '', [Validators.required, Validators.minLength(2)]],
+      lastName:   [user?.lastName   ?? '', [Validators.required, Validators.minLength(2)]],
+      email:      [user?.email      ?? '', [Validators.required, Validators.email]],
+      password:   ['', this.isEditing() ? [] : [Validators.required, Validators.minLength(8)]],
+      department: [user?.department ?? ''],
+      position:   [user?.position   ?? ''],
+      role:       [user?.role       ?? Role.USER, Validators.required],
+      isActive:   [user?.isActive   ?? true]
+    });
   }
+
+  fieldError(name: string): string | null {
+    const c = this.userForm.get(name);
+    if (!c || !c.invalid || !c.touched) return null;
+    if (c.errors?.['required'])  return 'Ce champ est requis.';
+    if (c.errors?.['email'])     return 'Format d\'email invalide.';
+    if (c.errors?.['minlength']) return `Minimum ${c.errors['minlength'].requiredLength} caractères.`;
+    return 'Valeur invalide.';
+  }
+
+  // ── Data loading ──────────────────────────────────────────────────────────
+  isAdmin(): boolean { return this.authService.isAdmin(); }
 
   loadUsers(): void {
     this.loading.set(true);
     this.error.set(null);
-
     this.adminService.getAllUsers().subscribe({
       next: (data) => {
-        // Hydrate with some mock stats if missing from backend for demo purposes
-        const enhancedData = data.map(u => ({
-          ...u,
-          statut: u.statut || (u.isActive ? 'Actif' : 'Onboarding'),
-          scoreMoyen: u.scoreMoyen !== undefined ? u.scoreMoyen : Math.random() * 0.4 + 0.6, // fake score 60-100%
-          testsCount: u.testsCount !== undefined ? u.testsCount : Math.floor(Math.random() * 5),
-          formationsCount: u.formationsCount !== undefined ? u.formationsCount : Math.floor(Math.random() * 3),
-          lastLogin: u.lastLogin || new Date(Date.now() - Math.random() * 10000000000).toISOString(),
-          riskLevel: u.riskLevel || (Math.random() > 0.8 ? 'À risque' : 'Prêt')
-        }));
-        this.users.set(enhancedData);
+        this.users.set(data);
         this.loading.set(false);
+        // Load summaries in parallel (one request per user, batched quietly)
+        this.loadAllSummaries(data.map(u => u.id));
       },
-      error: (err) => {
+      error: () => {
         this.error.set('Erreur lors du chargement des utilisateurs');
         this.loading.set(false);
-        console.error('Error loading users:', err);
       }
+    });
+  }
+
+  private loadAllSummaries(ids: string[]): void {
+    ids.forEach(id => {
+      this.adminService.getUserSummary(id).subscribe({
+        next: (s) => {
+          this.summaries.update(map => {
+            const next = new Map(map);
+            next.set(id, s);
+            return next;
+          });
+        },
+        error: () => { /* silently ignore per-user summary errors */ }
+      });
     });
   }
 
@@ -180,7 +248,7 @@ export class UserManagementComponent implements OnInit {
     this.skillsService.getUserSkills(userId)
       .pipe(finalize(() => this.skillsLoading.set(false)))
       .subscribe({
-        next: (skills) => this.userSkills.set(skills),
+        next: (s) => this.userSkills.set(s),
         error: () => {
           this.userSkills.set([]);
           this.skillsError.set('Erreur lors du chargement des compétences');
@@ -188,97 +256,143 @@ export class UserManagementComponent implements OnInit {
       });
   }
 
+  private loadUserFormations(userId: string): void {
+    this.formationsLoading.set(true);
+    this.formationsError.set(null);
+    this.formationSvc.getUserFormations(userId)
+      .pipe(finalize(() => this.formationsLoading.set(false)))
+      .subscribe({
+        next: (f) => this.userFormations.set(f),
+        error: () => {
+          this.userFormations.set([]);
+          this.formationsError.set('Erreur lors du chargement des formations');
+        }
+      });
+  }
+
+  private loadDrawerSummary(userId: string): void {
+    this.summaryLoading.set(true);
+    this.adminService.getUserSummary(userId)
+      .pipe(finalize(() => this.summaryLoading.set(false)))
+      .subscribe({
+        next: (s) => this.drawerSummary.set(s),
+        error: () => this.drawerSummary.set(null)
+      });
+  }
+
+  // ── Skills ────────────────────────────────────────────────────────────────
   validateSkill(skillId: string, event?: Event): void {
     if (event) event.stopPropagation();
     if (!this.isAdmin()) return;
-
     this.setSkillValidating(skillId, true);
     this.skillsService.validateSkill(skillId)
       .pipe(finalize(() => this.setSkillValidating(skillId, false)))
       .subscribe({
         next: (updated) => {
           this.userSkills.update(list => list.map(s => s.id === updated.id ? updated : s));
-          this.notificationService.success('Compétence validée.');
+          this.notifService.success('Compétence validée.');
         },
-        error: () => {
-          this.notificationService.error('Erreur lors de la validation.');
-        }
+        error: () => this.notifService.error('Erreur lors de la validation.')
       });
   }
 
-  isSkillValidating(skillId: string): boolean {
-    return this.validatingSkillIds().has(skillId);
-  }
+  isSkillValidating(skillId: string): boolean { return this.validatingSkillIds().has(skillId); }
 
   private setSkillValidating(skillId: string, validating: boolean): void {
     const next = new Set(this.validatingSkillIds());
-    if (validating) {
-      next.add(skillId);
-    } else {
-      next.delete(skillId);
-    }
+    validating ? next.add(skillId) : next.delete(skillId);
     this.validatingSkillIds.set(next);
   }
 
-  // Formatting helpers
-  formatScore(score: number | undefined): string {
-    if (score === undefined) return '0%';
-    // Fix divide by 100 bug: if score is <= 1, assume it's a decimal (e.g. 0.77). If > 1, assume it's already percentage.
-    const percentage = score <= 1 ? score * 100 : score;
-    return `${Math.round(percentage)}%`;
+  // ── Formatting ────────────────────────────────────────────────────────────
+  formatScore(score: number | null | undefined): string {
+    if (score == null) return '—';
+    const pct = score <= 1 ? score * 100 : score;
+    return `${Math.round(pct)}%`;
   }
 
-  formatRelativeTime(dateString: string | undefined): string {
-    if (!dateString) return 'Jamais';
-    const date = new Date(dateString);
-    const diff = Math.floor((new Date().getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  formatRelativeTime(dateStr: string | null | undefined): string {
+    if (!dateStr) return 'Jamais';
+    const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
     if (diff === 0) return 'Aujourd\'hui';
     if (diff === 1) return 'Hier';
-    if (diff < 30) return `Il y a ${diff} jours`;
+    if (diff < 30)  return `Il y a ${diff} j`;
     if (diff < 365) return `Il y a ${Math.floor(diff / 30)} mois`;
-    return `Il y a ${Math.floor(diff / 365)} ans`;
+    return `Il y a ${Math.floor(diff / 365)} an(s)`;
   }
 
-  formatDate(date: string | Date | undefined): string {
+  formatDate(date: string | Date | undefined | null): string {
     if (!date) return '—';
-    return new Date(date).toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    return new Date(date).toLocaleDateString('fr-FR', { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
-  // Role Management
+  getStatutLabel(statut: StatutFormation): string {
+    const labels: Record<string, string> = {
+      EN_COURS: 'En cours', TERMINEE: 'Terminée', EN_ATTENTE: 'En attente',
+      EN_ATTENTE_VALIDATION: 'À valider', ANNULEE: 'Annulée',
+      PROPOSEE: 'Proposée', PROPOSEE_ADMIN: 'Proposée (Admin)',
+      ACCEPTEE: 'Acceptée', REJETEE: 'Rejetée'
+    };
+    return labels[statut] ?? statut;
+  }
+
+  getStatutClass(statut: StatutFormation): string {
+    const map: Record<string, string> = {
+      EN_COURS: 'info', TERMINEE: 'success', EN_ATTENTE: 'warning',
+      EN_ATTENTE_VALIDATION: 'warning', ANNULEE: 'danger',
+      PROPOSEE: 'neutral', PROPOSEE_ADMIN: 'neutral', REJETEE: 'danger', ACCEPTEE: 'success'
+    };
+    return map[statut] ?? 'neutral';
+  }
+
+  getSummary(userId: string): UserSummary | null {
+    return this.summaries().get(userId) ?? null;
+  }
+
+  // ── Sorting & Pagination ──────────────────────────────────────────────────
+  toggleSort(field: SortField): void {
+    if (this.sortField() === field) {
+      this.sortDir.update(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortField.set(field);
+      this.sortDir.set('asc');
+    }
+    this.currentPage.set(0);
+  }
+
+  sortIcon(field: SortField): string {
+    if (this.sortField() !== field) return '↕';
+    return this.sortDir() === 'asc' ? '↑' : '↓';
+  }
+
+  goToPage(page: number): void {
+    const clamped = Math.max(0, Math.min(page, this.totalPages() - 1));
+    this.currentPage.set(clamped);
+  }
+
+  onFilterChange(): void { this.currentPage.set(0); }
+
+  // ── Role management ───────────────────────────────────────────────────────
   initiateRoleChange(userId: string, event: Event): void {
     const newRole = (event.target as HTMLSelectElement).value;
     const user = this.users().find(u => u.id === userId);
     if (!user || user.role === newRole) return;
-
     this.pendingRoleChange.set({ userId, newRole });
     this.showRoleConfirm.set(true);
-
-    // Revert the select visually until confirmed
     (event.target as HTMLSelectElement).value = user.role;
   }
 
   confirmRoleChange(): void {
     const pending = this.pendingRoleChange();
     if (!pending) return;
-
     this.adminService.updateUserRole(pending.userId, pending.newRole).subscribe({
-      next: (updatedUser) => {
-        const users = this.users();
-        const index = users.findIndex(u => u.id === pending.userId);
-        if (index !== -1) {
-          users[index] = { ...users[index], role: pending.newRole as Role };
-          this.users.set([...users]);
-        }
-        this.notificationService.success('Rôle mis à jour avec succès.');
+      next: () => {
+        this.users.update(all => all.map(u => u.id === pending.userId ? { ...u, role: pending.newRole as Role } : u));
+        this.notifService.success('Rôle mis à jour.');
         this.cancelRoleChange();
       },
-      error: (err) => {
-        console.error('Error updating user role:', err);
-        this.notificationService.error('Erreur lors de la mise à jour du rôle.');
+      error: () => {
+        this.notifService.error('Erreur lors de la mise à jour du rôle.');
         this.cancelRoleChange();
       }
     });
@@ -289,98 +403,70 @@ export class UserManagementComponent implements OnInit {
     this.showRoleConfirm.set(false);
   }
 
-  // Create / Edit Methods
+  // ── Create / Edit ─────────────────────────────────────────────────────────
   openAddModal(): void {
     this.isEditing.set(false);
-    this.userForm.set({
-      username: '',
-      email: '',
-      password: '',
-      firstName: '',
-      lastName: '',
-      department: '',
-      position: '',
-      role: Role.USER,
-      isActive: true
-    });
+    this.selectedUserForDelete.set(null);
+    this.buildForm();
     this.showUserModal.set(true);
   }
 
   openEditModal(user: User, event?: Event): void {
     if (event) event.stopPropagation();
     this.isEditing.set(true);
-    this.selectedUserForDelete.set(user); // Reuse for editing
-    this.userForm.set({
-      username: user.username || '',
-      email: user.email || '',
-      password: '', // Leave empty for edit
-      firstName: user.firstName || '',
-      lastName: user.lastName || '',
-      department: user.department || '',
-      position: user.position || '',
-      role: user.role || 'USER',
-      isActive: user.isActive ?? true
-    });
+    this.selectedUserForDelete.set(user);
+    this.buildForm(user);
+    // Remove password validators for edit
+    this.userForm.get('password')?.clearValidators();
+    this.userForm.get('password')?.updateValueAndValidity();
     this.showUserModal.set(true);
   }
 
-  closeUserModal(): void {
-    this.showUserModal.set(false);
-  }
+  closeUserModal(): void { this.showUserModal.set(false); }
 
   saveUser(): void {
-    const form = this.userForm();
-    if (!form.email || !form.firstName || !form.lastName) {
-      this.notificationService.error('Veuillez remplir tous les champs obligatoires.');
-      return;
-    }
+    this.userForm.markAllAsTouched();
+    if (this.userForm.invalid) return;
 
+    const formVal = this.userForm.value;
     this.submitting.set(true);
+
     if (this.isEditing()) {
       const userId = this.selectedUserForDelete()?.id;
       if (!userId) return;
-      
-      // Don't send empty password on update
-      const updateData = { ...form };
+      const updateData: any = { ...formVal };
       if (!updateData.password) delete updateData.password;
 
       this.adminService.updateUser(userId, updateData).subscribe({
-        next: (updatedUser) => {
-          this.users.update(all => all.map(u => u.id === userId ? { ...u, ...updatedUser } : u));
-          this.notificationService.success('Utilisateur mis à jour.');
+        next: (updated) => {
+          this.users.update(all => all.map(u => u.id === userId ? { ...u, ...updated } : u));
+          this.notifService.success('Utilisateur mis à jour.');
           this.closeUserModal();
           this.submitting.set(false);
         },
-        error: (err) => {
-          this.notificationService.error('Erreur lors de la mise à jour.');
+        error: () => {
+          this.notifService.error('Erreur lors de la mise à jour.');
           this.submitting.set(false);
         }
       });
     } else {
-      if (!form.password) {
-        this.notificationService.error('Le mot de passe est requis pour un nouvel utilisateur.');
-        this.submitting.set(false);
-        return;
-      }
-      if (!form.username) {
-        form.username = form.email.split('@')[0] + Math.floor(Math.random() * 1000);
-      }
-      this.adminService.createUser(form as UserRequest).subscribe({
+      const username = formVal.email.split('@')[0] + Math.floor(Math.random() * 1000);
+      this.adminService.createUser({ ...formVal, username } as UserRequest).subscribe({
         next: (newUser) => {
           this.users.update(all => [newUser, ...all]);
-          this.notificationService.success('Utilisateur créé avec succès.');
+          this.notifService.success('Utilisateur créé.');
           this.closeUserModal();
           this.submitting.set(false);
         },
-        error: (err) => {
-          this.notificationService.error('Erreur lors de la création.');
+        error: () => {
+          this.notifService.error('Erreur lors de la création.');
           this.submitting.set(false);
         }
       });
     }
   }
 
-  // Delete Management
+  // ── Delete ────────────────────────────────────────────────────────────────
   confirmDelete(user: User, event?: Event): void {
     if (event) event.stopPropagation();
     this.selectedUserForDelete.set(user);
@@ -395,105 +481,78 @@ export class UserManagementComponent implements OnInit {
   deleteUser(): void {
     const user = this.selectedUserForDelete();
     if (!user) return;
-
     this.adminService.deleteUser(user.id).subscribe({
       next: () => {
-        const users = this.users().filter(u => u.id !== user.id);
-        this.users.set(users);
+        this.users.update(all => all.filter(u => u.id !== user.id));
         this.cancelDelete();
-        this.notificationService.success('Utilisateur supprimé avec succès.');
+        this.notifService.success('Utilisateur supprimé.');
       },
-      error: (err) => {
-        console.error('Error deleting user:', err);
-        this.notificationService.error('Erreur lors de la suppression de l\'utilisateur.');
+      error: () => {
+        this.notifService.error('Erreur lors de la suppression.');
         this.cancelDelete();
       }
     });
   }
 
-  // Drawer Management
+  // ── Drawer ────────────────────────────────────────────────────────────────
   openDrawer(user: User): void {
     this.selectedUserForDrawer.set(user);
     this.activeDrawerTab.set('profil');
     this.isDrawerOpen.set(true);
-    this.loadUserSkills(user.id);
-    // Prevent body scrolling
+    this.userSkills.set([]);
+    this.userFormations.set([]);
+    this.drawerSummary.set(null);
     document.body.style.overflow = 'hidden';
+
+    this.loadUserSkills(user.id);
+    this.loadUserFormations(user.id);
+    this.loadDrawerSummary(user.id);
   }
 
   closeDrawer(): void {
     this.isDrawerOpen.set(false);
-    setTimeout(() => {
-      this.selectedUserForDrawer.set(null);
-    }, 300); // Wait for animation
+    setTimeout(() => this.selectedUserForDrawer.set(null), 300);
     this.userSkills.set([]);
+    this.userFormations.set([]);
     this.skillsError.set(null);
     document.body.style.overflow = '';
   }
 
-  setDrawerTab(tab: 'profil' | 'resultats' | 'formations' | 'prediction' | 'activite'): void {
-    this.activeDrawerTab.set(tab);
-  }
+  setDrawerTab(tab: DrawerTab): void { this.activeDrawerTab.set(tab); }
 
-  // Bulk Actions
+  // ── Bulk actions ──────────────────────────────────────────────────────────
   toggleAllSelection(event: Event): void {
-    const isChecked = (event.target as HTMLInputElement).checked;
-    if (isChecked) {
-      const allIds = this.filteredUsers().map(u => u.id);
-      this.selectedUserIds.set(new Set(allIds));
-    } else {
-      this.selectedUserIds.set(new Set());
-    }
+    const checked = (event.target as HTMLInputElement).checked;
+    this.selectedUserIds.set(checked ? new Set(this.paginatedUsers().map(u => u.id)) : new Set());
   }
 
   toggleSelection(userId: string): void {
-    const current = new Set(this.selectedUserIds());
-    if (current.has(userId)) {
-      current.delete(userId);
-    } else {
-      current.add(userId);
-    }
-    this.selectedUserIds.set(current);
+    const s = new Set(this.selectedUserIds());
+    s.has(userId) ? s.delete(userId) : s.add(userId);
+    this.selectedUserIds.set(s);
   }
 
   isAllSelected(): boolean {
-    return this.filteredUsers().length > 0 && this.selectedUserIds().size === this.filteredUsers().length;
-  }
-
-  exportData(): void {
-    this.notificationService.success('Export en cours de génération...');
-    // Mock export logic
+    const pg = this.paginatedUsers();
+    return pg.length > 0 && pg.every(u => this.selectedUserIds().has(u.id));
   }
 
   bulkAction(action: string): void {
     const count = this.selectedUserIds().size;
-    this.notificationService.success(`Action "${action}" exécutée sur ${count} utilisateurs.`);
-    this.selectedUserIds.set(new Set()); // clear selection
+    this.notifService.success(`Action "${action}" exécutée sur ${count} utilisateurs.`);
+    this.selectedUserIds.set(new Set());
   }
 
-  // Filters from Stats Bar
+  exportData(): void {
+    this.notifService.success('Export en cours de génération...');
+  }
+
   filterFromStats(type: string): void {
-    // Reset all
     this.filterStatut.set('');
-    this.filterRisque.set('');
-    this.filterTest.set('');
+    this.filterRole.set('');
     this.filterDepartement.set('');
-
-    switch(type) {
-      case 'actifs': this.filterStatut.set('Actif'); break;
-      case 'onboarding': this.filterStatut.set('Onboarding'); break;
-      case 'arisque': this.filterRisque.set('a-risque'); break;
-      case 'sanstest': this.filterTest.set('sans-test'); break;
-      case 'sansdept': this.filterDepartement.set('—'); break;
-    }
-  }
-
-  // Quick Action Mocks
-  sendReminder(): void {
-    this.notificationService.success('Relance envoyée avec succès.');
-  }
-
-  assignFormation(): void {
-    this.notificationService.success('Formation assignée avec succès.');
+    if (type === 'actifs')   this.filterStatut.set('actif');
+    if (type === 'inactifs') this.filterStatut.set('inactif');
+    this.currentPage.set(0);
   }
 }

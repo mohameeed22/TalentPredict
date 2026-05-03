@@ -201,7 +201,7 @@
 }
 
 @if (result; as finalResult) {
-  <div class="result-wrap">
+  <div class="result-wrap" id="pdf-quiz-result">
     <header class="result-header">
       <div class="score-ring" [style.--score]="finalResult.finalScore">
         <div class="ring-inner" [class.pass]="finalResult.passed" [class.fail]="!finalResult.passed">

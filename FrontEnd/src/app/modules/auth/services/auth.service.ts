@@ -86,7 +86,7 @@ export class AuthService {
    * TASK 1: Register — sends role in payload, redirectUrl returned by backend.
    * Backend returns access token in body + refresh token in HttpOnly cookie
    */
-  register(data: InscriptionRequest, autoLogin: boolean = true): Observable<AuthResponse> {
+  register(data: InscriptionRequest, autoLogin = true): Observable<AuthResponse> {
     const backendPayload = {
       lastName: data.nom,
       firstName: data.prenom,
@@ -200,6 +200,13 @@ export class AuthService {
     return this.http.put<ProfileResponse>(`${this.profilesUrl}/users/${userId}`, data);
   }
 
+  /**
+   * Publish profile (generates publicSlug).
+   */
+  publishProfile(userId: string): Observable<ProfileResponse> {
+    return this.http.post<ProfileResponse>(`${this.profilesUrl}/accounts/${userId}/publish`, {});
+  }
+
   changePassword(data: ChangePasswordRequest): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${this.baseUrl}/change-password`, data);
   }
@@ -297,10 +304,7 @@ export class AuthService {
     return user?.role === Role.ADMIN || user?.role === ('ADMIN' as any);
   }
 
-  isRecruiter(): boolean {
-    const user = this.getCurrentUser();
-    return user?.role === Role.RECRUITER || user?.role === ('RECRUITER' as any);
-  }
+
 
   /**
    * TASK 1: Get the redirect URL based on role.
@@ -309,9 +313,7 @@ export class AuthService {
     if (this.isAdmin()) {
       return '/admin/dashboard';
     }
-    if (this.isRecruiter()) {
-      return '/recruiter/candidates';
-    }
+
     return '/dashboard';
   }
 

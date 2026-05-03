@@ -48,13 +48,17 @@
 
     <div class="hero-actions" id="ignore-pdf-actions">
       <button class="btn-export" (click)="exportResultPdf()" [disabled]="exportingPdf">
-        <svg *ngIf="!exportingPdf" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="7 10 12 15 17 10" />
-          <line x1="12" y1="15" x2="12" y2="3" />
-        </svg>
-        <span *ngIf="exportingPdf" class="loader"></span>
+        @if (!exportingPdf) {
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+        }
+        @if (exportingPdf) {
+          <span class="loader"></span>
+        }
         {{ exportingPdf ? 'Finalisation...' : 'Exporter le Rapport Officiel' }}
       </button>
       <button class="btn-dashboard" routerLink="/dashboard">Quitter</button>
@@ -113,20 +117,22 @@
         <h2>Analyse Transversale par Source</h2>
       </div>
       <div class="source-grid">
-        <div class="source-detail-item" *ngFor="let s of getActiveSources()">
-          <div class="source-top">
-            <div class="source-identity">
-              <span class="source-icon">{{ getSourceIcon(s) }}</span>
-              <span class="source-label">{{ getSourceLabel(s) }}</span>
-            </div>
-            <span class="source-score" [style.color]="getScoreColor(getSourceScore(s))">{{ getSourceScore(s)
+        @for (s of getActiveSources(); track s) {
+          <div class="source-detail-item">
+            <div class="source-top">
+              <div class="source-identity">
+                <span class="source-icon">{{ getSourceIcon(s) }}</span>
+                <span class="source-label">{{ getSourceLabel(s) }}</span>
+              </div>
+              <span class="source-score" [style.color]="getScoreColor(getSourceScore(s))">{{ getSourceScore(s)
               }}/10</span>
+            </div>
+            <div class="source-text">{{ getSourceDetails(s) }}</div>
+            <div class="source-footer">
+              <span class="badge-verified">Verified By AI Engine</span>
+            </div>
           </div>
-          <div class="source-text">{{ getSourceDetails(s) }}</div>
-          <div class="source-footer">
-            <span class="badge-verified">Verified By AI Engine</span>
-          </div>
-        </div>
+        }
       </div>
     </section>
 
@@ -146,26 +152,32 @@
             </div>
           </div>
           <div class="pcm-cards-grid">
-            <div class="pcm-mini-card" *ngFor="let card of personalityCards"
-              [class.active]="getActivePersonalityKey() === card.key">
-              <span class="p-icon">{{ card.icon }}</span>
-              <span class="p-label">{{ card.label }}</span>
-              <p class="p-desc">{{ card.desc }}</p>
+            @for (card of personalityCards; track card) {
+              <div class="pcm-mini-card"
+                [class.active]="getActivePersonalityKey() === card.key">
+                <span class="p-icon">{{ card.icon }}</span>
+                <span class="p-label">{{ card.label }}</span>
+                <p class="p-desc">{{ card.desc }}</p>
+              </div>
+            }
+          </div>
+        </div>
+        @if (result?.personalityType) {
+          <div class="pcm-characteristics">
+            <div class="char-box">
+              <h4>Points Forts Naturels</h4>
+              <ul>
+                @for (s of result?.top3Strengths; track s) {
+                  <li>{{ getSkillLabel(s) }}</li>
+                }
+              </ul>
+            </div>
+            <div class="char-box">
+              <h4>Environnement Favorisé</h4>
+              <p>{{ result?.careerAdvice }}</p>
             </div>
           </div>
-        </div>
-        <div class="pcm-characteristics" *ngIf="result?.personalityType">
-          <div class="char-box">
-            <h4>Points Forts Naturels</h4>
-            <ul>
-              <li *ngFor="let s of result?.top3Strengths">{{ getSkillLabel(s) }}</li>
-            </ul>
-          </div>
-          <div class="char-box">
-            <h4>Environnement Favorisé</h4>
-            <p>{{ result?.careerAdvice }}</p>
-          </div>
-        </div>
+        }
       </div>
     </section>
 
@@ -178,13 +190,15 @@
         <h2>Forces Distinctionnelles</h2>
       </div>
       <div class="trait-items">
-        <div class="trait-item" *ngFor="let s of result?.top3Strengths">
-          <span class="trait-icon">{{ getSkillIcon(s) }}</span>
-          <div class="trait-meta">
-            <span class="trait-name">{{ getSkillLabel(s) }}</span>
-            <span class="trait-desc">Compétence majeure confirmée par l'analyse transversale.</span>
+        @for (s of result?.top3Strengths; track s) {
+          <div class="trait-item">
+            <span class="trait-icon">{{ getSkillIcon(s) }}</span>
+            <div class="trait-meta">
+              <span class="trait-name">{{ getSkillLabel(s) }}</span>
+              <span class="trait-desc">Compétence majeure confirmée par l'analyse transversale.</span>
+            </div>
           </div>
-        </div>
+        }
       </div>
     </section>
 
@@ -194,13 +208,15 @@
         <h2>Potentiel de Croissance</h2>
       </div>
       <div class="trait-items">
-        <div class="trait-item" *ngFor="let w of result?.top3Weaknesses">
-          <span class="trait-icon orange">{{ getSkillIcon(w) }}</span>
-          <div class="trait-meta">
-            <span class="trait-name">{{ getSkillLabel(w) }}</span>
-            <span class="trait-desc">Axe de développement identifié pour l'évolution.</span>
+        @for (w of result?.top3Weaknesses; track w) {
+          <div class="trait-item">
+            <span class="trait-icon orange">{{ getSkillIcon(w) }}</span>
+            <div class="trait-meta">
+              <span class="trait-name">{{ getSkillLabel(w) }}</span>
+              <span class="trait-desc">Axe de développement identifié pour l'évolution.</span>
+            </div>
           </div>
-        </div>
+        }
       </div>
     </section>
 
@@ -211,20 +227,22 @@
         <h2>Inventaire Complet des Soft Skills</h2>
       </div>
       <div class="skills-detailed-grid">
-        <div class="skill-detail-row" *ngFor="let entry of getSkillEntries()">
-          <div class="sd-meta">
-            <span class="sd-icon">{{ getSkillIcon(entry[0]) }}</span>
-            <span class="sd-label">{{ getSkillLabel(entry[0]) }}</span>
-          </div>
-          <div class="sd-progress">
-            <div class="sd-bar-bg">
-              <div class="sd-bar-fill" [style.width.%]="entry[1] * 10" [style.background]="getScoreColor(entry[1])">
-              </div>
+        @for (entry of getSkillEntries(); track entry) {
+          <div class="skill-detail-row">
+            <div class="sd-meta">
+              <span class="sd-icon">{{ getSkillIcon(entry[0]) }}</span>
+              <span class="sd-label">{{ getSkillLabel(entry[0]) }}</span>
             </div>
-            <span class="sd-val">{{ entry[1] }}/10</span>
+            <div class="sd-progress">
+              <div class="sd-bar-bg">
+                <div class="sd-bar-fill" [style.width.%]="entry[1] * 10" [style.background]="getScoreColor(entry[1])">
+                </div>
+              </div>
+              <span class="sd-val">{{ entry[1] }}/10</span>
+            </div>
+            <span class="sd-status" [style.color]="getScoreColor(entry[1])">{{ getScoreLabel(entry[1]) }}</span>
           </div>
-          <span class="sd-status" [style.color]="getScoreColor(entry[1])">{{ getScoreLabel(entry[1]) }}</span>
-        </div>
+        }
       </div>
     </section>
 
@@ -246,13 +264,15 @@
         <div class="roadmap-col">
           <h3>Actions de Formation Recommandées</h3>
           <div class="reco-list">
-            <div class="reco-mini" *ngFor="let r of getRecommendationEntries()">
-              <div class="reco-header">
-                <span class="reco-skill">{{ getSkillLabel(r[0]) }}</span>
-                <span class="reco-tag">Priorité Haute</span>
+            @for (r of getRecommendationEntries(); track r) {
+              <div class="reco-mini">
+                <div class="reco-header">
+                  <span class="reco-skill">{{ getSkillLabel(r[0]) }}</span>
+                  <span class="reco-tag">Priorité Haute</span>
+                </div>
+                <p class="reco-desc">{{ r[1] }}</p>
               </div>
-              <p class="reco-desc">{{ r[1] }}</p>
-            </div>
+            }
           </div>
         </div>
       </div>
@@ -269,10 +289,12 @@
   </footer>
 </div>
 
-<div class="loading-overlay" *ngIf="loading">
-  <div class="loader-box">
-    <div class="ring"></div>
-    <h3>Synchronisation Neuronale...</h3>
-    <p>L'Agent AI compile vos traces LinkedIn, GitHub et PCM.</p>
+@if (loading) {
+  <div class="loading-overlay">
+    <div class="loader-box">
+      <div class="ring"></div>
+      <h3>Synchronisation Neuronale...</h3>
+      <p>L'Agent AI compile vos traces LinkedIn, GitHub et PCM.</p>
+    </div>
   </div>
-</div>
+}

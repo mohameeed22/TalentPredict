@@ -15,28 +15,32 @@
   </header>
 
   <!-- ══ KPI STRIP ════════════════════════════════════════════════ -->
-  <div class="kpi-grid" *ngIf="kpis">
-    <article class="kpi-card" title="Pourcentage de vrais positifs parmi les {{ kpis.labeledCases }} premiers résultats de détection">
-      <span class="kpi-label">Précision Top-K ℹ️</span>
-      <strong>{{ formatPercent(kpis.precisionAtTopK) }}</strong>
-      <small>{{ kpis.labeledCases }} dossiers labélisés</small>
-    </article>
-    <article class="kpi-card" title="Ce pourcentage indique que les alertes actuelles sont non confirmées (suspicions), et non nécessairement fausses.">
-      <span class="kpi-label">Faux Positifs ℹ️</span>
-      <strong>{{ formatPercent(kpis.falsePositiveRate) }}</strong>
-      <small>Fenêtre courante</small>
-    </article>
-    <article class="kpi-card" title="Délai entre la détection initiale et la validation finale par un administrateur.">
-      <span class="kpi-label">Délai moyen revue ℹ️</span>
-      <strong>{{ formatHours(kpis.avgReviewTurnaroundHours) }}</strong>
-      <small>Du check à la décision</small>
-    </article>
-    <article class="kpi-card" *ngIf="calibration" title="Seuils de confiance recommandés: M=Medium, H=High, calculés dynamiquement">
-      <span class="kpi-label">Seuils conseillés ℹ️</span>
-      <strong>M{{ calibration.suggestedMediumThreshold }} / H{{ calibration.suggestedHighThreshold }}</strong>
-      <small>Recalibration feedback</small>
-    </article>
-  </div>
+  @if (kpis) {
+    <div class="kpi-grid">
+      <article class="kpi-card" title="Pourcentage de vrais positifs parmi les {{ kpis.labeledCases }} premiers résultats de détection">
+        <span class="kpi-label">Précision Top-K ℹ️</span>
+        <strong>{{ formatPercent(kpis.precisionAtTopK) }}</strong>
+        <small>{{ kpis.labeledCases }} dossiers labélisés</small>
+      </article>
+      <article class="kpi-card" title="Ce pourcentage indique que les alertes actuelles sont non confirmées (suspicions), et non nécessairement fausses.">
+        <span class="kpi-label">Faux Positifs ℹ️</span>
+        <strong>{{ formatPercent(kpis.falsePositiveRate) }}</strong>
+        <small>Fenêtre courante</small>
+      </article>
+      <article class="kpi-card" title="Délai entre la détection initiale et la validation finale par un administrateur.">
+        <span class="kpi-label">Délai moyen revue ℹ️</span>
+        <strong>{{ formatHours(kpis.avgReviewTurnaroundHours) }}</strong>
+        <small>Du check à la décision</small>
+      </article>
+      @if (calibration) {
+        <article class="kpi-card" title="Seuils de confiance recommandés: M=Medium, H=High, calculés dynamiquement">
+          <span class="kpi-label">Seuils conseillés ℹ️</span>
+          <strong>M{{ calibration.suggestedMediumThreshold }} / H{{ calibration.suggestedHighThreshold }}</strong>
+          <small>Recalibration feedback</small>
+        </article>
+      }
+    </div>
+  }
 
   <!-- ══ FILTERS ══════════════════════════════════════════════════ -->
   <div class="filters">
@@ -50,179 +54,205 @@
     <span class="count-badge">{{ filteredRows.length }} dossier(s)</span>
   </div>
 
-  <p class="err" *ngIf="error">{{ error }}</p>
+  @if (error) {
+    <p class="err">{{ error }}</p>
+  }
 
   <!-- ══ CANDIDATE RISK CARDS ═════════════════════════════════════ -->
-  <div class="cards-grid" *ngIf="filteredRows.length && !loading; else fraudState">
-    <article class="risk-card" *ngFor="let r of filteredRows" [ngClass]="'risk-' + getRiskClass(r.fraudRisk)">
-
-      <!-- Card header: candidate + risk indicator -->
-      <div class="card-top">
-        <div class="candidate-avatar" [ngClass]="'avatar-' + getRiskClass(r.fraudRisk)">
-          {{ (r.firstName.charAt(0) || '?').toUpperCase() }}{{ (r.lastName.charAt(0) || '').toUpperCase() }}
-        </div>
-        <div class="candidate-info">
-          <div class="candidate-name">{{ r.firstName }} {{ r.lastName }}</div>
-          <div class="candidate-email">{{ r.email }}</div>
-          <div class="candidate-meta" *ngIf="r.fraudCheckedAt">
-            Analysé le {{ r.fraudCheckedAt | date:'dd MMM yyyy · HH:mm' }}
+  @if (filteredRows.length && !loading) {
+    <div class="cards-grid">
+      @for (r of filteredRows; track r) {
+        <article class="risk-card" [ngClass]="'risk-' + getRiskClass(r.fraudRisk)">
+          <!-- Card header: candidate + risk indicator -->
+          <div class="card-top">
+            <div class="candidate-avatar" [ngClass]="'avatar-' + getRiskClass(r.fraudRisk)">
+              {{ (r.firstName.charAt(0) || '?').toUpperCase() }}{{ (r.lastName.charAt(0) || '').toUpperCase() }}
+            </div>
+            <div class="candidate-info">
+              <div class="candidate-name">{{ r.firstName }} {{ r.lastName }}</div>
+              <div class="candidate-email">{{ r.email }}</div>
+              @if (r.fraudCheckedAt) {
+                <div class="candidate-meta">
+                  Analysé le {{ r.fraudCheckedAt | date:'dd MMM yyyy · HH:mm' }}
+                </div>
+              }
+            </div>
+            <div class="risk-indicator">
+              <div class="risk-score-ring" [ngClass]="'ring-' + getRiskClass(r.fraudRisk)">
+                <span class="score-num">{{ r.fraudScore ?? '–' }}</span>
+                <span class="score-label">/100</span>
+              </div>
+              <span class="risk-badge" [ngClass]="getRiskClass(r.fraudRisk)">{{ r.fraudRisk || 'N/A' }}</span>
+              @if (r.fraudScoreConfidence !== null && r.fraudScoreConfidence !== undefined) {
+                <span class="confidence-text">
+                  Confiance: {{ formatPercent(r.fraudScoreConfidence) }}
+                </span>
+              }
+            </div>
           </div>
-        </div>
-        <div class="risk-indicator">
-          <div class="risk-score-ring" [ngClass]="'ring-' + getRiskClass(r.fraudRisk)">
-            <span class="score-num">{{ r.fraudScore ?? '–' }}</span>
-            <span class="score-label">/100</span>
-          </div>
-          <span class="risk-badge" [ngClass]="getRiskClass(r.fraudRisk)">{{ r.fraudRisk || 'N/A' }}</span>
-          <span class="confidence-text" *ngIf="r.fraudScoreConfidence !== null && r.fraudScoreConfidence !== undefined">
-            Confiance: {{ formatPercent(r.fraudScoreConfidence) }}
-          </span>
-        </div>
-      </div>
-
-      <!-- AI Explanation box -->
-      <div class="explanation-box" *ngIf="r.fraudExplanation || r.fraudRecommendation">
-        <div class="explanation-icon">🤖</div>
-        <div class="explanation-body">
-          <p class="explanation-reco" *ngIf="r.fraudRecommendation">
-            <strong>Recommandation IA:</strong>
+          <!-- AI Explanation box -->
+          @if (r.fraudExplanation || r.fraudRecommendation) {
+            <div class="explanation-box">
+              <div class="explanation-icon">🤖</div>
+              <div class="explanation-body">
+                @if (r.fraudRecommendation) {
+                  <p class="explanation-reco">
+                    <strong>Recommandation IA:</strong>
             <span class="reco-tag" [ngClass]="r.fraudRecommendation === 'reject' ? 'reco-reject' :
                                                r.fraudRecommendation === 'manual_review' ? 'reco-review' : 'reco-proceed'">
-              {{ r.fraudRecommendation === 'reject' ? '🚫 Rejeter' :
-                 r.fraudRecommendation === 'manual_review' ? '🔍 Revue manuelle' : '✅ Poursuivre' }}
-            </span>
-          </p>
-          <p class="explanation-text" *ngIf="r.fraudExplanation">{{ r.fraudExplanation }}</p>
-        </div>
-      </div>
-
-      <!-- Signal chips -->
-      <div class="signals-section" *ngIf="r.fraudFlags?.flags?.length">
-        <span class="signals-label">Signaux détectés</span>
-        <div class="signal-chips">
-          <span class="signal-chip"
-                *ngFor="let flag of r.fraudFlags?.flags"
-                [ngClass]="'chip-' + (flag.severity || 'low')"
-                [title]="flag.description">
-            <span class="chip-dot"></span>
-            {{ flag.type.replace('_', ' ') }}
-          </span>
-        </div>
-        <p class="signal-message" *ngIf="r.fraudFlags?.message" style="margin-top: 10px; font-size: 0.85rem; color: #64748b; font-style: italic;">
-          {{ r.fraudFlags?.message }}
-        </p>
-      </div>
-
-      <!-- Stats row -->
-      <div class="stats-row">
-        <div class="stat-item" *ngIf="r.realScore !== null && r.realScore !== undefined">
-          <span>Score Tech</span><strong>{{ r.realScore }}</strong>
-        </div>
-        <div class="stat-item" *ngIf="r.fraudSource">
-          <span>Source</span><strong>{{ r.fraudSource }}</strong>
-        </div>
-        <div class="stat-item">
-          <span>Statut</span>
-          <strong class="review-status-badge" [ngClass]="getReviewClass(r.fraudReviewStatus)">
-            {{ r.fraudReviewStatus || 'OPEN' }}
-          </strong>
-        </div>
-      </div>
-
-      <!-- Quick action buttons -->
-      <div class="quick-actions" *ngIf="r.latestFraudCaseId as caseId">
-        <button type="button"
+                      {{ r.fraudRecommendation === 'reject' ? '🚫 Rejeter' :
+                      r.fraudRecommendation === 'manual_review' ? '🔍 Revue manuelle' : '✅ Poursuivre' }}
+                    </span>
+                  </p>
+                }
+                @if (r.fraudExplanation) {
+                  <p class="explanation-text">{{ r.fraudExplanation }}</p>
+                }
+              </div>
+            </div>
+          }
+          <!-- Signal chips -->
+          @if (r.fraudFlags?.flags?.length) {
+            <div class="signals-section">
+              <span class="signals-label">Signaux détectés</span>
+              <div class="signal-chips">
+                @for (flag of r.fraudFlags?.flags; track flag) {
+                  <span class="signal-chip"
+                    [ngClass]="'chip-' + (flag.severity || 'low')"
+                    [title]="flag.description">
+                    <span class="chip-dot"></span>
+                    {{ flag.type.replace('_', ' ') }}
+                  </span>
+                }
+              </div>
+              @if (r.fraudFlags?.message) {
+                <p class="signal-message" style="margin-top: 10px; font-size: 0.85rem; color: #64748b; font-style: italic;">
+                  {{ r.fraudFlags?.message }}
+                </p>
+              }
+            </div>
+          }
+          <!-- Stats row -->
+          <div class="stats-row">
+            @if (r.realScore !== null && r.realScore !== undefined) {
+              <div class="stat-item">
+                <span>Score Tech</span><strong>{{ r.realScore }}</strong>
+              </div>
+            }
+            @if (r.fraudSource) {
+              <div class="stat-item">
+                <span>Source</span><strong>{{ r.fraudSource }}</strong>
+              </div>
+            }
+            <div class="stat-item">
+              <span>Statut</span>
+              <strong class="review-status-badge" [ngClass]="getReviewClass(r.fraudReviewStatus)">
+                {{ r.fraudReviewStatus || 'OPEN' }}
+              </strong>
+            </div>
+          </div>
+          <!-- Quick action buttons -->
+          @if (r.latestFraudCaseId; as caseId) {
+            <div class="quick-actions">
+              <button type="button"
                 class="qa-btn confirm"
                 [class.selected]="reviewDecisionByCase[caseId] === 'CONFIRMED_FRAUD'"
                 (click)="onReviewDecisionChange(caseId, 'CONFIRMED_FRAUD')">
-          ❌ Confirmer fraude
-        </button>
-        <button type="button"
+                ❌ Confirmer fraude
+              </button>
+              <button type="button"
                 class="qa-btn watch"
                 [class.selected]="reviewDecisionByCase[caseId] === 'MONITORING'"
                 (click)="onReviewDecisionChange(caseId, 'MONITORING')">
-          ⚠️ À surveiller
-        </button>
-        <button type="button"
+                ⚠️ À surveiller
+              </button>
+              <button type="button"
                 class="qa-btn clear"
                 [class.selected]="reviewDecisionByCase[caseId] === 'FALSE_POSITIVE'"
                 (click)="onReviewDecisionChange(caseId, 'FALSE_POSITIVE')">
-          ✅ Faux positif
-        </button>
-      </div>
-
-      <!-- Review note + save -->
-      <div class="review-footer" *ngIf="r.latestFraudCaseId as caseId">
-        <input type="text"
-               class="review-note-input"
-               placeholder="Note interne (optionnelle)…"
-               [(ngModel)]="reviewNoteByCase[caseId]" />
-        <button type="button"
-                class="save-btn"
-                (click)="submitReview(r)"
-                [disabled]="reviewSavingByCase[caseId]">
-          {{ reviewSavingByCase[caseId] ? 'Enregistrement…' : 'Enregistrer la décision' }}
-        </button>
-      </div>
-
-      <!-- Recheck action -->
-      <div class="recheck-row">
-        <button type="button" class="recheck-btn"
+                ✅ Faux positif
+              </button>
+            </div>
+          }
+          <!-- Review note + save -->
+          @if (r.latestFraudCaseId; as caseId) {
+            <div class="review-footer">
+              <input type="text"
+                class="review-note-input"
+                placeholder="Note interne (optionnelle)…"
+                [(ngModel)]="reviewNoteByCase[caseId]" />
+                <button type="button"
+                  class="save-btn"
+                  (click)="submitReview(r)"
+                  [disabled]="reviewSavingByCase[caseId]">
+                  {{ reviewSavingByCase[caseId] ? 'Enregistrement…' : 'Enregistrer la décision' }}
+                </button>
+              </div>
+            }
+            <!-- Recheck action -->
+            <div class="recheck-row">
+              <button type="button" class="recheck-btn"
                 (click)="runFraudCheck(r)"
                 [disabled]="runningByUser[r.userId]">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.96"/>
-          </svg>
-          {{ runningByUser[r.userId] ? 'Analyse en cours…' : 'Relancer l\'analyse IA' }}
-        </button>
-        <span class="status-text" *ngIf="statusByUser[r.userId]">{{ statusByUser[r.userId] }}</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.96"/>
+                </svg>
+                {{ runningByUser[r.userId] ? 'Analyse en cours…' : 'Relancer l\'analyse IA' }}
+              </button>
+              @if (statusByUser[r.userId]) {
+                <span class="status-text">{{ statusByUser[r.userId] }}</span>
+              }
+            </div>
+          </article>
+        }
       </div>
+    } @else {
+      <div class="empty-state">
+        <div class="empty-icon">{{ loading ? '⏳' : '✅' }}</div>
+        <p>{{ loading ? 'Chargement des alertes…' : 'Aucune alerte fraude pour le filtre sélectionné.' }}</p>
+      </div>
+    }
 
-    </article>
-  </div>
-  
-  <!-- ══ ALERT HISTORY ══════════════════════════════════════════════ -->
-  <div class="alert-history" *ngIf="filteredRows.length > 0">
-    <h3 style="margin-top: 40px; margin-bottom: 20px; font-size: 1.2rem; color: #1e293b;">Historique des alertes (Décisions récentes)</h3>
-    <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-      <thead style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; text-align: left;">
-        <tr>
-          <th style="padding: 12px 16px; font-weight: 600; color: #475569; font-size: 0.85rem;">Candidat</th>
-          <th style="padding: 12px 16px; font-weight: 600; color: #475569; font-size: 0.85rem;">Risque IA</th>
-          <th style="padding: 12px 16px; font-weight: 600; color: #475569; font-size: 0.85rem;">Décision</th>
-          <th style="padding: 12px 16px; font-weight: 600; color: #475569; font-size: 0.85rem;">Note</th>
-        </tr>
-      </thead>
-      <tbody>
-        <ng-container *ngFor="let r of filteredRows">
-          <tr *ngIf="r.fraudReviewStatus && r.fraudReviewStatus !== 'OPEN'" style="border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px 16px; font-size: 0.9rem;">
-              <strong style="color: #0f172a;">{{ r.firstName }} {{ r.lastName }}</strong><br>
-              <small style="color: #64748b;">{{ r.email }}</small>
-            </td>
-            <td style="padding: 12px 16px;">
-              <span class="risk-badge" [ngClass]="getRiskClass(r.fraudRisk)">{{ r.fraudRisk || 'N/A' }}</span>
-            </td>
-            <td style="padding: 12px 16px;">
-              <strong class="review-status-badge" [ngClass]="getReviewClass(r.fraudReviewStatus)">
-                {{ r.fraudReviewStatus }}
-              </strong>
-            </td>
-            <td style="padding: 12px 16px; font-size: 0.85rem; color: #475569; max-width: 250px;">
-              {{ reviewNoteByCase[r.latestFraudCaseId || ''] || '—' }}
-            </td>
-          </tr>
-        </ng-container>
-      </tbody>
-    </table>
-  </div>
+    <!-- ══ ALERT HISTORY ══════════════════════════════════════════════ -->
+    @if (filteredRows.length > 0) {
+      <div class="alert-history">
+        <h3 style="margin-top: 40px; margin-bottom: 20px; font-size: 1.2rem; color: #1e293b;">Historique des alertes (Décisions récentes)</h3>
+        <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <thead style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; text-align: left;">
+            <tr>
+              <th style="padding: 12px 16px; font-weight: 600; color: #475569; font-size: 0.85rem;">Candidat</th>
+              <th style="padding: 12px 16px; font-weight: 600; color: #475569; font-size: 0.85rem;">Risque IA</th>
+              <th style="padding: 12px 16px; font-weight: 600; color: #475569; font-size: 0.85rem;">Décision</th>
+              <th style="padding: 12px 16px; font-weight: 600; color: #475569; font-size: 0.85rem;">Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of filteredRows; track r) {
+              @if (r.fraudReviewStatus && r.fraudReviewStatus !== 'OPEN') {
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 12px 16px; font-size: 0.9rem;">
+                    <strong style="color: #0f172a;">{{ r.firstName }} {{ r.lastName }}</strong><br>
+                    <small style="color: #64748b;">{{ r.email }}</small>
+                  </td>
+                  <td style="padding: 12px 16px;">
+                    <span class="risk-badge" [ngClass]="getRiskClass(r.fraudRisk)">{{ r.fraudRisk || 'N/A' }}</span>
+                  </td>
+                  <td style="padding: 12px 16px;">
+                    <strong class="review-status-badge" [ngClass]="getReviewClass(r.fraudReviewStatus)">
+                      {{ r.fraudReviewStatus }}
+                    </strong>
+                  </td>
+                  <td style="padding: 12px 16px; font-size: 0.85rem; color: #475569; max-width: 250px;">
+                    {{ reviewNoteByCase[r.latestFraudCaseId || ''] || '—' }}
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    }
 
-  <!-- ══ EMPTY STATE ═══════════════════════════════════════════════ -->
-  <ng-template #fraudState>
-    <div class="empty-state">
-      <div class="empty-icon">{{ loading ? '⏳' : '✅' }}</div>
-      <p>{{ loading ? 'Chargement des alertes…' : 'Aucune alerte fraude pour le filtre sélectionné.' }}</p>
-    </div>
-  </ng-template>
+    <!-- ══ EMPTY STATE ═══════════════════════════════════════════════ -->
 
-</section>
+  </section>

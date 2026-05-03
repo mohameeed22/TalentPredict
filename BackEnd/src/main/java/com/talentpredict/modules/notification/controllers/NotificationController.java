@@ -1,6 +1,5 @@
 package com.talentpredict.modules.notification.controllers;
 
-import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -17,8 +16,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.talentpredict.modules.notification.dto.NotificationDto;
 import com.talentpredict.modules.notification.services.NotificationCenterService;
+import com.talentpredict.modules.notification.services.NotificationSseService;
 import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.shared.security.UserDetailsImpl;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,13 +33,22 @@ import lombok.RequiredArgsConstructor;
 public class NotificationController {
 
     private final NotificationCenterService notificationCenterService;
+    private final NotificationSseService notificationSseService;
 
     @GetMapping
-    public ResponseEntity<List<NotificationDto.Response>> listNotifications(
+    public ResponseEntity<Page<NotificationDto.Response>> listNotifications(
             @org.springframework.security.core.annotation.AuthenticationPrincipal UserDetailsImpl principal,
-            @RequestParam(defaultValue = "false") boolean unreadOnly) {
+            @RequestParam(defaultValue = "false") boolean unreadOnly,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
         User currentUser = principal.getUser();
-        return ResponseEntity.ok(notificationCenterService.listForUser(currentUser, unreadOnly));
+        return ResponseEntity.ok(notificationCenterService.listForUser(currentUser, unreadOnly, PageRequest.of(page, size)));
+    }
+
+    @GetMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter stream(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal UserDetailsImpl principal) {
+        return notificationSseService.subscribe(principal.getUser().getId());
     }
 
     @GetMapping("/unread-count")

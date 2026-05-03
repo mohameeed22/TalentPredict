@@ -11,7 +11,7 @@ export interface PredictionResponse {
   scoreSoftSkills?: number;
   scoreTechSkills?: number;
   statut: PredictionStatus;
-  formationsProposees?: Array<Record<string, unknown>>;
+  formationsProposees?: Record<string, unknown>[];
 }
 
 export type Prediction = PredictionResponse;

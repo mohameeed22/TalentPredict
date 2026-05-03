@@ -100,7 +100,7 @@ services:
   # ============================================
   n8n:
     build:
-      context: ./n8n-custom
+      context: ./n8n/custom
       dockerfile: Dockerfile
     container_name: talentpredict-n8n
     depends_on:

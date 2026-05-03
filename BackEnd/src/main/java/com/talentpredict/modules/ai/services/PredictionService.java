@@ -38,7 +38,6 @@ public class PredictionService {
     private final CandidateTestResultRepository candidateTestResultRepository;
     private final SkillRepository skillRepository;
     private final AuthServiceImpl authServiceImpl;
-    private final OpenAIService openAIService;
     private final AssessmentAiProxyService assessmentAiProxyService;
 
     @Transactional

@@ -1,5 +1,5 @@
 import { Component, Input, OnChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 export interface RadarSlice {
   label: string;
@@ -9,39 +9,47 @@ export interface RadarSlice {
 @Component({
   selector: 'app-radar-chart',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="radar-container" [style.width.px]="size" [style.height.px]="size">
       <svg [attr.viewBox]="'0 0 ' + size + ' ' + size">
         <!-- Background Polygons -->
-        <polygon *ngFor="let ring of [1, 0.8, 0.6, 0.4, 0.2]"
-          [attr.points]="getPoints(ring * 10)"
-          class="grid-ring"
-        />
-        
+        @for (ring of [1, 0.8, 0.6, 0.4, 0.2]; track ring) {
+          <polygon
+            [attr.points]="getPoints(ring * 10)"
+            class="grid-ring"
+            />
+        }
+    
         <!-- Axis Lines -->
-        <line *ngFor="let axis of axes; let i = index"
-          [attr.x1]="center" [attr.y1]="center"
-          [attr.x2]="getAxisX(i)" [attr.y2]="getAxisY(i)"
-          class="axis-line"
-        />
-
+        @for (axis of axes; track axis; let i = $index) {
+          <line
+            [attr.x1]="center" [attr.y1]="center"
+            [attr.x2]="getAxisX(i)" [attr.y2]="getAxisY(i)"
+            class="axis-line"
+            />
+        }
+    
         <!-- Data Polygon -->
         <polygon [attr.points]="dataPoints" class="data-area" />
-        <circle *ngFor="let p of dataDots" [attr.cx]="p.x" [attr.cy]="p.y" r="4" class="data-dot" />
-
+        @for (p of dataDots; track p) {
+          <circle [attr.cx]="p.x" [attr.cy]="p.y" r="4" class="data-dot" />
+        }
+    
         <!-- Labels -->
-        <text *ngFor="let axis of axes; let i = index"
-          [attr.x]="getLabelX(i)"
-          [attr.y]="getLabelY(i)"
-          [attr.text-anchor]="getTextAnchor(i)"
-          class="label"
-        >
-          {{ axis.label }}
-        </text>
+        @for (axis of axes; track axis; let i = $index) {
+          <text
+            [attr.x]="getLabelX(i)"
+            [attr.y]="getLabelY(i)"
+            [attr.text-anchor]="getTextAnchor(i)"
+            class="label"
+            >
+            {{ axis.label }}
+          </text>
+        }
       </svg>
     </div>
-  `,
+    `,
   styles: [`
     .radar-container { margin: 0 auto; }
     .grid-ring { fill: none; stroke: #e2e8f0; stroke-width: 1; }

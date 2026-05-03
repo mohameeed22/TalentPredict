@@ -10,7 +10,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Refill;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -25,7 +24,10 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     private Bucket newBucket(String ip) {
         // 10 requests per minute per IP for auth endpoints
-        Bandwidth limit = Bandwidth.classic(10, Refill.greedy(10, Duration.ofMinutes(1)));
+        Bandwidth limit = Bandwidth.builder()
+                .capacity(10)
+                .refillGreedy(10, Duration.ofMinutes(1))
+                .build();
         return Bucket.builder().addLimit(limit).build();
     }
 

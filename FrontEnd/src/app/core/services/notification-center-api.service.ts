@@ -18,6 +18,16 @@ export interface ServerNotificationResponse {
   targetUrl: string | null;
 }
 
+export interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  last: boolean;
+  first: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -25,10 +35,14 @@ export class NotificationCenterApiService {
   private http = inject(HttpClient);
   private baseUrl = `${environment.apiUrl}/notifications`;
 
-  list(unreadOnly: boolean = false): Observable<ServerNotificationResponse[]> {
-    return this.http.get<ServerNotificationResponse[]>(this.baseUrl, {
-      params: { unreadOnly }
+  list(unreadOnly = false, page = 0, size = 20): Observable<PageResponse<ServerNotificationResponse>> {
+    return this.http.get<PageResponse<ServerNotificationResponse>>(this.baseUrl, {
+      params: { unreadOnly, page, size }
     });
+  }
+
+  connectSse(token: string): EventSource {
+    return new EventSource(`${this.baseUrl}/stream?token=${token}`);
   }
 
   getUnreadCount(): Observable<{ unreadCount: number }> {

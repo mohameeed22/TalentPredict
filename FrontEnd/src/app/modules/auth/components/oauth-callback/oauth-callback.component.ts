@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
@@ -7,7 +7,7 @@ import { NotificationService } from '../../../../core/services/notification.serv
 @Component({
   selector: 'app-oauth-callback',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
 <div class="auth-page">
   <div class="auth-card">

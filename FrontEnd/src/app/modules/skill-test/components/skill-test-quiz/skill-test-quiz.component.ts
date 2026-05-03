@@ -217,7 +217,68 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
   }
 
   exportPdfReport(): void {
-    this.notify.warning("L'exportation PDF est momentanément indisponible.");
+    const data = document.getElementById('pdf-quiz-result');
+    if (!data) return;
+    
+    this.exportingPdf = true;
+    this.notify.info("Génération du rapport PDF visuel en cours...");
+
+    import('html2canvas').then(html2canvasModule => {
+      const html2canvas = html2canvasModule.default;
+      import('jspdf').then(jspdfModule => {
+        const jsPDF = jspdfModule.jsPDF;
+
+        // Temporarily hide the action buttons
+        const actionButtons = document.querySelector('.result-actions') as HTMLElement;
+        const originalDisplay = actionButtons ? actionButtons.style.display : '';
+        if (actionButtons) {
+          actionButtons.style.display = 'none';
+        }
+
+        html2canvas(data, {
+          scale: 2,
+          useCORS: true,
+          logging: false
+        }).then(canvas => {
+          if (actionButtons) {
+            actionButtons.style.display = originalDisplay;
+          }
+
+          const imgWidth = 210;
+          const pageHeight = 297;
+          const imgHeight = canvas.height * imgWidth / canvas.width;
+          let heightLeft = imgHeight;
+
+          const contentDataURL = canvas.toDataURL('image/png');
+          const pdf = new jsPDF('p', 'mm', 'a4');
+          let position = 0;
+
+          pdf.addImage(contentDataURL, 'PNG', 0, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+
+          while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(contentDataURL, 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+          }
+          
+          pdf.save(`TalentPredict_QuizResult_${new Date().getTime()}.pdf`);
+          
+          this.exportingPdf = false;
+          this.notify.success("Rapport visuel exporté avec succès.");
+        }).catch(err => {
+          if (actionButtons) actionButtons.style.display = originalDisplay;
+          console.error('Visual PDF Export failed', err);
+          this.notify.error("Erreur lors de l'exportation du PDF visuel.");
+          this.exportingPdf = false;
+        });
+      });
+    }).catch(err => {
+      console.error('Failed to load PDF libraries', err);
+      this.notify.error("Erreur de chargement des librairies PDF.");
+      this.exportingPdf = false;
+    });
   }
 
   private initializeTimers(): void {

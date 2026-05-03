@@ -1,5 +1,5 @@
 <div class="learning-hub-layout">
-  
+
   <!-- SIDEBAR NAVIGATION -->
   <aside class="lh-sidebar">
     <div class="sidebar-brand">
@@ -43,8 +43,12 @@
         <p>{{ dailyChallenge().desc }}</p>
         <div class="c-footer">
           <span class="xp-reward">+{{ dailyChallenge().xp }} XP</span>
-          <button *ngIf="!dailyChallenge().completed" (click)="completeDailyChallenge()" class="btn-micro">Compléter</button>
-          <span *ngIf="dailyChallenge().completed" class="text-success">✔ Fait</span>
+          @if (!dailyChallenge().completed) {
+            <button (click)="completeDailyChallenge()" class="btn-micro">Compléter</button>
+          }
+          @if (dailyChallenge().completed) {
+            <span class="text-success">✔ Fait</span>
+          }
         </div>
       </div>
     </div>
@@ -52,7 +56,7 @@
 
   <!-- MAIN CONTENT AREA -->
   <main class="lh-main-content">
-    
+
     <!-- GLOBAL HEADER -->
     <header class="top-header">
       <div class="header-titles">
@@ -93,7 +97,7 @@
       <!-- DASHBOARD TAB -->
       @if (activeTab() === 'DASHBOARD') {
         <div class="bento-grid">
-          
+
           <!-- Readiness Box -->
           <div class="bento-card col-span-1 glass-panel highlight">
             <div class="bc-header">
@@ -229,7 +233,9 @@
                       <h3>{{ phase.title }}</h3>
                       <div class="nc-meta">⏱ {{ phase.duration_weeks }} semaines</div>
                     </div>
-                    <p class="nc-desc" *ngIf="phase.goals">{{ phase.goals.join(' • ') }}</p>
+                    @if (phase.goals) {
+                      <p class="nc-desc">{{ phase.goals.join(' • ') }}</p>
+                    }
                     <div class="nc-skills">
                       @for (s of phase.focus_skills; track s) {
                         <span class="skill-tag" [class]="weakSkillBadgeClass(s)">{{ s }}</span>
@@ -314,14 +320,14 @@
                 <div class="kc-header">
                   <h4>{{ column.title }} <span class="count">{{ statusCount(column.status) }}</span></h4>
                 </div>
-                
+
                 <div class="kc-cards" [class.drag-over]="draggedFormationId() !== null">
                   @for (formation of formationsByStatusFiltered(column.status); track formation.id) {
                     <div class="k-card" [class]="'status-' + (formation.statut | lowercase)" draggable="true" (dragstart)="onCardDragStart($event, formation)" (dragend)="onCardDragEnd()">
-                      
+
                       <div class="k-card-type">{{ formation.type }}</div>
                       <div class="k-card-title">{{ formation.titre }}</div>
-                      
+
                       <div class="k-progress-area mt-3">
                         <div class="flex justify-between text-xs font-bold mb-1">
                           <span>Progression</span>
@@ -329,7 +335,7 @@
                         </div>
                         <input type="range" class="custom-range" min="0" max="100" [value]="formation.progression" (change)="updateProgressionFromInput(formation, $any($event.target).value)" />
                       </div>
-                      
+
                       <div class="k-card-actions mt-4">
                         <button class="btn-secondary-sm w-full" (click)="moveToNextStatus(formation)" [disabled]="!canMoveToNextStatus(formation) || isStatusActionLoading(formation.id)">
                           Déplacer →
@@ -343,9 +349,9 @@
                       <!-- ADMIN REVIEW PREVIEW -->
                       @if (canEditReviewNotes() && column.status === StatutFormation.EN_ATTENTE_VALIDATION) {
                         <div class="admin-review-box mt-3">
-                           <label class="text-xs font-bold text-accent">Note Admin :</label>
-                           <textarea class="custom-textarea mt-1 w-full" rows="2" [ngModel]="getReviewDraft(formation.id).reviewNote" (ngModelChange)="updateReviewDraft(formation.id, 'reviewNote', $event)"></textarea>
-                           <button class="btn-primary-sm mt-1 w-full" (click)="saveReviewNotes(formation)">Sauvegarder & Valider</button>
+                          <label class="text-xs font-bold text-accent">Note Admin :</label>
+                          <textarea class="custom-textarea mt-1 w-full" rows="2" [ngModel]="getReviewDraft(formation.id).reviewNote" (ngModelChange)="updateReviewDraft(formation.id, 'reviewNote', $event)"></textarea>
+                          <button class="btn-primary-sm mt-1 w-full" (click)="saveReviewNotes(formation)">Sauvegarder & Valider</button>
                         </div>
                       }
                     </div>
@@ -419,7 +425,7 @@
     <div class="glass-modal-overlay" (click)="closeMiniQuiz()">
       <div class="glass-modal-content" (click)="$event.stopPropagation()">
         <button class="modal-close-btn" (click)="closeMiniQuiz()">×</button>
-        
+
         <div class="modal-header">
           <div class="badge-accent mb-2">Processus de Certification</div>
           <h2>Validation : {{ formation.titre }}</h2>
@@ -442,11 +448,11 @@
                   </div>
                 </div>
               }
-              
+
               @if (miniQuizError()) {
                 <div class="alert-danger mb-4 p-3 rounded text-sm font-bold bg-danger-10 text-danger border border-danger-20">{{ miniQuizError() }}</div>
               }
-              
+
               <button class="btn-primary w-full py-3 text-lg glow" (click)="submitMiniQuiz(formation)" [disabled]="isMiniQuizSubmitting(formation.id)">
                 {{ isMiniQuizSubmitting(formation.id) ? 'Analyse des réponses...' : 'Soumettre le Test' }}
               </button>
@@ -460,7 +466,7 @@
               <div class="cert-upload glass-card p-6 text-left">
                 <h4 class="mb-2">Preuve de Certification</h4>
                 <p class="text-sm text-muted mb-4">Téléversez le certificat officiel pour la validation finale admin.</p>
-                
+
                 @if (!formation.certificateUrl) {
                   <div class="dropzone-area">
                     <input type="file" id="cert-file" (change)="onCertificateSelected($event, formation)" hidden>

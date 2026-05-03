@@ -1,9 +1,10 @@
 package com.talentpredict.modules.notification.repositories;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -17,9 +18,9 @@ import com.talentpredict.modules.user.entities.User;
 @Repository
 public interface UserNotificationRepository extends JpaRepository<UserNotification, UUID> {
 
-    List<UserNotification> findByUserOrderByCreatedAtDesc(User user);
+    Page<UserNotification> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
 
-    List<UserNotification> findByUserAndReadAtIsNullOrderByCreatedAtDesc(User user);
+    Page<UserNotification> findByUserAndReadAtIsNullOrderByCreatedAtDesc(User user, Pageable pageable);
 
     long countByUserAndReadAtIsNull(User user);
 

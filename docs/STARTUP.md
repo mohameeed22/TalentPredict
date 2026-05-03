@@ -19,7 +19,7 @@ Local (Single Machine):
 ### 1. Installer les dépendances Python
 
 ```powershell
-cd c:\Users\rahma\Desktop\TalentPredict
+# Depuis la racine du projet
 pip install -r talentpredict-ai\requirements.txt
 ```
 
@@ -58,7 +58,7 @@ CREATE DATABASE talentpredict;
 ### Terminal 1: n8n Docker
 
 ```powershell
-cd c:\Users\rahma\Desktop\TalentPredict
+# Depuis la racine du projet
 docker-compose up n8n
 ```
 
@@ -82,7 +82,7 @@ ou juste laissez tourneren arrière-plan
 ### Terminal 3: CV Extractor Service
 
 ```powershell
-cd c:\Users\rahma\Desktop\TalentPredict\talentpredict-ai
+cd talentpredict-ai
 pip install -r requirements.txt
 python cv_extractor.py
 ```
@@ -94,7 +94,7 @@ python cv_extractor.py
 ### Terminal 4: Python AI Service
 
 ```powershell
-cd c:\Users\rahma\Desktop\TalentPredict\talentpredict-ai
+cd talentpredict-ai
 python main.py
 ```
 
@@ -105,11 +105,7 @@ python main.py
 ### Terminal 5: Spring Boot Backend
 
 ```powershell
-cd c:\Users\rahma\Desktop\TalentPredict\BackEnd
-
-# Si Maven pas installé:
-# choco install maven -y
-
+cd BackEnd
 mvn spring-boot:run
 ```
 
@@ -120,11 +116,7 @@ mvn spring-boot:run
 ### Terminal 6: Angular Frontend
 
 ```powershell
-cd c:\Users\rahma\Desktop\TalentPredict\FrontEnd
-
-# Si npm pas installé:
-# choco install nodejs -y
-
+cd FrontEnd
 npm start
 ```
 
@@ -283,6 +275,19 @@ public class CvExtractorService {
 - Backend appelle CV Extractor (port 9000)
 - CV Extractor renvoie le texte
 - Backend envoie le texte à n8n
+
+---
+
+## Utilitaires & Scripts
+
+Les scripts de gestion ont été regroupés dans le dossier `scripts/` :
+
+| Script | Description |
+| --- | --- |
+| `scripts/start.sh` | Script de démarrage global (Bash) |
+| `scripts/manage-workflows.sh` | Import/Export des workflows n8n |
+| `scripts/db/init-databases.sql` | Initialisation des bases PostgreSQL |
+| `scripts/db/fix_db.sql` | Corrections structurelles de la DB |
 
 ---
 

@@ -15,7 +15,7 @@
       </div>
       <h1>Optimisez votre Profil <span class="gradient-text">Soft Skills</span></h1>
       <p class="hero-description">
-        Enrichissez votre analyse IA en connectant vos profils professionnels. 
+        Enrichissez votre analyse IA en connectant vos profils professionnels.
         Plus vous fournissez de contexte, plus votre rapport sera précis.
       </p>
     </header>
@@ -41,7 +41,7 @@
     <!-- Main Form Card -->
     <main class="glass-card">
       <form [formGroup]="profileForm" class="form-grid">
-        
+
         <!-- Identity Section -->
         <section class="form-section">
           <h2>
@@ -91,23 +91,41 @@
             Curriculum Vitae
           </h2>
           <div class="upload-container">
-            <div *ngIf="!selectedFile" class="upload-area" (click)="fileInput.click()">
-              <span class="upload-icon">📄</span>
-              <h4 *ngIf="!isExtracting">Importer votre CV</h4>
-              <h4 *ngIf="isExtracting">Extraction en cours...</h4>
-              <p *ngIf="!isExtracting">Format PDF ou TXT uniquement</p>
-              <p *ngIf="isExtracting">Veuillez patienter quelques secondes</p>
-              <input #fileInput type="file" (change)="onFileSelected($event)" accept=".pdf,.txt" hidden>
-            </div>
-            <div *ngIf="selectedFile" class="file-chip">
-              <div class="file-info">
-                <span *ngIf="!isExtracting">✅</span>
-                <span *ngIf="isExtracting" class="mini-loader"></span>
-                {{ selectedFile.name }}
+            @if (!selectedFile) {
+              <div class="upload-area" (click)="fileInput.click()">
+                <span class="upload-icon">📄</span>
+                @if (!isExtracting) {
+                  <h4>Importer votre CV</h4>
+                }
+                @if (isExtracting) {
+                  <h4>Extraction en cours...</h4>
+                }
+                @if (!isExtracting) {
+                  <p>Format PDF ou TXT uniquement</p>
+                }
+                @if (isExtracting) {
+                  <p>Veuillez patienter quelques secondes</p>
+                }
+                <input #fileInput type="file" (change)="onFileSelected($event)" accept=".pdf,.txt" hidden>
               </div>
-              <button class="btn-remove" (click)="clearSelectedFile($event)">✕</button>
-            </div>
-            <div class="error-text" *ngIf="fileError || extractionError">{{ fileError || extractionError }}</div>
+            }
+            @if (selectedFile) {
+              <div class="file-chip">
+                <div class="file-info">
+                  @if (!isExtracting) {
+                    <span>✅</span>
+                  }
+                  @if (isExtracting) {
+                    <span class="mini-loader"></span>
+                  }
+                  {{ selectedFile.name }}
+                </div>
+                <button class="btn-remove" (click)="clearSelectedFile($event)">✕</button>
+              </div>
+            }
+            @if (fileError || extractionError) {
+              <div class="error-text">{{ fileError || extractionError }}</div>
+            }
           </div>
         </section>
 

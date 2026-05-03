@@ -120,9 +120,7 @@ public class AuthController {
         Cookie cookie = buildRefreshCookie(refreshToken, 604800);
         response.addCookie(cookie);
 
-        String redirectUrl = (user.getRole() == User.Role.ADMIN)
-                ? "/admin/dashboard"
-                : "/dashboard";
+        String redirectUrl = getRedirectUrl(user);
 
         AuthDto.Response responseDto = new AuthDto.Response(
                 accessToken,
@@ -258,6 +256,13 @@ public class AuthController {
         cookie.setMaxAge(maxAgeSeconds);
         cookie.setAttribute("SameSite", "Lax");
         return cookie;
+    }
+
+    private String getRedirectUrl(User user) {
+        if (user.getRole() == User.Role.ADMIN) {
+            return "/admin/dashboard";
+        }
+        return "/dashboard";
     }
 
     private String resolveClientIp(HttpServletRequest request) {

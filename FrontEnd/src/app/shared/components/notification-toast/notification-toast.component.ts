@@ -1,12 +1,12 @@
 import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { NotificationService, Notification } from '../../../core/services/notification.service';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-notification-toast',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @for (notification of notifications; track notification.type + notification.message + $index; let i = $index) {

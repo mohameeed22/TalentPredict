@@ -112,9 +112,6 @@ public class FraudCaseService {
         long falsePositives = labeledRecent.stream()
                 .filter(c -> c.getReviewStatus() == FraudCase.ReviewStatus.FALSE_POSITIVE)
                 .count();
-        long confirmed = labeledRecent.stream()
-                .filter(c -> c.getReviewStatus() == FraudCase.ReviewStatus.CONFIRMED_FRAUD)
-                .count();
 
         List<FraudCase> ranked = recentCases.stream()
                 .filter(c -> c.getFraudScore() != null)

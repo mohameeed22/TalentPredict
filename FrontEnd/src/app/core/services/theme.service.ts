@@ -12,7 +12,7 @@ export class ThemeService {
   public theme$ = this.themeSubject.asObservable();
   private isBrowser: boolean;
 
-  constructor(@Inject(PLATFORM_ID) platformId: Object) {
+  constructor(@Inject(PLATFORM_ID) platformId: object) {
     this.isBrowser = isPlatformBrowser(platformId);
   }
 

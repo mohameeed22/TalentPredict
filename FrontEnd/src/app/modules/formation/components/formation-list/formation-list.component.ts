@@ -610,7 +610,7 @@ export class FormationListComponent implements OnInit, OnDestroy {
   
   canEditReviewNotes(): boolean {
     const role = this.authService.getCurrentUser()?.role;
-    return role === Role.ADMIN || role === Role.RECRUITER;
+    return role === Role.ADMIN;
   }
 
   getReviewDraft(id: string) { return this.reviewDrafts()[id] || { reviewNote: '' }; }

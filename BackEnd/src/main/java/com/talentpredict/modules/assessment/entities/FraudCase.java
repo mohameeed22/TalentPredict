@@ -12,7 +12,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.talentpredict.modules.user.entities.User;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -47,7 +46,6 @@ public class FraudCase {
 
     public enum FraudSource {
         MCQ_EVALUATION,
-        RECRUITER_CHECK,
         ADMIN_CHECK,
         CANDIDATE_CHECK,
         SYSTEM_REEVALUATION

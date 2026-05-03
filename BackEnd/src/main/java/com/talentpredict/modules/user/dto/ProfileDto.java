@@ -73,5 +73,6 @@ public class ProfileDto {
         private String githubAvatarUrl;
         private String githubName;
         private String aiSummary;
+        private String publicSlug;
     }
 }

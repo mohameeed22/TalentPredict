@@ -4,6 +4,19 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { User, UserRequest } from '../../auth/models/user.model';
 
+export interface UserSummary {
+  userId: string;
+  formationsTotal: number;
+  formationsEnCours: number;
+  formationsTerminees: number;
+  predictionsCount: number;
+  latestPredictionScore: number | null;
+  latestPredictionDate: string | null;
+  latestPredictionLabel: string | null;
+  githubUrl: string | null;
+  linkedinUrl: string | null;
+}
+
 /**
  * Admin-specific service that wraps /api/users endpoints.
  * All methods require ADMIN role.
@@ -23,6 +36,11 @@ export class AdminService {
   /** GET /api/users/{id} — Get user by ID */
   getUserById(userId: string): Observable<User> {
     return this.http.get<User>(`${this.baseUrl}/${userId}`);
+  }
+
+  /** GET /api/users/{id}/summary — Real aggregated stats for admin panel */
+  getUserSummary(userId: string): Observable<UserSummary> {
+    return this.http.get<UserSummary>(`${this.baseUrl}/${userId}/summary`);
   }
 
   /** POST /api/users — Create a new user */

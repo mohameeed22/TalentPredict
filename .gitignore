@@ -71,3 +71,17 @@ yarn-error.log
 dist/
 .angular/
 .cache/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.env
+
+# Build outputs
+build_output.txt
+build_output2.txt
+checkstyle.txt

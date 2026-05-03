@@ -15,6 +15,7 @@ export interface AppNotification {
   timestamp: number;
   read: boolean;
   source: 'local' | 'server';
+  targetUrl?: string | null;
 }
 
 @Injectable({
@@ -32,22 +33,22 @@ export class NotificationService {
   private unreadCountSubject = new BehaviorSubject<number>(0);
   public unreadCount$: Observable<number> = this.unreadCountSubject.asObservable();
 
-  success(message: string, duration: number = 3000): void {
+  success(message: string, duration = 3000): void {
     this.show({ type: 'success', message, duration });
     this.addAppNotification('success', 'Succès', message);
   }
 
-  error(message: string, duration: number = 5000): void {
+  error(message: string, duration = 5000): void {
     this.show({ type: 'error', message, duration });
     this.addAppNotification('error', 'Erreur', message);
   }
 
-  info(message: string, duration: number = 3000): void {
+  info(message: string, duration = 3000): void {
     this.show({ type: 'info', message, duration });
     this.addAppNotification('info', 'Information', message);
   }
 
-  warning(message: string, duration: number = 4000): void {
+  warning(message: string, duration = 4000): void {
     this.show({ type: 'warning', message, duration });
     this.addAppNotification('warning', 'Attention', message);
   }

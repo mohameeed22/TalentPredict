@@ -115,7 +115,7 @@ public class ProfileService {
     /**
      * TASK 3: Get profile by userId and return enriched DTO with user info.
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public ProfileDto.Response getProfileByAccountId(UUID userId) {
         UUID safeUserId = requireNonNull(userId, "userId");
         User account = userRepository.findById(safeUserId)
@@ -162,7 +162,33 @@ public class ProfileService {
         response.setGithubAvatarUrl(profile.getGithubAvatarUrl());
         response.setGithubName(profile.getGithubName());
         response.setAiSummary(profile.getAiSummary());
+        response.setPublicSlug(profile.getPublicSlug());
         return response;
+    }
+
+    /**
+     * Explicitly publish a profile by generating a public slug if one doesn't exist.
+     */
+    @Transactional
+    public ProfileDto.Response publishProfile(UUID userId) {
+        UUID safeUserId = requireNonNull(userId, "userId");
+        User account = userRepository.findById(safeUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + safeUserId));
+
+        Profile profile = profileRepository.findByUser_Id(safeUserId)
+                .orElseGet(() -> {
+                    Profile empty = new Profile();
+                    empty.setUser(account);
+                    return profileRepository.save(requireNonNull(empty, "profile"));
+                });
+
+        if (profile.getPublicSlug() == null || profile.getPublicSlug().isBlank()) {
+            profile.setPublicSlug("p-" + UUID.randomUUID().toString().substring(0, 8));
+            profile = profileRepository.save(profile);
+            log.info("Generated public slug for userId={}: {}", safeUserId, profile.getPublicSlug());
+        }
+
+        return toResponse(profile, account);
     }
 
     public Profile getProfileById(UUID id) {

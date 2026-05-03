@@ -10,7 +10,7 @@ export interface TestSummary {
   dateTest: Date;
   personalityType?: string;
   overallScore?: number;
-  softSkillsScores?: { [key: string]: number };
+  softSkillsScores?: Record<string, number>;
   summary?: string;
 }
 

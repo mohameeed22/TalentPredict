@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, signal, computed, ApplicationRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router, RouterOutlet, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { AuthService } from './modules/auth/services/auth.service';
@@ -8,7 +8,7 @@ import { NotificationToastComponent } from './shared/components/notification-toa
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, NotificationToastComponent, NotificationsCenterComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NotificationToastComponent, NotificationsCenterComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -33,9 +33,8 @@ export class App implements OnInit, OnDestroy {
    * Using a plain boolean lets Angular's [style.left] binding update in sync with the DOM.
    */
   isSidebarOpen = true;
-
-  /** Dark Mode state */
-  isDarkMode = signal(false);
+  showLogoutModal = false;
+  logoutLoading = false;
 
   /** Computed signal — sidebar shows when logged in AND not on public pages */
   showSidebar = computed(() => !this.isPublicPage() && this.authenticated());
@@ -50,13 +49,6 @@ export class App implements OnInit, OnDestroy {
       } else {
         // Desktop: restore from localStorage (default: open)
         this.isSidebarOpen = saved !== 'false';
-      }
-      
-      // Restore dark mode
-      const savedTheme = localStorage.getItem('theme');
-      if (savedTheme === 'dark') {
-        this.isDarkMode.set(true);
-        document.documentElement.setAttribute('data-theme', 'dark');
       }
     }
 
@@ -106,12 +98,8 @@ export class App implements OnInit, OnDestroy {
     return this.authService.isAdmin();
   }
 
-  isRecruiter(): boolean {
-    return this.authService.isRecruiter();
-  }
-
   canAccessRecruiter(): boolean {
-    return this.isAdmin() || this.isRecruiter();
+    return this.isAdmin();
   }
 
   isRecruiterSectionActive(): boolean {
@@ -124,14 +112,22 @@ export class App implements OnInit, OnDestroy {
 
   getCurrentRoleLabel(): string {
     if (this.isAdmin()) return '🏢 RH / Manager';
-    if (this.isRecruiter()) return '🎯 Recruiter';
     return '👤 Employé';
   }
 
   logout(): void {
+    this.logoutLoading = true;
     this.authService.logout().subscribe({
-      next: () => this.router.navigateByUrl('/auth/login').then(() => this.appRef.tick()),
-      error: () => this.router.navigateByUrl('/auth/login').then(() => this.appRef.tick())
+      next: () => {
+        this.showLogoutModal = false;
+        this.logoutLoading = false;
+        this.router.navigateByUrl('/auth/login').then(() => this.appRef.tick());
+      },
+      error: () => {
+        this.showLogoutModal = false;
+        this.logoutLoading = false;
+        this.router.navigateByUrl('/auth/login').then(() => this.appRef.tick());
+      }
     });
   }
 
@@ -151,16 +147,5 @@ export class App implements OnInit, OnDestroy {
     const user = this.authService.getCurrentUser();
     if (!user) return '?';
     return `${user.prenom?.charAt(0) || ''}${user.nom?.charAt(0) || ''}`.toUpperCase();
-  }
-
-  toggleDarkMode(): void {
-    this.isDarkMode.update(v => !v);
-    if (this.isDarkMode()) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      if (typeof localStorage !== 'undefined') localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      if (typeof localStorage !== 'undefined') localStorage.setItem('theme', 'light');
-    }
   }
 }

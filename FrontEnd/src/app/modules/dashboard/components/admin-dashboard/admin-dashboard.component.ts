@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { DashboardService, AdminOverviewResponse, EmployeeDashboardResponse, EmployeeSummary } from '../../services/dashboard.service';
@@ -12,7 +12,7 @@ import { PieChartComponent, PieChartSlice } from '../../../../shared/components/
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, PieChartComponent],
+  imports: [FormsModule, RouterModule, PieChartComponent],
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.scss']
 })
@@ -27,7 +27,7 @@ export class AdminDashboardComponent implements OnInit {
   searchTerm = '';
   pieOwner = '';
   pieLastTestOverallScore: number | null = null;
-  pieSoftSkillsScores: { [key: string]: number } = {};
+  pieSoftSkillsScores: Record<string, number> = {};
 
   ngOnInit(): void {
     this.loadOverview();

@@ -56,17 +56,7 @@ public class CareerController {
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
-    @PostMapping("/interview/generate")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<JsonNode> generateInterview(@RequestBody(required = false) JsonNode body) {
-        return ResponseEntity.ok(aiProxyService.postJson("/api/career/interview/generate", objectToMap(body)));
-    }
 
-    @PostMapping("/interview/evaluate")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<JsonNode> evaluateInterview(@RequestBody(required = false) JsonNode body) {
-        return ResponseEntity.ok(aiProxyService.postJson("/api/career/interview/evaluate", objectToMap(body)));
-    }
 
     @PostMapping("/learning-plan")
     @PreAuthorize("isAuthenticated()")
@@ -671,7 +661,7 @@ public class CareerController {
     }
 
     private void assertSelfOrRecruiter(User actor, UUID candidateId) {
-        if (actor.getRole() == User.Role.ADMIN || actor.getRole() == User.Role.RECRUITER) {
+        if (actor.getRole() == User.Role.ADMIN) {
             return;
         }
 

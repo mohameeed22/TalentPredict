@@ -24,11 +24,17 @@
       <p class="card-label">ALERTES FRAUDE</p>
       <p class="card-value" style="display: flex; align-items: center; gap: 8px;">
         {{ flaggedCandidates }}
-        <span *ngIf="flaggedCandidates > 0" class="badge danger-badge" style="font-size: 12px; background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px;">!</span>
+        @if (flaggedCandidates > 0) {
+          <span class="badge danger-badge" style="font-size: 12px; background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px;">!</span>
+        }
       </p>
       <p class="card-meta">
-        <ng-container *ngIf="flaggedCandidates > 0">Dossiers à vérifier</ng-container>
-        <ng-container *ngIf="flaggedCandidates === 0"><span style="color: #22c55e; font-weight: 500;">✅ Aucune alerte</span></ng-container>
+        @if (flaggedCandidates > 0) {
+          Dossiers à vérifier
+        }
+        @if (flaggedCandidates === 0) {
+          <span style="color: #22c55e; font-weight: 500;">✅ Aucune alerte</span>
+        }
       </p>
     </article>
 
@@ -36,11 +42,17 @@
       <p class="card-label">RISQUE ÉLEVÉ</p>
       <p class="card-value" style="display: flex; align-items: center; gap: 8px;">
         {{ highRiskCandidates }}
-        <span *ngIf="highRiskCandidates > 0" class="badge urgent-badge" style="font-size: 12px; background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px;">Urgent</span>
+        @if (highRiskCandidates > 0) {
+          <span class="badge urgent-badge" style="font-size: 12px; background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px;">Urgent</span>
+        }
       </p>
       <p class="card-meta">
-        <ng-container *ngIf="highRiskCandidates > 0">Priorité immédiate</ng-container>
-        <ng-container *ngIf="highRiskCandidates === 0"><span style="color: #22c55e; font-weight: 500;">✅ Aucun risque élevé</span></ng-container>
+        @if (highRiskCandidates > 0) {
+          Priorité immédiate
+        }
+        @if (highRiskCandidates === 0) {
+          <span style="color: #22c55e; font-weight: 500;">✅ Aucun risque élevé</span>
+        }
       </p>
     </article>
 
@@ -65,10 +77,10 @@
 
   <nav class="shell-tabs" aria-label="Navigation gestion candidats">
     @for (tab of tabs; track tab.path) {
-    <a [routerLink]="tab.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }" class="tab-link">
-      <span class="tab-title">{{ tab.label }}</span>
-      <span class="tab-desc">{{ tab.description }}</span>
-    </a>
+      <a [routerLink]="tab.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }" class="tab-link">
+        <span class="tab-title">{{ tab.label }}</span>
+        <span class="tab-desc">{{ tab.description }}</span>
+      </a>
     }
   </nav>
 

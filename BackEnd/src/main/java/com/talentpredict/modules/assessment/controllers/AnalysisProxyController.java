@@ -59,7 +59,7 @@ public class AnalysisProxyController {
             @RequestBody JsonNode body,
             @AuthenticationPrincipal UserDetailsImpl principal) {
         User u = principal.getUser();
-        if (u.getRole() != User.Role.RECRUITER && u.getRole() != User.Role.ADMIN) {
+        if (u.getRole() != User.Role.ADMIN) {
             assertCandidate(u, body);
         }
         return ResponseEntity.ok(aiProxyService.postJson("/api/analysis/fraud-check", objectToMap(body)));
@@ -71,7 +71,7 @@ public class AnalysisProxyController {
             @RequestBody JsonNode body,
             @AuthenticationPrincipal UserDetailsImpl principal) {
         User u = principal.getUser();
-        if (u.getRole() != User.Role.RECRUITER && u.getRole() != User.Role.ADMIN) {
+        if (u.getRole() != User.Role.ADMIN) {
             assertCandidate(u, body);
         }
         return ResponseEntity.ok(aiProxyService.postJson("/api/analysis/cv-authenticity", objectToMap(body)));
@@ -131,7 +131,7 @@ public class AnalysisProxyController {
             return;
         }
         UUID cid = UUID.fromString(body.get("candidate_id").asText());
-        if (auth.getRole() == User.Role.RECRUITER || auth.getRole() == User.Role.ADMIN) {
+        if (auth.getRole() == User.Role.ADMIN) {
             return;
         }
         if (!auth.getId().equals(cid)) {

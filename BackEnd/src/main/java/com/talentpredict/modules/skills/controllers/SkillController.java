@@ -31,14 +31,14 @@ public class SkillController {
     }
 
     @GetMapping("/accounts/{userId}")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('RECRUITER')")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<List<SkillDto.Response>> getSkillsByUser(@PathVariable UUID userId) {
         List<SkillDto.Response> skills = skillService.getSkillsByUser(userId);
         return ResponseEntity.ok(skills);
     }
 
     @GetMapping("/accounts/{userId}/type/{type}")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('RECRUITER')")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<List<SkillDto.Response>> getSkillsByType(
             @PathVariable UUID userId,
             @PathVariable Skill.TypeSkill type) {

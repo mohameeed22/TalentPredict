@@ -11,7 +11,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from services.code_challenge_service import evaluate_submission, generate_challenge
-from services.fraud_detector import collect_signals, ollama_fraud_verdict, score_signals_calibrated
+from services.fraud_detector import collect_signals, ollama_fraud_verdict, score_signals_calibrated  # score_signals_calibrated used in evaluate fallback
 from services.github_analyzer import analyze_github_profile
 from services.scenario_simulator import evaluate_scenario_response, generate_soft_skills_scenario
 from services.test_evaluator import evaluate_answers, generate_result_summary
@@ -42,21 +42,23 @@ def _summary_fallback(skill_scores: dict[str, int], weak_threshold: int = 60) ->
         
     return f"{msg} (Note: Synthèse générée par algorithme heuristique suite à un délai de réponse de l'IA)."
 
-
 def _fraud_fallback(signals: list[dict[str, Any]]) -> dict[str, Any]:
-    calibrated = score_signals_calibrated(signals)
-    risk = str(calibrated.get("fraud_risk", "low"))
-    score = int(calibrated.get("fraud_score", 0))
+    risk = "low"
+    score = min(100, len(signals) * 15)
+    if score >= 60:
+        risk = "high"
+    elif score >= 30:
+        risk = "medium"
+    
     return {
         "fraud_risk": risk,
         "fraud_score": score,
-        "score_confidence": calibrated.get("score_confidence", 0.5),
         "flags": signals,
-        "signal_contributions": calibrated.get("signal_contributions", []),
         "recommendation": "manual_review" if risk != "low" else "proceed",
-        "explanation": "L'audit comportemental IA a expiré. Une analyse de risque basée sur les signaux bruts a été appliquée.",
-        "remediation": "Vérifiez manuellement les captures d'écran de proctoring pour confirmer l'intégrité du test." if risk != "low" else "Aucune anomalie majeure détectée par le moteur heuristique."
+        "explanation": "L'audit approfondi par IA est temporairement indisponible. Une analyse heuristique a été effectuée.",
+        "remediation": "Vérifiez manuellement les journaux." if risk != "low" else "Aucune action corrective requise."
     }
+
 
 
 def _code_eval_timeout_fallback(
@@ -303,37 +305,6 @@ async def scenario_evaluate(body: ScenarioEvaluateBody) -> dict[str, Any]:
     return result
 
 
-# ── Standalone fraud check (used by formation mini-quiz) ─────────────────
-
-class FraudCheckBody(BaseModel):
-    candidate_id: str = ""
-    test_type: str = "mini_quiz"  # mini_quiz | scenario | generic
-    fraud_context: dict[str, Any] | None = None
-
-
-@router.post("/fraud/check")
-async def fraud_check(body: FraudCheckBody) -> dict[str, Any]:
-    """Standalone fraud assessment from biometric/proctoring data only."""
-    fc = body.fraud_context or {}
-    signals = collect_signals(
-        cv_text=None,
-        cv_claimed_years_by_skill=None,
-        github_first_year_by_skill=None,
-        candidate_skills=[],
-        repos_languages=[],
-        test_answers=None,
-        code_submission=None,
-        github_activity_years=None,
-        biometrics=fc.get("biometrics"),
-    )
-
-    try:
-        verdict = await asyncio.wait_for(
-            ollama_fraud_verdict(signals),
-            timeout=FRAUD_TIMEOUT_SECONDS,
-        )
-    except asyncio.TimeoutError:
-        logger.warning("Standalone fraud check timed out, using heuristic fallback")
-        verdict = _fraud_fallback(signals)
-
-    return verdict
+# NOTE: The standalone fraud check (POST /fraud/check) has been consolidated
+# into POST /api/analysis/fraud-check which now accepts both full deep-analysis
+# payloads and biometrics-only payloads. See analysis_routes.py.

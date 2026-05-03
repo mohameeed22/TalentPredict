@@ -13,7 +13,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,8 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.talentpredict.modules.ai.entities.Prediction;
 import com.talentpredict.modules.ai.repositories.PredictionRepository;
 import com.talentpredict.modules.assessment.entities.CandidateTestResult;
-import com.talentpredict.modules.assessment.entities.FraudFlags;
-import com.talentpredict.modules.assessment.entities.TestType;
 import com.talentpredict.modules.assessment.repositories.CandidateTestResultRepository;
 import com.talentpredict.modules.assessment.services.ReportGeneratorService;
 import com.talentpredict.modules.skills.entities.Skill;
@@ -33,7 +30,6 @@ import com.talentpredict.modules.user.repositories.ProfileRepository;
 import com.talentpredict.modules.user.repositories.UserRepository;
 import com.talentpredict.shared.security.UserDetailsImpl;
 
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -128,7 +124,7 @@ public class CandidateAssessmentController {
     }
 
     private void assertSelfOrRecruiter(User auth, UUID userId) {
-        if (auth.getRole() == User.Role.RECRUITER || auth.getRole() == User.Role.ADMIN) {
+        if (auth.getRole() == User.Role.ADMIN) {
             return;
         }
         if (!auth.getId().equals(userId)) {

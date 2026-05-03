@@ -7,7 +7,7 @@ services:
   # ============================================
   cv-extractor:
     build:
-      context: ./talentpredict-ai
+      context: ../talentpredict-ai
       dockerfile: Dockerfile.cv-extractor
     container_name: talentpredict-cv-extractor
     environment:
@@ -29,7 +29,7 @@ services:
   # ============================================
   n8n:
     build:
-      context: ./n8n-custom
+      context: ../n8n/custom
       dockerfile: Dockerfile
     container_name: talentpredict-n8n
     depends_on:

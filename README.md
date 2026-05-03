@@ -1,250 +1,103 @@
-# TalentPredict
+# 🌌 TalentPredict
 
-Backend Spring Boot pour la plateforme d'évaluation des compétences et de prédiction de formation.
+### *Empowering Human Capital through Intelligent Predictive Analytics*
 
-## 🚀 Technologies
+TalentPredict is an enterprise-grade AI ecosystem designed to bridge the gap between human potential and organizational needs. By leveraging a multi-agent AI architecture, the platform transforms raw talent data into actionable career trajectories, providing a seamless "A to Z" journey for both candidates and talent managers.
 
-- **Java 17**
-- **Spring Boot 3.2.0**
-- **Spring Data JPA**
-- **PostgreSQL**
-- **Spring Security + JWT**
-- **OpenAI API (GPT-4)**
-- **Camunda BPM**
-- **Jira REST API**
+---
 
-## 📋 Fonctionnalités
+## 🧭 The "A to Z" Journey
 
-### 1. Gestion des Utilisateurs
-- Inscription et authentification avec JWT
-- Rôles : USER et ADMIN
+TalentPredict handles the entire talent lifecycle through a structured four-stage process:
 
-### 2. Tests de Personnalité
-- Soumission de tests (MBTI, Big Five, DISC, etc.)
-- Analyse automatique par OpenAI LLM
-- Stockage des résultats et scores
+### 1. 📥 Onboarding & Extraction (The "A")
+*   **Intelligent CV Parsing**: Candidates upload their resumes. Our proprietary Python-based CV engine extracts text, skills, and experience locally to preserve privacy before structuring it for AI analysis.
+*   **Personality Profiling**: Users undergo behavioral assessments (PCM, MBTI models) to capture soft skill markers and cultural fit indicators.
 
-### 3. Compétences (Skills)
-- Gestion des soft skills et tech skills
-- Évaluation sur 5 niveaux
-- Validation par les administrateurs
+### 2. 🧠 Cognitive Analysis
+*   **Multi-Agent Orchestration**: Data is passed to **n8n**, where a specialized agentic workflow combines CV data with personality results.
+*   **Global Context Integration**: The AI agents lookup GitHub repositories and professional footprints to validate technical proficiency and coding patterns.
 
-### 4. Formations
-- Propositions de formations basées sur l'analyse IA
-- Suivi de progression (0-100%)
-- Statuts : Proposée, Acceptée, En cours, Terminée
+### 3. 🎯 Predictive Modeling
+*   **Skill Gap Mapping**: The system identifies the "delta" between current capabilities and the requirements of future roles.
+*   **Learning Path Generation**: Using high-performance LLMs (Ollama/OpenRouter), the platform predicts the most efficient training modules to close those gaps.
 
-### 5. Prédictions IA
-- Génération de prédictions via OpenAI
-- Recommandations personnalisées (soft et tech)
-- Score de confiance
+### 4. 🚀 Career Acceleration (The "Z")
+*   **Interactive Dashboards**: Stakeholders receive a 360° view of talent readiness.
+*   **HR Integration**: Automated ticket generation for training approvals and direct integration with recruitment pipelines.
 
-### 6. Dashboard
-- Vue d'ensemble des évaluations
-- Statistiques des formations
-- Top skills
-- Dernière prédiction
+---
 
-### 7. Intégration Jira
-- Création automatique de tickets de formation
-- Synchronisation des statuts
-- Gestion des priorités
+## 🏗️ Enterprise Architecture
 
-## 🛠️ Installation
+TalentPredict is built on a **High-Availability Microservices Mesh**:
 
-### Prérequis
-- Java 17+
-- Maven 3.8+
-- PostgreSQL
-
-### Configuration
-
-1. **Cloner le projet**
-```bash
-git clone <repository-url>
-cd TalentPredict
+```mermaid
+graph TD
+    User((User)) -->|Angular| Frontend[Premium UI / Angular]
+    Frontend -->|JWT Auth| Gateway[Spring Boot API Gateway]
+    
+    subgraph "Core Intelligence Mesh"
+        Gateway -->|REST| AISvc[Python AI Microservice]
+        Gateway -->|Workflow Trigger| n8n[n8n Automation Engine]
+        n8n -->|Agents| LLM[LLM Stack: GPT-4 / Ollama]
+        n8n -->|OSINT| GitHub[GitHub API]
+    end
+    
+    subgraph "Persistence & Infrastructure"
+        Gateway -->|JPA| Postgres[(PostgreSQL 16)]
+        n8n -->|Storage| SQLite[(n8n SQLite)]
+        AISvc -->|Health| Docker[Docker Orchestration]
+    end
 ```
 
-2. **Configurer les variables d'environnement**
-```bash
-cp .env.example .env
-# Éditer .env avec vos clés API
-```
+---
 
-### Lancer l'application
+## 🛠️ Technical Excellence
 
-1. **Créer la base de données**
-```sql
-CREATE DATABASE talentpredict;
-```
+### 💻 Frontend (The Experience)
+Built with **Angular** and **PrimeNG**, our frontend focuses on "Data Visualization First" principles, providing complex analytics in a beautiful, responsive, and intuitive interface.
 
-2. **Configurer application.properties**
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/talentpredict
-spring.datasource.username=postgres
-spring.datasource.password=votre-mot-de-passe
-openai.api.key=votre-cle-openai
-```
+### ⚙️ Backend (The Engine)
+Our **Spring Boot** core implements rigorous security standards via **JWT** and **Spring Security**, ensuring that sensitive personal data is protected at every layer of the transaction.
 
-3. **Compiler et lancer**
-```bash
-cd serveur
-mvn clean install
-mvn spring-boot:run
-```
+### 🤖 AI Service (The Brain)
+A dedicated **FastAPI** microservice utilizing **LangChain** and **Asynchronous Processing** to handle heavy computational tasks like PDF parsing and agentic reasoning without blocking the main application flow.
 
-## 📡 API Endpoints
+### 🔗 Orchestration (The Glue)
+**n8n** acts as our low-code orchestration layer, allowing HR teams and developers to modify complex AI workflows (like fraud detection or social lookups) without changing core application code.
 
-### Authentification
-- `POST /api/auth/inscription` - Créer un compte
-- `POST /api/auth/connexion` - Se connecter
+---
 
-### Tests de Personnalité
-- `POST /api/tests/utilisateur/{id}` - Soumettre un test
-- `GET /api/tests/utilisateur/{id}` - Liste des tests
-- `GET /api/tests/{testId}` - Détail d'un test
+## 📁 Repository Organization
 
-### Skills
-- `POST /api/skills/utilisateur/{id}` - Ajouter un skill
-- `GET /api/skills/utilisateur/{id}` - Liste des skills
-- `GET /api/skills/utilisateur/{id}/type/{type}` - Skills par type
-- `PUT /api/skills/{id}/valider` - Valider un skill (ADMIN)
+To maintain high developer velocity, the project is strictly organized:
 
-### Formations
-- `POST /api/formations/utilisateur/{id}` - Créer une formation
-- `GET /api/formations/utilisateur/{id}` - Liste des formations
-- `PUT /api/formations/{id}/statut` - Changer le statut
-- `PUT /api/formations/{id}/progression` - Mettre à jour la progression
+*   📂 `BackEnd/`: Spring Boot high-performance API.
+*   📂 `FrontEnd/`: Premium Angular client application.
+*   📂 `talentpredict-ai/`: Python-based AI agents & parsing engines.
+*   📂 `n8n/`: Workflow definitions and custom logic.
+*   📂 `scripts/`: Automated management and DB initialization.
+*   📂 `docs/`: Comprehensive technical guides (Architecture, API, Startup).
 
-### Prédictions
-- `POST /api/predictions/utilisateur/{id}/generer` - Générer une prédiction
-- `GET /api/predictions/utilisateur/{id}` - Liste des prédictions
-- `GET /api/predictions/utilisateur/{id}/derniere` - Dernière prédiction
+---
 
-### Dashboard
-- `GET /api/dashboard/utilisateur/{id}` - Dashboard complet
+## ⚡ Quick Start
 
-### Tickets Jira
-- `POST /api/tickets/formation/{id}` - Créer un ticket
-- `GET /api/tickets/formation/{id}` - Tickets d'une formation
-- `PUT /api/tickets/{id}/statut` - Mettre à jour le statut
+Experience the power of TalentPredict in minutes:
 
-## 🔐 Sécurité
+1.  **Environment Setup**: Rename `.env.example` to `.env` and configure your LLM providers.
+2.  **Deployment**: Execute `docker-compose up -d` to launch the core infrastructure.
+3.  **Bootstrap**: Use `scripts/db/init-databases.sql` to prepare your environment.
 
-- Authentification JWT
-- Tokens valides 24h
-- Endpoints sécurisés par rôle
-- CORS configuré
+Detailed instructions can be found in our **[Project Startup Guide](./docs/STARTUP.md)**.
 
-### Exemple d'authentification
-```bash
-# Inscription
-curl -X POST http://localhost:8080/api/auth/inscription \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nom": "Dupont",
-    "prenom": "Jean",
-    "email": "jean.dupont@example.com",
-    "motDePasse": "password123"
-  }'
+---
 
-# Connexion
-curl -X POST http://localhost:8080/api/auth/connexion \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "jean.dupont@example.com",
-    "motDePasse": "password123"
-  }'
+## 🤝 Support & Contribution
 
-# Utiliser le token
-curl -X GET http://localhost:8080/api/dashboard/utilisateur/1 \
-  -H "Authorization: Bearer <votre-token>"
-```
+TalentPredict is built on the principles of modularity and collaboration. For technical support, please refer to the **[Architecture Documentation](./docs/ARCHITECTURE.md)**.
 
-## 🤖 Intégration OpenAI
+---
 
-L'application utilise OpenAI GPT-4 pour :
-- Analyser les tests de personnalité
-- Suggérer des formations adaptées
-- Générer des prédictions de développement
-
-Configuration dans `application.properties` :
-```properties
-openai.api.key=${OPENAI_API_KEY}
-openai.model=gpt-4
-```
-
-## 🔄 BPM avec Camunda
-
-Camunda est intégré pour gérer les processus métier :
-- Workflow de validation des formations
-- Processus d'évaluation
-- Gestion des tickets
-
-Accès : http://localhost:8080/camunda
-- Username: admin
-- Password: admin
-
-## 📊 Base de Données
-
-### Schéma principal
-- `utilisateurs` - Comptes utilisateurs
-- `tests_personnalite` - Tests et analyses
-- `skills` - Compétences
-- `formations` - Formations
-- `predictions` - Prédictions IA
-- `tickets` - Tickets Jira
-
-## 🧪 Tests
-
-```bash
-mvn test
-```
-
-## 📦 Build Production
-
-```bash
-mvn clean package -DskipTests
-java -jar target/core-1.0-SNAPSHOT.jar
-```
-
-
-
-## 🔧 Configuration avancée
-
-### Environnements
-- `dev` : Développement local
-- `prod` : Production
-
-### Variables d'environnement importantes
-```bash
-SPRING_PROFILES_ACTIVE=prod
-OPENAI_API_KEY=sk-...
-JIRA_URL=https://your-domain.atlassian.net
-JIRA_API_TOKEN=your-token
-JIRA_ENABLED=true
-```
-
-## 📝 Logs
-
-Les logs sont configurés dans `application.properties` :
-```properties
-logging.level.com.talentpredict=DEBUG
-logging.level.org.springframework.security=DEBUG
-```
-
-## 🤝 Contribution
-
-1. Fork le projet
-2. Créer une branche (`git checkout -b feature/AmazingFeature`)
-3. Commit (`git commit -m 'Add AmazingFeature'`)
-4. Push (`git push origin feature/AmazingFeature`)
-5. Ouvrir une Pull Request
-
-## 📄 Licence
-
-Ce projet est sous licence MIT.
-
-## 👥 Auteurs
-
-Développé pour la plateforme TalentPredict.
+© 2024 **TalentPredict Platform**. *Intelligence at the service of Talent.*

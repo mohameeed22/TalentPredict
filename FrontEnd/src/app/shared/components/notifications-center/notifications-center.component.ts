@@ -1,13 +1,15 @@
 import { Component, inject, OnInit, OnDestroy, ChangeDetectorRef, HostListener, ElementRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
+import { RouterLink } from '@angular/router';
 import { NotificationService, AppNotification } from '../../../core/services/notification.service';
 import { NotificationCenterApiService, ServerNotificationResponse } from '../../../core/services/notification-center-api.service';
+import { AuthService } from '../../../modules/auth/services/auth.service';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-notifications-center',
   standalone: true,
-  imports: [CommonModule],
+  imports: [RouterLink],
   template: `
     <div class="notif-center" [class.open]="isOpen">
       <button class="notif-bell" (click)="toggle()" [title]="'Notifications'">
@@ -95,6 +97,11 @@ import { Subscription } from 'rxjs';
             <div class="notif-body">
               <span class="notif-title">{{ notif.title }}</span>
               <span class="notif-text">{{ notif.body }}</span>
+              @if (notif.targetUrl) {
+                <div class="notif-actions-inline">
+                  <a [routerLink]="notif.targetUrl" class="notif-action-link" (click)="$event.stopPropagation(); close()">View Details</a>
+                </div>
+              }
               <span class="notif-time">{{ timeAgo(notif.timestamp) }}</span>
             </div>
             <button class="notif-remove" (click)="remove(notif.id); $event.stopPropagation()" title="Supprimer">
@@ -103,6 +110,13 @@ import { Subscription } from 'rxjs';
               </svg>
             </button>
           </div>
+          }
+          @if (hasMore && filteredNotifications().length > 0) {
+            <div class="load-more-container">
+              <button class="load-more-btn" (click)="loadMore(); $event.stopPropagation()">
+                 {{ isLoadingMore ? 'Loading...' : 'Load older notifications' }}
+              </button>
+            </div>
           }
         </div>
       </div>
@@ -435,6 +449,52 @@ import { Subscription } from 'rxjs';
       gap: 0.25rem;
     }
 
+    .notif-actions-inline {
+      margin-top: 0.25rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .notif-action-link {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--primary, #6366f1);
+      background: var(--primary-bg, rgba(99, 102, 241, 0.1));
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .notif-action-link:hover {
+      background: var(--primary, #6366f1);
+      color: white;
+    }
+
+    .load-more-container {
+      padding: 1rem;
+      display: flex;
+      justify-content: center;
+      border-top: 1px solid rgba(0,0,0,0.03);
+    }
+
+    .load-more-btn {
+      background: white;
+      border: 1px solid rgba(0,0,0,0.1);
+      color: var(--text-secondary, #64748b);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 0.4rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .load-more-btn:hover {
+      background: rgba(0,0,0,0.02);
+      color: var(--text-primary, #1e293b);
+    }
+
     .notif-title {
       font-size: 0.875rem;
       font-weight: 600;
@@ -520,17 +580,22 @@ import { Subscription } from 'rxjs';
 export class NotificationsCenterComponent implements OnInit, OnDestroy {
   private notificationService = inject(NotificationService);
   private notificationApi = inject(NotificationCenterApiService);
+  private authService = inject(AuthService);
   private cdr = inject(ChangeDetectorRef);
   private elRef = inject(ElementRef);
   private sub!: Subscription;
   private unreadSub!: Subscription;
-  private pollIntervalId?: ReturnType<typeof setInterval>;
   private syncInProgress = false;
+  private eventSource?: EventSource;
 
   notifications: AppNotification[] = [];
   unreadCount = 0;
   isOpen = false;
   activeFilter: 'all' | 'unread' = 'all';
+  
+  currentPage = 0;
+  hasMore = false;
+  isLoadingMore = false;
 
   ngOnInit(): void {
     this.sub = this.notificationService.appNotifications$.subscribe(list => {
@@ -542,24 +607,47 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
     });
 
-    this.syncFromServer();
-    // Efficient unread badge poll (lightweight endpoint, no payload)
-    this.pollIntervalId = setInterval(() => {
-      this.notificationApi.getUnreadCount().subscribe({
-        next: res => {
-          if (res.unreadCount !== this.unreadCount) {
-            // Count changed — do a full sync to get new items
-            this.syncFromServer();
-          }
-        }
-      });
-    }, 20000);
+    this.syncFromServer(true);
+    
+    // Connect to SSE stream for real-time updates
+    this.setupSse();
+  }
+
+  private setupSse(): void {
+    const token = this.authService.getToken();
+    if (!token) return;
+
+    this.eventSource = this.notificationApi.connectSse(token);
+    
+    this.eventSource.addEventListener('NOTIFICATION', (event: MessageEvent) => {
+      try {
+        const serverNotif: ServerNotificationResponse = JSON.parse(event.data);
+        const mapped = this.mapServerNotification(serverNotif);
+        
+        // Add to local state via sync
+        this.notificationService.syncServerNotifications([mapped]);
+        
+        // Show toast popup
+        if (mapped.type === 'success') this.notificationService.success(mapped.title);
+        else if (mapped.type === 'error') this.notificationService.error(mapped.title);
+        else if (mapped.type === 'warning') this.notificationService.warning(mapped.title);
+        else this.notificationService.info(mapped.title);
+        
+      } catch (e) {
+        console.error('Error parsing SSE notification', e);
+      }
+    });
+
+    this.eventSource.onerror = () => {
+      // Reconnect logic or fallback
+      console.warn('SSE connection error, falling back to polling might be needed');
+    };
   }
 
   toggle(): void {
     this.isOpen = !this.isOpen;
-    if (this.isOpen) {
-      this.syncFromServer();
+    if (this.isOpen && this.notifications.length === 0) {
+      this.syncFromServer(true);
     }
     this.cdr.detectChanges();
   }
@@ -655,28 +743,51 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
     this.unreadSub?.unsubscribe();
-    if (this.pollIntervalId) {
-      clearInterval(this.pollIntervalId);
+    if (this.eventSource) {
+      this.eventSource.close();
     }
   }
 
-  private syncFromServer(): void {
-    if (this.syncInProgress) {
+  loadMore(): void {
+    if (!this.hasMore || this.isLoadingMore) return;
+    this.currentPage++;
+    this.isLoadingMore = true;
+    this.syncFromServer(false);
+  }
+
+  private syncFromServer(reset = false): void {
+    if (this.syncInProgress && reset) {
       return;
     }
 
+    if (reset) {
+      this.currentPage = 0;
+    }
+
     this.syncInProgress = true;
-    this.notificationApi.list(false).subscribe({
-      next: (serverNotifications) => {
-        const mappedNotifications = serverNotifications.map(notification => this.mapServerNotification(notification));
-        this.notificationService.syncServerNotifications(mappedNotifications);
+    this.notificationApi.list(false, this.currentPage, 20).subscribe({
+      next: (page) => {
+        const mappedNotifications = page.content.map(notification => this.mapServerNotification(notification));
+        
+        if (reset) {
+          // Full sync overrides server ones but keeps local ones
+          this.notificationService.syncServerNotifications(mappedNotifications);
+        } else {
+          // Append
+          const existing = this.notifications;
+          const newUnique = mappedNotifications.filter(n => !existing.some(e => e.id === n.id));
+          this.notificationService.syncServerNotifications([...existing, ...newUnique]);
+        }
+        
+        this.hasMore = !page.last;
       },
       error: () => {
-        // Preserve local notifications if server sync fails.
         this.syncInProgress = false;
+        this.isLoadingMore = false;
       },
       complete: () => {
         this.syncInProgress = false;
+        this.isLoadingMore = false;
       }
     });
   }
@@ -691,7 +802,8 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
       body: notification.body,
       timestamp: Number.isNaN(parsedDate) ? Date.now() : parsedDate,
       read: notification.read,
-      source: 'server'
+      source: 'server',
+      targetUrl: notification.targetUrl
     };
   }
 

@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../auth/services/auth.service';
@@ -14,7 +14,7 @@ import { CandidateAnalysis } from '../../../../core/models/candidate-analysis.mo
 @Component({
   selector: 'app-competences-intake',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [ReactiveFormsModule],
   templateUrl: './competences-intake.component.html',
   styleUrl: './competences-intake.component.scss'
 })

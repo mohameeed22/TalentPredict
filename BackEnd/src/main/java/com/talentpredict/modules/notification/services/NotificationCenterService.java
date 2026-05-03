@@ -1,9 +1,11 @@
 package com.talentpredict.modules.notification.services;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
@@ -29,17 +31,18 @@ public class NotificationCenterService {
 
     private final UserNotificationRepository userNotificationRepository;
     private final UserRepository userRepository;
+    private final NotificationSseService notificationSseService;
 
     @Autowired(required = false)
     private JavaMailSender mailSender;
 
     @Transactional(readOnly = true)
-    public List<NotificationDto.Response> listForUser(User user, boolean unreadOnly) {
-        List<UserNotification> notifications = unreadOnly
-                ? userNotificationRepository.findByUserAndReadAtIsNullOrderByCreatedAtDesc(user)
-                : userNotificationRepository.findByUserOrderByCreatedAtDesc(user);
+    public Page<NotificationDto.Response> listForUser(User user, boolean unreadOnly, Pageable pageable) {
+        Page<UserNotification> notifications = unreadOnly
+                ? userNotificationRepository.findByUserAndReadAtIsNullOrderByCreatedAtDesc(user, pageable)
+                : userNotificationRepository.findByUserOrderByCreatedAtDesc(user, pageable);
 
-        return notifications.stream().map(this::toResponse).toList();
+        return notifications.map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
@@ -172,7 +175,7 @@ public class NotificationCenterService {
             return actor;
         }
 
-        boolean canTargetOtherUsers = actor.getRole() == User.Role.ADMIN || actor.getRole() == User.Role.RECRUITER;
+        boolean canTargetOtherUsers = actor.getRole() == User.Role.ADMIN;
         if (!canTargetOtherUsers) {
             throw new IllegalArgumentException("You can only create notifications for your own account.");
         }
@@ -202,6 +205,10 @@ public class NotificationCenterService {
 
         notification = userNotificationRepository.save(notification);
         sendEmailAlertIfRequested(notification);
+        
+        NotificationDto.Response response = toResponse(notification);
+        notificationSseService.sendNotification(user.getId(), response);
+        
         return notification;
     }
 
@@ -216,18 +223,23 @@ public class NotificationCenterService {
             return;
         }
 
-        try {
-            SimpleMailMessage mail = new SimpleMailMessage();
-            mail.setTo(notification.getUser().getEmail());
-            mail.setSubject("TalentPredict notification - " + notification.getTitle());
-            mail.setText(notification.getBody()
-                    + "\n\nOpen TalentPredict to view details.\n\n- TalentPredict");
-            mailSender.send(mail);
-            notification.setEmailedAt(Instant.now());
-            userNotificationRepository.save(notification);
-        } catch (RuntimeException ex) {
-            log.warn("Failed to send notification email to {}", notification.getUser().getEmail(), ex);
-        }
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                SimpleMailMessage mail = new SimpleMailMessage();
+                mail.setTo(notification.getUser().getEmail());
+                mail.setSubject("TalentPredict notification - " + notification.getTitle());
+                mail.setText(notification.getBody()
+                        + "\n\nOpen TalentPredict to view details.\n\n- TalentPredict");
+                mailSender.send(mail);
+                
+                // Need to update emailedAt in a transaction, but we are in a background thread now.
+                // Doing it simply for now, if it fails, it's just a timestamp.
+                notification.setEmailedAt(Instant.now());
+                userNotificationRepository.save(notification);
+            } catch (RuntimeException ex) {
+                log.warn("Failed to send notification email to {}", notification.getUser().getEmail(), ex);
+            }
+        });
     }
 
     private UserNotification.NotificationType parseType(String rawType) {

@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.talentpredict.modules.ai.services.ProfileAnalysisOrchestrator;
+
 @RestController
 @RequestMapping("/api/auth/oauth")
 @RequiredArgsConstructor
@@ -31,6 +33,7 @@ public class SocialAuthController {
     private final AuthServiceImpl authServiceImpl;
     private final JwtService jwtService;
     private final AuditLogService auditLogService;
+    private final ProfileAnalysisOrchestrator profileAnalysisOrchestrator;
 
     @Value("${security.cookie.secure:false}")
     private boolean refreshCookieSecure;
@@ -53,6 +56,13 @@ public class SocialAuthController {
         return buildAuthResponse(user, httpRequest, response, "github");
     }
 
+    private String getRedirectUrl(User user) {
+        if (user.getRole() == User.Role.ADMIN) {
+            return "/admin/dashboard";
+        }
+        return "/dashboard";
+    }
+
     private ResponseEntity<AuthDto.Response> buildAuthResponse(
             User user,
             HttpServletRequest request,
@@ -69,9 +79,7 @@ public class SocialAuthController {
         cookie.setAttribute("SameSite", "Lax");
         response.addCookie(cookie);
 
-        String redirectUrl = (user.getRole() == User.Role.ADMIN)
-                ? "/admin/dashboard"
-                : "/dashboard";
+        String redirectUrl = getRedirectUrl(user);
 
         AuthDto.Response responseDto = new AuthDto.Response(
                 accessToken,
@@ -86,6 +94,9 @@ public class SocialAuthController {
 
         auditLogService.logLogin(user, resolveClientIp(request), request.getHeader("User-Agent"), resolveDeviceId(request));
         log.info("Social login ({}) success: {}", provider, user.getEmail());
+        log.info("🤖 Déclenchement analyse IA pour account social: {}", user.getId());
+        authServiceImpl.registerSuccessfulLogin(user.getEmail());
+        profileAnalysisOrchestrator.analyserProfil(user.getId());
         return ResponseEntity.status(HttpStatus.OK).body(responseDto);
     }
 

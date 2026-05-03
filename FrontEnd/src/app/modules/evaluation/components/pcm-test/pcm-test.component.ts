@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../auth/services/auth.service';
@@ -16,7 +16,7 @@ interface PCMQuestion {
 @Component({
   selector: 'app-pcm-test',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, QuestionCardComponent],
+  imports: [FormsModule, RouterModule, QuestionCardComponent],
   templateUrl: './pcm-test.component.html',
   styleUrls: ['./pcm-test.component.scss']
 })
@@ -27,8 +27,8 @@ export class PcmTestComponent implements OnInit {
 
   currentStep = 0;
   totalSteps = 0; // set dynamically
-  responses: { [key: string]: string } = {};
-  answers: { [key: string]: number } = {};
+  responses: Record<string, string> = {};
+  answers: Record<string, number> = {};
   loading = false;
   error: string | null = null;
 

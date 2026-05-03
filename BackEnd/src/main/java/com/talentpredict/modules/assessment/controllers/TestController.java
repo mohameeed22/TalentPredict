@@ -107,7 +107,7 @@ public class TestController {
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "candidate_id must be a valid UUID", ex);
         }
-        if (authUser.getRole() == User.Role.RECRUITER || authUser.getRole() == User.Role.ADMIN) {
+        if (authUser.getRole() == User.Role.ADMIN) {
             return;
         }
         if (!authUser.getId().equals(cid)) {
@@ -233,7 +233,7 @@ public class TestController {
     }
 
     private boolean isRecruiter(User actor) {
-        return actor.getRole() == User.Role.RECRUITER || actor.getRole() == User.Role.ADMIN;
+        return actor.getRole() == User.Role.ADMIN;
     }
 
     @SuppressWarnings("unchecked")

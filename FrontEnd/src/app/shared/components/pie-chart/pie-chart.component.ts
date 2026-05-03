@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 export interface PieChartSlice {
   label: string;
@@ -10,7 +10,7 @@ export interface PieChartSlice {
 @Component({
   selector: 'app-pie-chart',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './pie-chart.component.html',
   styleUrls: ['./pie-chart.component.scss']
 })

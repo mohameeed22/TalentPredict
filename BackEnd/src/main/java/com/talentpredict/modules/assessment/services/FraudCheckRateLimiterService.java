@@ -57,9 +57,6 @@ public class FraudCheckRateLimiterService {
         if (actor.getRole() == User.Role.ADMIN) {
             return Math.max(1, adminPerMinute);
         }
-        if (actor.getRole() == User.Role.RECRUITER) {
-            return Math.max(1, recruiterPerMinute);
-        }
         return Math.max(1, userPerMinute);
     }
 

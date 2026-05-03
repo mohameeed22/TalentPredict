@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { SkillsService } from '../../../skills/services/skills.service';
 import { AuthService } from '../../../auth/services/auth.service';
 import { SkillResponse } from '../../../skills/models/skill.model';
@@ -7,7 +7,7 @@ import { SkillResponse } from '../../../skills/models/skill.model';
 @Component({
   selector: 'app-skills-radar-chart',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="radar-card">
       <div class="radar-header">
@@ -284,8 +284,8 @@ export class SkillsRadarChartComponent implements OnInit, AfterViewInit {
     for (let i = 0; i < n; i++) {
       const a = angleStep * i - Math.PI / 2;
       const labelR = radius + 28;
-      let lx = centerX + labelR * Math.cos(a);
-      let ly = centerY + labelR * Math.sin(a);
+      const lx = centerX + labelR * Math.cos(a);
+      const ly = centerY + labelR * Math.sin(a);
       // Truncate long labels
       const label = this.radarLabels[i].length > 12
         ? this.radarLabels[i].slice(0, 11) + '…'

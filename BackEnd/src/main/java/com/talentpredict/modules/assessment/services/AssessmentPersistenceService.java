@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.talentpredict.modules.assessment.entities.CandidateBadge;
 import com.talentpredict.modules.assessment.entities.CandidateTestResult;
-import com.talentpredict.modules.assessment.entities.FraudFlags;
 import com.talentpredict.modules.assessment.entities.FraudCase;
 import com.talentpredict.modules.assessment.entities.TestType;
 import com.talentpredict.modules.assessment.repositories.CandidateBadgeRepository;

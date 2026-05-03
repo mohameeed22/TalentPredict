@@ -1,19 +1,19 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-question-card',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './question-card.component.html',
   styleUrls: ['./question-card.component.scss']
 })
 export class QuestionCardComponent {
-  @Input() question: string = '';
-  @Input() questionNumber: number = 1;
-  @Input() category: string = '';
-  @Input() currentAnswer: string = '';
+  @Input() question = '';
+  @Input() questionNumber = 1;
+  @Input() category = '';
+  @Input() currentAnswer = '';
   @Output() answer = new EventEmitter<string>();
 
   ratingOptions = [

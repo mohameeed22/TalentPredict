@@ -1,7 +1,6 @@
 export enum Role {
   USER = 'USER',
-  ADMIN = 'ADMIN',
-  RECRUITER = 'RECRUITER'
+  ADMIN = 'ADMIN'
 }
 
 /**
@@ -83,6 +82,7 @@ export interface ProfileResponse {
   githubAvatarUrl: string;
   githubName: string;
   aiSummary: string;
+  publicSlug?: string;
   updatedAt?: string;
 }
 

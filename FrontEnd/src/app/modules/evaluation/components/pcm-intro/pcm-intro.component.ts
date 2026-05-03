@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../auth/services/auth.service';
@@ -8,7 +8,7 @@ import { CvExtractorService } from '../../../../core/services/cv-extractor.servi
 @Component({
   selector: 'app-pcm-intro',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  imports: [ReactiveFormsModule, RouterModule],
   templateUrl: './pcm-intro.component.html',
   styleUrl: './pcm-intro.component.scss'
 })

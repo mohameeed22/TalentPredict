@@ -47,7 +47,7 @@ public class JobMatchController {
             @AuthenticationPrincipal UserDetailsImpl principal) {
         UUID cid = UUID.fromString(body.get("candidate_id").asText());
         User auth = principal.getUser();
-        if (auth.getRole() != User.Role.RECRUITER && auth.getRole() != User.Role.ADMIN) {
+        if (auth.getRole() != User.Role.ADMIN) {
             if (!auth.getId().equals(cid)) {
                 throw new org.springframework.security.access.AccessDeniedException("candidate_id mismatch");
             }

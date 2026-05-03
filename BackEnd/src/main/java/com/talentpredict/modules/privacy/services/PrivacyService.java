@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.data.domain.Pageable;
 
 import com.talentpredict.modules.auth.entities.AuditLog;
 import com.talentpredict.modules.auth.entities.RefreshToken;
@@ -90,7 +91,7 @@ public class PrivacyService {
         List<Skill> skills = skillRepository.findByUserId(user.getId());
         List<RefreshToken> sessions = refreshTokenRepository.findAllByUserOrderByCreatedAtDesc(user);
         List<AuditLog> auditLogs = auditLogRepository.findTop50ByUserOrderByCreatedAtDesc(user);
-        List<UserNotification> notifications = userNotificationRepository.findByUserOrderByCreatedAtDesc(user);
+        List<UserNotification> notifications = userNotificationRepository.findByUserOrderByCreatedAtDesc(user, Pageable.unpaged()).getContent();
 
         Map<String, Object> export = new LinkedHashMap<>();
         export.put("exportedAt", Instant.now().toString());

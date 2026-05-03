@@ -355,12 +355,7 @@ public class SoftSkillsService {
      * Returns true when there is absolutely nothing usable — not even local PCM scores.
      * Used as a hard-fail gate in analyze().
      */
-    private boolean isTrulyEmpty(SoftSkillsResultDto result) {
-        if (result == null) return true;
-        boolean overallZero = result.getOverallScore() == null || Math.abs(result.getOverallScore()) < 0.001;
-        boolean mergedZero = isAllZeroScores(result.getMergedSoftSkills());
-        return overallZero && mergedZero;
-    }
+
 
     private boolean isLikelyPersistedFallback(SoftSkillsResultDto result) {
         return hasNoUsableAnalysisData(result);
@@ -369,15 +364,15 @@ public class SoftSkillsService {
     private boolean hasNoUsableAnalysisData(SoftSkillsResultDto result) {
         if (result == null) return true;
 
-        boolean overallZero = result.getOverallScore() == null || Math.abs(result.getOverallScore()) < 0.001;
         boolean mergedZero = isAllZeroScores(result.getMergedSoftSkills());
-        boolean sourceZero = isAllZeroSourceScores(result.getSourceData());
         boolean noSummary = result.getSummary() == null || result.getSummary().isBlank();
 
         boolean noStrengths = (result.getTop3Strengths() == null || result.getTop3Strengths().isEmpty())
             && (result.getKeyStrengths() == null || result.getKeyStrengths().isEmpty());
 
-        return overallZero && mergedZero && sourceZero && noSummary && noStrengths;
+        // A career prediction might have a score_confiance but no summary or soft skills.
+        // It should be considered unusable for soft skills display.
+        return mergedZero && noSummary && noStrengths;
     }
 
     private boolean isAllZeroScores(Map<String, Double> scores) {
@@ -390,32 +385,7 @@ public class SoftSkillsService {
         return true;
     }
 
-    private boolean isAllZeroSourceScores(Map<String, Object> sourceData) {
-        if (sourceData == null || sourceData.isEmpty()) return true;
 
-        for (String key : new String[]{"cv", "github", "linkedin", "pcm"}) {
-            Object nested = sourceData.get(key);
-            if (nested instanceof Map<?, ?> nestedMap) {
-                Object nestedScore = nestedMap.get("overall_score");
-                if (toDoubleSafe(nestedScore) > 0.001) {
-                    return false;
-                }
-            }
-
-            Object direct = sourceData.get(key + "_score");
-            if (toDoubleSafe(direct) > 0.001) {
-                return false;
-            }
-        }
-
-        for (Object value : sourceData.values()) {
-            if (!(value instanceof Map<?, ?>) && toDoubleSafe(value) > 0.001) {
-                return false;
-            }
-        }
-
-        return true;
-    }
 
     private double toDoubleSafe(Object value) {
         if (value == null) return 0;

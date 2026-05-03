@@ -2,13 +2,12 @@ import {
   Component,
   inject,
   OnInit,
-  ApplicationRef,
   AfterViewInit,
   OnDestroy,
   ElementRef,
   PLATFORM_ID
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { isPlatformBrowser } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../auth/services/auth.service';
@@ -16,22 +15,23 @@ import { AuthService } from '../auth/services/auth.service';
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [RouterLink],
   templateUrl: './home.component.html',
   styleUrl: './home.component.css'
 })
 export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   private router = inject(Router);
   private authService = inject(AuthService);
-  private appRef = inject(ApplicationRef);
   private hostElement = inject(ElementRef<HTMLElement>);
   private platformId = inject(PLATFORM_ID);
   private observer: IntersectionObserver | null = null;
   private readonly isBrowser = isPlatformBrowser(this.platformId);
 
+  mobileMenuOpen = false;
+
   ngOnInit(): void {
     if (this.authService.isAuthenticated()) {
-      this.router.navigateByUrl(this.authService.getRedirectUrl()).then(() => this.appRef.tick());
+      this.router.navigateByUrl(this.authService.getRedirectUrl());
     }
   }
 
@@ -73,13 +73,13 @@ export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
         }
       },
       {
-        threshold: 0.2,
-        rootMargin: '0px 0px -8% 0px'
+        threshold: 0.15,
+        rootMargin: '0px 0px -6% 0px'
       }
     );
 
     revealTargets.forEach((element, index) => {
-      element.style.setProperty('--reveal-delay', `${Math.min(index * 65, 420)}ms`);
+      element.style.setProperty('--reveal-delay', `${Math.min(index * 70, 450)}ms`);
       this.observer?.observe(element);
     });
   }

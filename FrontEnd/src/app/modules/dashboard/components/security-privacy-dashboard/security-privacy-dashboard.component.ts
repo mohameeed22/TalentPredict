@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
@@ -32,7 +32,7 @@ const EVENT_LABELS: Record<string, string> = {
 @Component({
   selector: 'app-security-privacy-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [ReactiveFormsModule, FormsModule],
   templateUrl: './security-privacy-dashboard.component.html',
   styleUrl: './security-privacy-dashboard.component.scss'
 })

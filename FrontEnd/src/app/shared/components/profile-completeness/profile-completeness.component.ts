@@ -1,12 +1,12 @@
 import { Component, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ProfileResponse } from '../../../modules/auth/models/user.model';
 import { ProfileCompletenessService, CompletenessResult, MissingField } from '../../../core/services/profile-completeness.service';
 
 @Component({
   selector: 'app-profile-completeness',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <div class="completeness-card">
       <div class="completeness-top">

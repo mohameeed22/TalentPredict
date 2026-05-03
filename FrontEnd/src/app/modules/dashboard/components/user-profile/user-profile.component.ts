@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormBuilder, FormGroup, ReactiveFormsModule, FormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../auth/services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { ProfileCompletenessComponent } from '../../../../shared/components/profile-completeness/profile-completeness.component';
@@ -11,7 +11,7 @@ import { Subscription } from 'rxjs';
 @Component({
   selector: 'app-user-profile',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, ProfileCompletenessComponent],
+  imports: [ReactiveFormsModule, FormsModule, RouterModule, ProfileCompletenessComponent],
   templateUrl: './user-profile.component.html',
   styleUrl: './user-profile.component.scss'
 })
@@ -365,6 +365,23 @@ export class UserProfileComponent implements OnInit, OnDestroy {
           }
         });
       });
+    });
+  }
+
+  publishProfile(): void {
+    const user = this.authService.getCurrentUser();
+    if (!user) return;
+    const userId = String(user.id).trim();
+
+    this.authService.publishProfile(userId).subscribe({
+      next: (profile) => {
+        this.profile = profile;
+        this.notificationService.success('Votre profil est maintenant public !');
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.notificationService.error('Erreur lors de la publication du profil.');
+      }
     });
   }
 

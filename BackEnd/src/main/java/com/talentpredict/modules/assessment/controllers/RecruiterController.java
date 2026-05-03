@@ -48,7 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequestMapping("/api/recruiter")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('RECRUITER','ADMIN')")
+@PreAuthorize("hasRole('ADMIN')")
 @Slf4j
 public class RecruiterController {
 
