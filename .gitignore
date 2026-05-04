@@ -80,6 +80,11 @@ __pycache__/
 .venv/
 venv/
 .env
+.env.*
+
+# Java / Spring Boot Secrets
+application.properties
+application-*.properties
 
 # Build outputs
 build_output.txt
