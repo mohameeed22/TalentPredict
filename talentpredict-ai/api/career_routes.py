@@ -51,6 +51,15 @@ _URL_HINTS_BY_PLATFORM: dict[str, list[str]] = {
 
 
 
+class CareerPredictionBody(BaseModel):
+    candidate_id: str
+    full_name: str = "Candidate"
+    skills: list[str] = Field(default_factory=list)
+    test_results: dict[str, Any] = Field(default_factory=dict)
+    target_role: str = ""
+    language: str = "en"
+
+
 @router.post("/prediction")
 async def generate_career_prediction(body: CareerPredictionBody) -> dict[str, Any]:
     """Generate a rich AI career prediction and recommendations."""
@@ -197,6 +206,12 @@ def _community_for_skill(skill_name: str) -> dict[str, str]:
     return _PRIORITY_COMMUNITIES["default"]
 
 
+def _normalize_level(level: str) -> str:
+    level = (level or "intermediate").strip().lower()
+    valid = {"beginner", "intermediate", "advanced", "expert"}
+    return level if level in valid else "intermediate"
+
+
 def _build_learning_plan_fallback(body: LearningPlanBody) -> dict[str, Any]:
     """Deterministic fallback when the LLM is unavailable."""
     from datetime import date, timedelta
@@ -331,7 +346,7 @@ def _build_learning_plan_fallback(body: LearningPlanBody) -> dict[str, Any]:
             {"step": 5, "title": "Deployment", "description": "Deploy to free hosting, add live URL to GitHub.", "estimated_days": 1},
         ],
         "portfolio_outcome": (
-            f"Proves to a recruiter that you can independently build and ship a {role} project "
+            f"Proves to a reviewer that you can independently build and ship a {role} project "
             f"using {', '.join(top_skills[:3])}."
         ),
     }
@@ -610,7 +625,7 @@ todayDate: {today_str}
     "steps": [
       {{"step": 1, "title": "step title", "description": "what to do", "estimated_days": 2}}
     ],
-    "portfolio_outcome": "what this proves to a recruiter"
+    "portfolio_outcome": "what this proves to a reviewer"
   }},
   "daily_plan": [
     {{

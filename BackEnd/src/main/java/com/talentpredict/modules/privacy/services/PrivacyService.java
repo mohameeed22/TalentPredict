@@ -323,8 +323,7 @@ public class PrivacyService {
         user.setIsActive(false);
         user.setEmailVerified(false);
         user.setEmailVerifiedAt(null);
-        user.setTwoFactorEnabled(false);
-        user.setTwoFactorMethod("NONE");
+
     }
 
     private void scrubProfile(User user) {

@@ -53,17 +53,6 @@ public class AnalysisProxyController {
 
 
 
-    @PostMapping("/fraud-check")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<JsonNode> fraudCheck(
-            @RequestBody JsonNode body,
-            @AuthenticationPrincipal UserDetailsImpl principal) {
-        User u = principal.getUser();
-        if (u.getRole() != User.Role.ADMIN) {
-            assertCandidate(u, body);
-        }
-        return ResponseEntity.ok(aiProxyService.postJson("/api/analysis/fraud-check", objectToMap(body)));
-    }
 
     @PostMapping("/cv-authenticity")
     @PreAuthorize("isAuthenticated()")

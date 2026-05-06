@@ -325,7 +325,7 @@ import { SecurityPrivacyService, PrivacySettingsResponse } from '../../../../cor
                         <div class="toggle-item mt-4">
                           <div class="toggle-info">
                             <span class="toggle-label">Recevoir les alertes de sécurité par e-mail</span>
-                            <span class="toggle-desc">Être notifié en cas d'actions suspectes ou de fraudes détectées.</span>
+                            <span class="toggle-desc">Être notifié en cas d'actions suspectes ou d'activités inhabituelles.</span>
                           </div>
                           <label class="toggle-switch">
                             <input type="checkbox" formControlName="notifNewLogin" />

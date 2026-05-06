@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -41,21 +42,7 @@ public class NotificationDto {
         private Boolean emailAlert = Boolean.TRUE;
     }
 
-    @Data
-    public static class InterviewScheduledEventRequest {
-        @NotNull(message = "Target user id is required")
-        private UUID targetUserId;
 
-        @NotBlank(message = "Role is required")
-        private String role;
-
-        @NotBlank(message = "Interview date/time is required")
-        private String interviewAt;
-
-        private String meetingLink;
-        private String channel;
-        private Boolean emailAlert = Boolean.TRUE;
-    }
 
     @Data
     public static class NewMatchEventRequest {
@@ -68,6 +55,26 @@ public class NotificationDto {
         private Integer matchScore;
         private String details;
         private Boolean emailAlert = Boolean.TRUE;
+    }
+
+    /** Sent by ADMIN → delivers a real in-app notification to a specific user. */
+    @Data
+    public static class DirectMessageRequest {
+        @NotNull(message = "Target user id is required")
+        private UUID targetUserId;
+
+        @NotBlank(message = "Title is required")
+        @Size(max = 180, message = "Title must be 180 chars or fewer")
+        private String title;
+
+        @NotBlank(message = "Body is required")
+        private String body;
+
+        /** INFO | SUCCESS | WARNING | ERROR — defaults to INFO */
+        private String type = "INFO";
+
+        private String targetUrl;
+        private Boolean emailAlert = Boolean.FALSE;
     }
 
     @Data

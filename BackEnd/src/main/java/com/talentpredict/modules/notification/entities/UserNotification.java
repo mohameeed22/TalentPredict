@@ -46,7 +46,6 @@ public class UserNotification {
 
     public enum NotificationCategory {
         STATUS_CHANGE,
-        INTERVIEW_SCHEDULED,
         NEW_MATCH,
         SECURITY,
         PRIVACY,

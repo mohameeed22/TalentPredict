@@ -84,15 +84,15 @@ Rules:
     cid = str(uuid.uuid4())
     lang = str(data.get("language", target_lang)).lower()
     fallback_description = (
-        f"Implement a {skill} challenge at {level} level. "
-        "Handle edge cases and ensure maintainability."
+        f"Implémentez un défi {skill} de niveau {level}. "
+        "Gérez les cas particuliers et assurez la maintenabilité du code."
     )
     fallback_expected = (
-        "The solution should follow best practices for " + skill + " and achieve the desired outcome."
+        f"La solution doit suivre les bonnes pratiques pour {skill} et atteindre le résultat attendu."
     )
     fallback_hints = [
-        "Focus on structural integrity and performance.",
-        "Consider how this code will be maintained in the future.",
+        "Concentrez-vous sur la structure et la performance.",
+        "Pensez à la façon dont ce code sera maintenu à l'avenir.",
     ]
     return {
         "challenge_id": cid,

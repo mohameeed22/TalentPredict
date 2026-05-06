@@ -98,4 +98,14 @@ public class UserDto {
         private String role;
     }
 
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class LeaderboardResponse {
+        private UUID id;
+        private String username;
+        private Integer xp;
+        private Integer level;
+    }
 }

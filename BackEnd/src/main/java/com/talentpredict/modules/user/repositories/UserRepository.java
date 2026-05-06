@@ -17,4 +17,5 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByPhoneNumber(String phoneNumber);
 
     List<User> findByRole(User.Role role);
+    List<User> findTop10ByOrderByXpDesc();
 }

@@ -13,7 +13,7 @@ export interface AuthUser {
   email: string;
   role: Role;
   emailVerified?: boolean;
-  twoFactorEnabled?: boolean;
+
   dateInscription: Date;
 }
 
@@ -120,7 +120,7 @@ export interface UserRequest {
 export interface AuthRequest {
   email: string;
   password: string;
-  twoFactorCode?: string;
+
 }
 
 export interface AuthResponse {
@@ -133,7 +133,7 @@ export interface AuthResponse {
   prenom: string;
   redirectUrl: string;
   emailVerified?: boolean;
-  twoFactorEnabled?: boolean;
+
 }
 
 export interface InscriptionRequest {

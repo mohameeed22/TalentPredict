@@ -69,34 +69,7 @@ public class SecurityController {
         return ResponseEntity.ok(new SecurityDto.MessageResponse(message));
     }
 
-    @PostMapping("/2fa/send-code")
-    public ResponseEntity<SecurityDto.MessageResponse> sendTwoFactorCode(
-            @AuthenticationPrincipal UserDetailsImpl principal,
-            @Valid @RequestBody SecurityDto.TwoFactorCodeSendRequest request) {
-        return ResponseEntity.ok(securityDashboardService.sendTwoFactorCode(principal.getUser(), request.getPurpose()));
-    }
 
-    @PostMapping("/2fa/enable")
-    public ResponseEntity<SecurityDto.TwoFactorStateResponse> enableTwoFactor(
-            @AuthenticationPrincipal UserDetailsImpl principal,
-            @Valid @RequestBody SecurityDto.TwoFactorCodeVerifyRequest request,
-            HttpServletRequest httpRequest) {
-        return ResponseEntity.ok(securityDashboardService.enableTwoFactor(
-                principal.getUser(),
-                request.getCode(),
-                resolveClientIp(httpRequest)));
-    }
-
-    @PostMapping("/2fa/disable")
-    public ResponseEntity<SecurityDto.TwoFactorStateResponse> disableTwoFactor(
-            @AuthenticationPrincipal UserDetailsImpl principal,
-            @Valid @RequestBody SecurityDto.TwoFactorCodeVerifyRequest request,
-            HttpServletRequest httpRequest) {
-        return ResponseEntity.ok(securityDashboardService.disableTwoFactor(
-                principal.getUser(),
-                request.getCode(),
-                resolveClientIp(httpRequest)));
-    }
 
     private String resolveClientIp(HttpServletRequest request) {
         String xForwardedFor = request.getHeader("X-Forwarded-For");

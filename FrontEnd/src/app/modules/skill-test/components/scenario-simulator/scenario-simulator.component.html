@@ -255,24 +255,7 @@
         }
       </div>
 
-      <!-- Fraud Verdict -->
-      @if (fraudVerdict) {
-        <div class="fraud-card" [ngClass]="fraudVerdict.fraud_risk || 'low'">
-          <div class="fraud-header">
-            <h3><span class="culture-icon">🛡️</span> IA Proctoring & Biometrics Analysis</h3>
-            <span class="fraud-score">{{ fraudVerdict.fraud_score }}/100</span>
-          </div>
-          <p><strong>Risk Level:</strong> {{ fraudVerdict.fraud_risk | titlecase }}</p>
-          <p class="fraud-explanation">{{ fraudVerdict.explanation }}</p>
-          @if (fraudVerdict.flags?.length) {
-            <ul class="fraud-flags feedback-list">
-              @for (flag of fraudVerdict.flags; track flag.type) {
-                <li>{{ flag.description }}</li>
-              }
-            </ul>
-          }
-        </div>
-      }
+
 
       <!-- Culture Add Profile -->
       @if (evaluation.culture_add_profile) {

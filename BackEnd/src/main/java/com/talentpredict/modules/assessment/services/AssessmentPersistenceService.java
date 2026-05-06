@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.talentpredict.modules.assessment.entities.CandidateBadge;
 import com.talentpredict.modules.assessment.entities.CandidateTestResult;
-import com.talentpredict.modules.assessment.entities.FraudCase;
+
 import com.talentpredict.modules.assessment.entities.TestType;
 import com.talentpredict.modules.assessment.repositories.CandidateBadgeRepository;
 import com.talentpredict.modules.assessment.repositories.CandidateTestResultRepository;
@@ -32,7 +32,7 @@ public class AssessmentPersistenceService {
     private final CandidateBadgeRepository candidateBadgeRepository;
     private final ProfileRepository profileRepository;
     private final ObjectMapper objectMapper;
-    private final FraudCaseService fraudCaseService;
+
 
     @Transactional
     public void persistMcqEvaluation(User user, JsonNode result) {
@@ -40,7 +40,7 @@ public class AssessmentPersistenceService {
                 .user(user)
                 .overallScore(result.path("real_score").asInt())
                 .skillScoresJson(result.path("skill_scores").toString())
-                .fraudFlags(fraudCaseService.extractFraudFlags(result.path("_fraud_verdict")))
+
                 .passed(result.path("passed").asBoolean(false))
                 .testType(TestType.MCQ)
                 .build();
@@ -52,9 +52,7 @@ public class AssessmentPersistenceService {
             profile.setSkillRealScoresJson(result.path("skill_scores").toString());
             profile.setTestPassed(result.path("passed").asBoolean(false));
             profile.setTestTakenAt(Instant.now());
-            if (result.has("_fraud_verdict")) {
-                profile.setFraudRisk(result.path("_fraud_verdict").path("fraud_risk").asText("LOW").toUpperCase());
-            }
+
             if (profile.getPublicSlug() == null || profile.getPublicSlug().isBlank()) {
                 profile.setPublicSlug("p-" + UUID.randomUUID().toString().substring(0, 8));
             }
@@ -72,13 +70,7 @@ public class AssessmentPersistenceService {
             });
         }
 
-        if (result.has("_fraud_verdict") && result.get("_fraud_verdict").isObject()) {
-            fraudCaseService.recordFraudCase(
-                    user,
-                    user,
-                    FraudCase.FraudSource.MCQ_EVALUATION,
-                    result.get("_fraud_verdict"));
-        }
+
     }
 
     private void upsertBadge(User user, String skill, int score) {
@@ -91,13 +83,5 @@ public class AssessmentPersistenceService {
     }
 
 
-    public JsonNode stripFraudForCandidate(JsonNode result) {
-        if (!(result instanceof ObjectNode obj)) {
-            return result;
-        }
-        obj = obj.deepCopy();
-        obj.remove("_fraud_verdict");
-        obj.set("fraud_flags", objectMapper.createArrayNode());
-        return obj;
-    }
+
 }

@@ -75,17 +75,14 @@ public class AssessmentAiProxyService {
     }
 
     public Map<String, Object> evaluateScenarioResponse(
-            String scenario, String candidateResponse, Map<String, Object> fraudContext) {
+            String scenario, String candidateResponse) {
         String url = aiBaseUrl + "/api/test/scenario/evaluate";
-        log.info("Proxying scenario evaluation (with fraud context: {})", fraudContext != null);
+        log.info("Proxying scenario evaluation");
 
         try {
             java.util.Map<String, Object> payload = new java.util.HashMap<>();
             payload.put("scenario", scenario);
             payload.put("response", candidateResponse);
-            if (fraudContext != null && !fraudContext.isEmpty()) {
-                payload.put("fraud_context", fraudContext);
-            }
             HttpEntity<Map<String, Object>> request = buildJsonEntity(payload);
             ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
             return parseResponse(response.getBody());
@@ -98,38 +95,7 @@ public class AssessmentAiProxyService {
         }
     }
 
-    // ── Fraud Check (consolidated — routes to /api/analysis/fraud-check) ───────
 
-    public Map<String, Object> checkFraud(
-            String candidateId, String testType, Map<String, Object> fraudContext) {
-        // Consolidated endpoint accepts both full deep-analysis payloads and
-        // biometrics-only payloads from formation mini-quizzes / proctoring.
-        String url = aiBaseUrl + "/api/analysis/fraud-check";
-        log.info("Proxying fraud check to consolidated analysis endpoint for candidate={}, type={}",
-                candidateId, testType);
-
-        try {
-            java.util.Map<String, Object> payload = new java.util.HashMap<>();
-            payload.put("candidate_id", candidateId != null ? candidateId : "");
-
-            // Flatten biometrics from the old fraud_context wrapper into a
-            // top-level field expected by the unified FraudCheckBody schema.
-            if (fraudContext != null && fraudContext.containsKey("biometrics")) {
-                payload.put("biometrics", fraudContext.get("biometrics"));
-            } else if (fraudContext != null && !fraudContext.isEmpty()) {
-                // If the caller passed raw biometric data directly, forward as-is.
-                payload.put("biometrics", fraudContext);
-            }
-
-            HttpEntity<Map<String, Object>> request = buildJsonEntity(payload);
-            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-            return parseResponse(response.getBody());
-        } catch (Exception e) {
-            log.error("Fraud check proxy failed: {}", e.getMessage());
-            return Map.of("fraud_risk", "low", "fraud_score", 0,
-                "explanation", "Fraud check unavailable: " + e.getMessage());
-        }
-    }
 
     public Map<String, Object> generateCareerPrediction(
             String candidateId, String fullName, List<Map<String, Object>> skills, 

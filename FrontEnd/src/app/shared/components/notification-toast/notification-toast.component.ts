@@ -27,7 +27,14 @@ import { Subscription } from 'rxjs';
             }
           }
         </span>
-        <span class="toast-message">{{ notification.message }}</span>
+        <div class="toast-content">
+          <span class="toast-message">{{ notification.message }}</span>
+          @if (notification.id) {
+            <button class="toast-action" (click)="markAsRead(notification.id, i); $event.stopPropagation()">
+              Mark as read
+            </button>
+          }
+        </div>
         <button class="toast-close" (click)="dismiss(i); $event.stopPropagation()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -91,9 +98,32 @@ import { Subscription } from 'rxjs';
       align-items: center;
     }
 
-    .toast-message {
+    .toast-content {
       flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .toast-message {
       line-height: 1.4;
+    }
+
+    .toast-action {
+      background: rgba(0, 0, 0, 0.05);
+      border: none;
+      color: inherit;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      align-self: flex-start;
+      transition: all 0.2s;
+    }
+
+    .toast-action:hover {
+      background: rgba(0, 0, 0, 0.1);
     }
 
     .toast-close {
@@ -150,8 +180,13 @@ export class NotificationToastComponent implements OnInit, OnDestroy {
   dismiss(index: number): void {
     if (index >= 0 && index < this.notifications.length) {
       this.notifications.splice(index, 1);
-      this.cdr.markForCheck(); // Fix NG0100
+      this.cdr.markForCheck();
     }
+  }
+
+  markAsRead(id: string, index: number): void {
+    this.notificationService.markRead(id);
+    this.dismiss(index);
   }
 
   ngOnDestroy(): void {

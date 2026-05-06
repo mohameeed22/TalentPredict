@@ -8,7 +8,7 @@ import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.talentpredict.modules.ai.entities.Prediction;
 import com.talentpredict.modules.user.entities.User;
-import com.talentpredict.modules.jira.entities.Ticket;
+
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -115,11 +115,7 @@ public class Formation {
     @ToString.Exclude
     private User user;
 
-    @OneToMany(mappedBy = "formation", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
-    @ToString.Exclude
-    @Builder.Default
-    private List<Ticket> tickets = new ArrayList<>();
+
 
     // enums
     public enum TypeFormation {

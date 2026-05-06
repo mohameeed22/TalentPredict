@@ -2,8 +2,9 @@ package com.talentpredict.modules.assessment.services;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -25,8 +26,10 @@ public class TalentPredictAiProxyService {
     private final WebClient talentPredictAiWebClient;
     private final ObjectMapper objectMapper;
 
-    @Value("${talentpredict.ai.request-timeout-seconds:120}")
-    private long requestTimeoutSeconds;
+    /**
+     * Fixed 10s timeout for AI service as per audit requirements
+     */
+    private static final long AI_TIMEOUT_SECONDS = 10;
 
     public JsonNode postJson(String path, Object body) {
         try {
@@ -36,7 +39,9 @@ public class TalentPredictAiProxyService {
                     .bodyValue(body == null ? Map.of() : body)
                     .retrieve()
                     .bodyToMono(String.class)
-                    .block(Duration.ofSeconds(Math.max(10, requestTimeoutSeconds)));
+                    .timeout(Duration.ofSeconds(AI_TIMEOUT_SECONDS))
+                    .block();
+            
             if (json == null || json.isBlank()) {
                 return objectMapper.createObjectNode();
             }
@@ -44,10 +49,18 @@ public class TalentPredictAiProxyService {
         } catch (WebClientResponseException e) {
             log.warn("AI service error: {} {}", e.getStatusCode(), e.getResponseBodyAsString());
             throw new ResponseStatusException(e.getStatusCode(), e.getResponseBodyAsString(), e);
-        } catch (java.io.IOException | RuntimeException e) {
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof TimeoutException || e.getMessage().contains("Timeout")) {
+                log.error("AI service timeout after {}s", AI_TIMEOUT_SECONDS);
+                // Return 503 Service Unavailable with retry suggestion
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, 
+                    "{\"error\": \"AI service unavailable\", \"retryAfter\": 30}");
+            }
             log.error("AI proxy failed: {}", e.getMessage());
-            throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_GATEWAY,
-                    "AI service unavailable", e);
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI service unavailable", e);
+        } catch (java.io.IOException e) {
+            log.error("AI mapping failed: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Data processing error", e);
         }
     }
 }

@@ -115,7 +115,7 @@ def _check_timeline_logic(text: str) -> list[dict[str, Any]]:
     if future:
         signals.append({
             "type": "future_dates_in_cv",
-            "description": f"CV references future year(s): {future}.",
+            "description": f"Le CV mentionne une ou plusieurs années futures : {future}.",
             "severity": "high",
         })
 
@@ -123,7 +123,7 @@ def _check_timeline_logic(text: str) -> list[dict[str, Any]]:
     if very_old:
         signals.append({
             "type": "implausible_start_year",
-            "description": f"CV references implausibly early year(s): {very_old}.",
+            "description": f"Le CV mentionne une ou plusieurs années invraisemblablement anciennes : {very_old}.",
             "severity": "medium",
         })
 
@@ -140,7 +140,7 @@ def _check_timeline_logic(text: str) -> list[dict[str, Any]]:
     if overlaps >= 2:
         signals.append({
             "type": "overlapping_job_dates",
-            "description": f"{overlaps} pairs of employer date ranges overlap by 2+ years — potential timeline fabrication.",
+            "description": f"{overlaps} paires de dates d'emploi se chevauchent sur plus de 2 ans — fabrication potentielle du parcours.",
             "severity": "high",
         })
 
@@ -148,7 +148,7 @@ def _check_timeline_logic(text: str) -> list[dict[str, Any]]:
     if word_count > 200 and not years:
         signals.append({
             "type": "no_dates_in_cv",
-            "description": "Substantial CV contains no calendar years.",
+            "description": "Le CV est volumineux mais ne contient aucune année calendaire.",
             "severity": "low",
         })
 
@@ -173,7 +173,7 @@ def _check_style_consistency(text: str) -> list[dict[str, Any]]:
     if len(outliers) >= 2:
         signals.append({
             "type": "style_inconsistency_detected",
-            "description": f"{len(outliers)} CV section(s) have significantly different sentence-length profiles — possible mixed authorship.",
+            "description": f"{len(outliers)} section(s) du CV ont des profils de longueur de phrase très différents — possible mélange d'auteurs.",
             "severity": "medium",
         })
 
@@ -182,7 +182,7 @@ def _check_style_consistency(text: str) -> list[dict[str, Any]]:
     if 0 < sl_std < 2.5:
         signals.append({
             "type": "sentence_length_robotic_uniformity",
-            "description": f"Sentence lengths are unusually uniform (stddev={sl_std:.1f} words) — characteristic of AI generation.",
+            "description": f"Les longueurs de phrases sont inhabituellement uniformes (écart-type={sl_std:.1f} mots) — caractéristique d'une génération par IA.",
             "severity": "medium",
         })
 
@@ -197,7 +197,7 @@ def _check_content_quality(text: str) -> list[dict[str, Any]]:
     if q_rate < 0.15:
         signals.append({
             "type": "low_quantification_rate",
-            "description": f"Only {round(q_rate * 100)}% of bullet points contain measurable numbers — vague achievement descriptions.",
+            "description": f"Seulement {round(q_rate * 100)}% des puces contiennent des chiffres — descriptions de réalisations trop vagues.",
             "severity": "low",
         })
 
@@ -206,7 +206,7 @@ def _check_content_quality(text: str) -> list[dict[str, Any]]:
     if vr > 0.88:
         signals.append({
             "type": "vocabulary_suspiciously_rich",
-            "description": f"Type-Token Ratio of {round(vr, 2)} exceeds typical human writing — possible AI generation.",
+            "description": f"Le ratio Type-Token de {round(vr, 2)} dépasse l'écriture humaine typique — génération par IA possible.",
             "severity": "medium",
         })
 
@@ -251,16 +251,16 @@ def collect_cv_signals(cv_text: str) -> list[dict[str, Any]]:
         signals.append({
             "type": "ai_generated_text_high",
             "description": (
-                f"CV scores {ai_result['score']}/100 on AI-text heuristic "
-                f"(vocab richness={ai_result['vocab_richness']}, sentence stddev={ai_result['sentence_stddev']}). "
-                f"Matched phrases: {', '.join(ai_result['matched_phrases'][:5])}."
+                f"Le CV obtient {ai_result['score']}/100 sur l'heuristique de texte IA "
+                f"(richesse vocabul.={ai_result['vocab_richness']}, écart-type phrase={ai_result['sentence_stddev']}). "
+                f"Phrases correspondantes: {', '.join(ai_result['matched_phrases'][:5])}."
             ),
             "severity": "high",
         })
     elif ai_result["score"] >= 30:
         signals.append({
             "type": "ai_generated_text_medium",
-            "description": f"CV scores {ai_result['score']}/100 on AI-text heuristic — possible partial AI authorship.",
+            "description": f"Le CV obtient {ai_result['score']}/100 sur l'heuristique de texte IA — possible rédaction partielle par IA.",
             "severity": "medium",
         })
 
@@ -302,7 +302,7 @@ Return ONLY valid JSON:
   "integrity_concerns": ["..."],
   "recommendation": "proceed|flag_for_review|reject",
   "explanation": "Detailed forensic summary focusing on WHY specific parts look fake or mismatched.",
-  "remediation": "Actionable steps for the recruiter (e.g. 'Ask for original project links', 'Verify employment at Company X')"
+  "remediation": "Actionable steps for the reviewer (e.g. 'Ask for original project links', 'Verify employment at Company X')"
 }}"""
 
     try:
@@ -343,6 +343,6 @@ Return ONLY valid JSON:
         "style_issues": [],
         "content_issues": [],
         "recommendation": "flag_for_review" if risk != "low" else "proceed",
-        "explanation": "Heuristic-only assessment (LLM unavailable).",
+        "explanation": "Évaluation heuristique uniquement (modèle IA indisponible).",
         "signals": heuristic_signals,
     }

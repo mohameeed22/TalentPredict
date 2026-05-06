@@ -18,48 +18,11 @@
           <span>Timer global</span>
           <strong>{{ formattedOverallTimer }}</strong>
         </article>
-        <!-- ✦ Proctoring Status ✦ -->
-        <article class="hero-stat"
-                 [class.proctor-active]="proctoringActive"
-                 [class.proctor-denied]="proctoringDenied">
-          <span>Surveillance</span>
-          @if (proctoringRequesting) {
-            <strong class="proctor-pill requesting">⏳ Activation…</strong>
-          } @else if (proctoringActive) {
-            <strong class="proctor-pill active">🟢 Caméra active</strong>
-          } @else if (proctoringDenied) {
-            <strong class="proctor-pill denied">🔴 Non supervisé</strong>
-          } @else {
-            <strong class="proctor-pill">— Hors ligne</strong>
-          }
-        </article>
+
       </div>
     </header>
 
-    <!-- ══ BIOMETRIC ALERT BANNER ════════════════════════════════════ -->
-    @if (tabSwitchCount > 0 || pasteWarning || mouseLeftCount > 10) {
-      <div class="biometric-alert-bar" role="alert">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
-        <span class="biometric-alert-text">
-          Activité inhabituelle détectée —
-          @if (tabSwitchCount > 0) {
-            <strong>{{ tabSwitchCount }} changement(s) d'onglet</strong>
-          }
-          @if (tabSwitchCount > 0 && pasteWarning) { &nbsp;·&nbsp; }
-          @if (pasteWarning) {
-            <strong>collage de code suspect</strong>
-          }
-          @if ((tabSwitchCount > 0 || pasteWarning) && mouseLeftCount > 10) { &nbsp;·&nbsp; }
-          @if (mouseLeftCount > 10) {
-            <strong>{{ mouseLeftCount }} sorties de fenêtre</strong>
-          }
-          &nbsp;— cette activité est enregistrée et analysée.
-        </span>
-      </div>
-    }
+
 
     <section class="panel">
       <div class="panel-head">

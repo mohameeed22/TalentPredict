@@ -18,11 +18,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class SkillController {
 
-    
     private final SkillService skillService;
 
     @PostMapping("/accounts/{userId}")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("#userId == principal.user.id or hasRole('ADMIN')")
     public ResponseEntity<SkillDto.Response> creerSkill(
             @PathVariable UUID userId,
             @Valid @RequestBody SkillDto.CreateRequest createRequest) {
@@ -31,14 +30,14 @@ public class SkillController {
     }
 
     @GetMapping("/accounts/{userId}")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("#userId == principal.user.id or hasRole('ADMIN')")
     public ResponseEntity<List<SkillDto.Response>> getSkillsByUser(@PathVariable UUID userId) {
         List<SkillDto.Response> skills = skillService.getSkillsByUser(userId);
         return ResponseEntity.ok(skills);
     }
 
     @GetMapping("/accounts/{userId}/type/{type}")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("#userId == principal.user.id or hasRole('ADMIN')")
     public ResponseEntity<List<SkillDto.Response>> getSkillsByType(
             @PathVariable UUID userId,
             @PathVariable Skill.TypeSkill type) {
@@ -46,6 +45,12 @@ public class SkillController {
         return ResponseEntity.ok(skills);
     }
     
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @skillService.getSkillById(#id).userId == principal.user.id")
+    public ResponseEntity<SkillDto.Response> getSkillById(@PathVariable UUID id) {
+        SkillDto.Response response = skillService.getSkillById(id);
+        return ResponseEntity.ok(response);
+    }
 
     @PutMapping("/{skillId}/valider")
     @PreAuthorize("hasRole('ADMIN')")
@@ -55,7 +60,7 @@ public class SkillController {
     }
     
     @DeleteMapping("/{skillId}")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or @skillService.getSkillById(#skillId).userId == principal.user.id")
     public ResponseEntity<Void> supprimerSkill(@PathVariable UUID skillId) {
         skillService.supprimerSkill(skillId);
         return ResponseEntity.noContent().build();

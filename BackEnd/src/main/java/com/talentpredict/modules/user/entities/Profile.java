@@ -98,8 +98,6 @@ public class Profile {
     @Column(name = "test_passed")
     private Boolean testPassed;
 
-    @Column(name = "fraud_risk", length = 20)
-    private String fraudRisk;
 
     @Column(name = "public_slug", unique = true, length = 80)
     private String publicSlug;

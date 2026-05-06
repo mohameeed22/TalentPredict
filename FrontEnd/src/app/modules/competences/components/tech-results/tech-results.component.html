@@ -209,7 +209,12 @@
               <p>Analyse par Intelligence Artificielle des signaux de fraude et de génération.</p>
             </div>
             <div class="forensics-risk-badge" [class]="cvAuthenticityResult.authenticity_risk">
-              {{ cvAuthenticityResult.authenticity_risk | uppercase }} RISK
+              @switch (cvAuthenticityResult.authenticity_risk?.toLowerCase()) {
+                @case ('low') { RISQUE FAIBLE }
+                @case ('medium') { RISQUE MOYEN }
+                @case ('high') { RISQUE ÉLEVÉ }
+                @default { {{ cvAuthenticityResult.authenticity_risk | uppercase }} RISK }
+              }
             </div>
           </div>
 
@@ -333,7 +338,14 @@
             <div class="gh-complexity-meta">
               <div class="meta-item">
                 <span class="m-lbl">Niveau de complexité :</span>
-                <strong>{{ githubResult.data.code_complexity_estimate | uppercase }}</strong>
+                <strong>
+                  @switch (githubResult.data.code_complexity_estimate?.toLowerCase()) {
+                    @case ('beginner') { DÉBUTANT }
+                    @case ('intermediate') { INTERMÉDIAIRE }
+                    @case ('advanced') { AVANCÉ }
+                    @default { {{ githubResult.data.code_complexity_estimate | uppercase }} }
+                  }
+                </strong>
               </div>
               @if (githubResult.data.architectural_style) {
                 <div class="meta-item">

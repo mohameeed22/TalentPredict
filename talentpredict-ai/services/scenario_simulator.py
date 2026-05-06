@@ -30,9 +30,9 @@ Schema:
     except Exception as e:
         logger.error(f"Failed to generate scenario: {e}")
         return {
-            "scenario_title": "Project Deadline Cut",
-            "scenario_description": "Your product manager just informed you that the deadline for a critical feature you are leading has been cut in half due to an upcoming investor meeting. What do you say, and what are your exact next steps?",
-            "skills_tested": ["Negotiation", "Stress Management", "Prioritization"]
+            "scenario_title": "Réduction du Délai de Livraison",
+            "scenario_description": "Votre chef de produit vient de vous informer que la date limite d'une fonctionnalité critique que vous dirigez a été réduite de moitié en raison d'une réunion imminente avec des investisseurs. Que dites-vous et quelles sont vos prochaines étapes exactes ?",
+            "skills_tested": ["Négociation", "Gestion du Stress", "Priorisation"]
         }
 
 
@@ -69,7 +69,7 @@ Schema:
     except Exception as e:
         logger.error(f"Failed to evaluate response: {e}")
         return {
-            "error": "Evaluation timeout or failure",
+            "error": "Échec ou délai d'attente de l'évaluation",
             "scores": {"empathy": 50, "assertiveness": 50, "pragmatism": 50, "communication_clarity": 50},
-            "overall_feedback": "Unable to evaluate response automatically."
+            "overall_feedback": "Impossible d'évaluer la réponse automatiquement."
         }

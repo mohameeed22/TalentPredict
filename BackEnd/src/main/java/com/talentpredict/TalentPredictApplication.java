@@ -8,6 +8,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.github.cdimascio.dotenv.Dotenv;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -30,10 +32,19 @@ import lombok.extern.slf4j.Slf4j;
 public class TalentPredictApplication {
 
     public static void main(String[] args) {
+        // Load .env file and set system properties
+        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+        dotenv.entries().forEach(entry -> {
+            if (System.getProperty(entry.getKey()) == null) {
+                System.setProperty(entry.getKey(), entry.getValue());
+            }
+        });
+
         SpringApplication.run(TalentPredictApplication.class, args);
         log.info("=================================================");
         log.info("   TalentPredict API is running on port 8081     ");
         log.info("   Camunda BPM: DISABLED (no BPMN processes)     ");
+        log.info("   Environment: .env file loaded                 ");
         log.info("=================================================");
     }
 

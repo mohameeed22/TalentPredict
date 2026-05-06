@@ -88,16 +88,6 @@ export class TestApiService {
     );
   }
 
-  // ── Standalone Fraud Check (mini-quiz / course test) ─────────────
-  checkFraud(body: {
-    candidateId?: string;
-    testType?: string;
-    fraudContext?: Record<string, unknown>;
-  }): Observable<unknown> {
-    return this.http.post(`${this.base}/assessment/fraud/check`, body).pipe(
-      timeout({ first: this.evaluateTimeoutMs })
-    );
-  }
 
   // ── Advanced Forensics & Analysis ──────────────────────────────────
   analyzeGithubDeep(body: {

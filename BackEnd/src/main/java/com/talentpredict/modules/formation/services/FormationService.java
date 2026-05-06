@@ -76,6 +76,7 @@ public class FormationService {
         return convertToResponse(saved);
     }
     
+    @Transactional(readOnly = true)
     public List<FormationDto.FormationResponse> getFormationsByUser(UUID userId) {
         return formationRepository.findByUserId(userId)
             .stream()
@@ -83,6 +84,7 @@ public class FormationService {
             .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<FormationDto.FormationResponse> getAllFormations() {
         return formationRepository.findAll()
             .stream()
@@ -90,6 +92,7 @@ public class FormationService {
             .collect(Collectors.toList());
     }
     
+    @Transactional(readOnly = true)
     public FormationDto.FormationResponse getFormationById(UUID id) {
         Formation formation = formationRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Formation non trouvée avec l'ID: " + id));

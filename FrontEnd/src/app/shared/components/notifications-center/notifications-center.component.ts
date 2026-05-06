@@ -587,6 +587,9 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
   private unreadSub!: Subscription;
   private syncInProgress = false;
   private eventSource?: EventSource;
+  private timeRefreshInterval?: any;
+  private retryDelay = 2000; // Start with 2s
+  private maxRetryDelay = 30000; // Max 30s
 
   notifications: AppNotification[] = [];
   unreadCount = 0;
@@ -611,6 +614,11 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     
     // Connect to SSE stream for real-time updates
     this.setupSse();
+
+    // Periodically refresh "time ago" display
+    this.timeRefreshInterval = setInterval(() => {
+      this.cdr.markForCheck();
+    }, 60000); // Every minute
   }
 
   private setupSse(): void {
@@ -619,6 +627,11 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
 
     this.eventSource = this.notificationApi.connectSse(token);
     
+    this.eventSource.onopen = () => {
+      console.log('SSE connected successfully');
+      this.retryDelay = 2000; // Reset delay on success
+    };
+
     this.eventSource.addEventListener('NOTIFICATION', (event: MessageEvent) => {
       try {
         const serverNotif: ServerNotificationResponse = JSON.parse(event.data);
@@ -627,11 +640,11 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
         // Add to local state via sync
         this.notificationService.syncServerNotifications([mapped]);
         
-        // Show toast popup
-        if (mapped.type === 'success') this.notificationService.success(mapped.title);
-        else if (mapped.type === 'error') this.notificationService.error(mapped.title);
-        else if (mapped.type === 'warning') this.notificationService.warning(mapped.title);
-        else this.notificationService.info(mapped.title);
+        // Show toast popup with action link
+        if (mapped.type === 'success') this.notificationService.success(mapped.title, 4000, mapped.id);
+        else if (mapped.type === 'error') this.notificationService.error(mapped.title, 6000, mapped.id);
+        else if (mapped.type === 'warning') this.notificationService.warning(mapped.title, 5000, mapped.id);
+        else this.notificationService.info(mapped.title, 4000, mapped.id);
         
       } catch (e) {
         console.error('Error parsing SSE notification', e);
@@ -639,8 +652,16 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     });
 
     this.eventSource.onerror = () => {
-      // Reconnect logic or fallback
-      console.warn('SSE connection error, falling back to polling might be needed');
+      console.warn(`SSE connection error, retrying in ${this.retryDelay}ms...`);
+      if (this.eventSource) {
+        this.eventSource.close();
+      }
+      
+      // Exponential backoff
+      setTimeout(() => {
+        this.retryDelay = Math.min(this.retryDelay * 1.5, this.maxRetryDelay);
+        this.setupSse();
+      }, this.retryDelay);
     };
   }
 
@@ -745,6 +766,9 @@ export class NotificationsCenterComponent implements OnInit, OnDestroy {
     this.unreadSub?.unsubscribe();
     if (this.eventSource) {
       this.eventSource.close();
+    }
+    if (this.timeRefreshInterval) {
+      clearInterval(this.timeRefreshInterval);
     }
   }
 

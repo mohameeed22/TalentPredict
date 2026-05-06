@@ -35,31 +35,12 @@ public class SecurityDto {
     @AllArgsConstructor
     public static class DashboardResponse {
         private boolean emailVerified;
-        private boolean twoFactorEnabled;
-        private String twoFactorMethod;
+
         private List<SessionInfo> activeSessions;
         private List<LoginEventInfo> loginHistory;
     }
 
-    @Data
-    public static class TwoFactorCodeSendRequest {
-        @NotBlank(message = "Purpose is required")
-        private String purpose;
-    }
 
-    @Data
-    public static class TwoFactorCodeVerifyRequest {
-        @NotBlank(message = "Code is required")
-        private String code;
-    }
-
-    @Data
-    @AllArgsConstructor
-    public static class TwoFactorStateResponse {
-        private boolean enabled;
-        private String method;
-        private String message;
-    }
 
     @Data
     @AllArgsConstructor

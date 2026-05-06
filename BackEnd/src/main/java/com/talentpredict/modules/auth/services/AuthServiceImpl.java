@@ -19,7 +19,7 @@ import com.talentpredict.modules.auth.dto.AuthDto;
 import com.talentpredict.modules.auth.entities.EmailVerificationToken;
 import com.talentpredict.modules.auth.entities.PasswordResetToken;
 import com.talentpredict.modules.auth.entities.RefreshToken;
-import com.talentpredict.modules.auth.entities.TwoFactorCode;
+
 import com.talentpredict.modules.auth.repositories.EmailVerificationTokenRepository;
 import com.talentpredict.modules.auth.repositories.PasswordResetTokenRepository;
 import com.talentpredict.modules.auth.repositories.RefreshTokenRepository;
@@ -46,7 +46,7 @@ public class AuthServiceImpl implements IAuthService {
     private final AuditLogService auditLogService;
     private final JwtService jwtService;
     private final SmsService smsService;
-    private final TwoFactorService twoFactorService;
+
 
     @Value("${frontend.base-url:http://localhost:4200}")
     private String frontendBaseUrl;
@@ -84,8 +84,7 @@ public class AuthServiceImpl implements IAuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setEmailVerified(true);
         user.setEmailVerifiedAt(Instant.now());
-        user.setTwoFactorEnabled(false);
-        user.setTwoFactorMethod("NONE");
+
 
         // Set role from request — default to USER for safety
         User.Role role = User.Role.USER;
@@ -312,20 +311,7 @@ public class AuthServiceImpl implements IAuthService {
         return "Mot de passe mis à jour avec succès !";
     }
 
-    @Transactional
-    public void ensureTwoFactorForLogin(User user, String twoFactorCode) {
-        if (!Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
-            return;
-        }
 
-        if (!StringUtils.hasText(twoFactorCode)) {
-            twoFactorService.sendCode(user, TwoFactorCode.Purpose.LOGIN);
-            throw new IllegalArgumentException(
-                    "2FA code sent to your email. Enter the 6-digit code to complete login.");
-        }
-
-        twoFactorService.validateCodeOrThrow(user, TwoFactorCode.Purpose.LOGIN, twoFactorCode.trim());
-    }
 
     @Transactional
     public String resendVerificationEmail(String email) {

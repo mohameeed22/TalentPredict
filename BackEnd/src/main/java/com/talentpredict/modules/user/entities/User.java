@@ -16,12 +16,12 @@ import com.talentpredict.modules.auth.entities.AuditLog;
 import com.talentpredict.modules.auth.entities.RefreshToken;
 import com.talentpredict.modules.auth.entities.PasswordResetToken;
 import com.talentpredict.modules.auth.entities.EmailVerificationToken;
-import com.talentpredict.modules.auth.entities.TwoFactorCode;
+
 import com.talentpredict.modules.privacy.entities.UserPrivacySettings;
 import com.talentpredict.modules.assessment.entities.JobMatch;
 import com.talentpredict.modules.assessment.entities.CandidateBadge;
 import com.talentpredict.modules.assessment.entities.CandidateTestResult;
-import com.talentpredict.modules.assessment.entities.FraudCase;
+
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -99,13 +99,7 @@ public class User {
     @Column(name = "email_verified_at")
     private Instant emailVerifiedAt;
 
-    @Column(name = "two_factor_enabled", nullable = false)
-    @Builder.Default
-    private Boolean twoFactorEnabled = false;
 
-    @Column(name = "two_factor_method", nullable = false, length = 30)
-    @Builder.Default
-    private String twoFactorMethod = "NONE";
 
     // gamification
     @Column(name = "xp")
@@ -147,22 +141,12 @@ public class User {
     @Builder.Default
     private List<AuditLog> auditLogs = new ArrayList<>();
 
-    @OneToMany(mappedBy = "candidate", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
-    @ToString.Exclude
-    @Builder.Default
-    private List<FraudCase> fraudCases = new ArrayList<>();
-
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
     @ToString.Exclude
     private UserPrivacySettings privacySettings;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnore
-    @ToString.Exclude
-    @Builder.Default
-    private List<TwoFactorCode> twoFactorCodes = new ArrayList<>();
+
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore

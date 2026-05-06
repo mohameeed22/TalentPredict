@@ -152,7 +152,7 @@
             </div>
           </div>
           <div class="pcm-cards-grid">
-            @for (card of personalityCards; track card) {
+            @for (card of personalityCards; track card.key) {
               <div class="pcm-mini-card"
                 [class.active]="getActivePersonalityKey() === card.key">
                 <span class="p-icon">{{ card.icon }}</span>
@@ -227,7 +227,7 @@
         <h2>Inventaire Complet des Soft Skills</h2>
       </div>
       <div class="skills-detailed-grid">
-        @for (entry of getSkillEntries(); track entry) {
+        @for (entry of getSkillEntries(); track entry[0]) {
           <div class="skill-detail-row">
             <div class="sd-meta">
               <span class="sd-icon">{{ getSkillIcon(entry[0]) }}</span>
@@ -264,7 +264,7 @@
         <div class="roadmap-col">
           <h3>Actions de Formation Recommandées</h3>
           <div class="reco-list">
-            @for (r of getRecommendationEntries(); track r) {
+            @for (r of getRecommendationEntries(); track r[0]) {
               <div class="reco-mini">
                 <div class="reco-header">
                   <span class="reco-skill">{{ getSkillLabel(r[0]) }}</span>

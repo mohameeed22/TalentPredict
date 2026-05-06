@@ -7,8 +7,7 @@ import { forkJoin, of, catchError, Subscription, finalize } from 'rxjs';
 import { TestStateService, McqQuestion } from '../../services/test-state.service';
 import { TestApiService } from '../../services/test-api.service';
 import { NotificationService } from '../../../../core/services/notification.service';
-import { BiometricsService } from '../../services/biometrics.service';
-import { ProctoringService } from '../../services/proctoring.service';
+
 
 type GapStatus = 'above' | 'aligned' | 'below';
 
@@ -66,8 +65,7 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
   private testApi = inject(TestApiService);
   private router = inject(Router);
   private notify = inject(NotificationService);
-  private biometrics = inject(BiometricsService);
-  private proctoring = inject(ProctoringService);
+
 
   questions: McqQuestion[] = [];
   readonly optionKeys = ['A', 'B', 'C', 'D'] as const;
@@ -110,38 +108,21 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
       this.perQuestionElapsedSeconds[q.id] = 0;
     }
 
-    // ── Behavioural biometrics: start silent tracking ──────────────
-    this.biometrics.start();
 
-    // ── Real-time proctoring: request camera ────────────────────────
-    void this.proctoring.start().then(granted => {
-      if (!granted) {
-        this.notify.warning('Caméra non disponible — le test continue en mode non-supervisé.');
-      }
-    });
 
     this.initializeTimers();
     this.loadRandomCodeChallenge();
   }
 
   ngOnDestroy(): void {
-    this.biometrics.stop();
-    this.proctoring.stop();
+
     this.stopTimerLoop();
     this.clearSubmitWatchdog();
     this.submitSub?.unsubscribe();
     this.submitSub = null;
   }
 
-  // ── Biometric helpers exposed to template ────────────────────────
-  get tabSwitchCount(): number         { return this.biometrics.tabSwitchCount; }
-  get pasteWarning(): boolean          { return this.biometrics.suspiciousLargePaste; }
-  get mouseLeftCount(): number         { return this.biometrics.mouseLeftCount; }
 
-  // ── Proctoring helpers exposed to template ───────────────────────
-  get proctoringActive(): boolean      { return this.proctoring.isActive; }
-  get proctoringDenied(): boolean      { return this.proctoring.isDenied; }
-  get proctoringRequesting(): boolean  { return this.proctoring.isRequesting; }
 
   get currentQuestion(): McqQuestion | null {
     return this.questions[this.currentIndex] ?? null;
@@ -655,18 +636,13 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
       difficulty: q.difficulty ?? 'medium'
     }));
 
-    // Attach live biometric snapshot so the Python fraud pipeline can score it.
-    const biometricSnapshot = this.biometrics.snapshot();
-    const proctoringSnapshot = this.proctoring.snapshot();
+
 
     const mcq$ = this.testApi.evaluateTest({
       test_id: testId,
       candidate_id: userId,
       answers: payloadAnswers,
-      fraud_context: {
-        biometrics: biometricSnapshot,
-        proctoring: proctoringSnapshot
-      }
+
     }).pipe(
       catchError(err => {
         this.notify.warning(

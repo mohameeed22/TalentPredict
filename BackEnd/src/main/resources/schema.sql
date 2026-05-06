@@ -2,6 +2,7 @@
 DROP TABLE IF EXISTS recommendation_items;
 DROP TABLE IF EXISTS recommendations;
 DROP TABLE IF EXISTS ai_async_jobs;
+DROP TABLE IF EXISTS fraud_cases;
 
 -- Align users table with JPA entity fields used during auth/registration
 ALTER TABLE IF EXISTS users
@@ -27,7 +28,6 @@ ALTER TABLE profiles
     ADD COLUMN IF NOT EXISTS test_taken_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS skill_real_scores TEXT,
     ADD COLUMN IF NOT EXISTS test_passed BOOLEAN,
-    ADD COLUMN IF NOT EXISTS fraud_risk VARCHAR(20),
     ADD COLUMN IF NOT EXISTS public_slug VARCHAR(80);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_public_slug ON profiles (public_slug)
@@ -38,51 +38,14 @@ CREATE TABLE IF NOT EXISTS candidate_test_results (
     user_id UUID NOT NULL REFERENCES users (id),
     overall_score INTEGER,
     skill_scores TEXT,
-    fraud_flags JSONB,
     taken_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     passed BOOLEAN,
     test_type VARCHAR(20)
 );
 
-ALTER TABLE IF EXISTS candidate_test_results
-    ALTER COLUMN fraud_flags TYPE JSONB
-    USING CASE
-        WHEN fraud_flags IS NULL OR TRIM(fraud_flags::text) = '' THEN '{}'::jsonb
-        ELSE fraud_flags::jsonb
-    END;
-
 CREATE INDEX IF NOT EXISTS idx_ctr_user_taken ON candidate_test_results (user_id, taken_at DESC);
 
-CREATE TABLE IF NOT EXISTS fraud_cases (
-    id UUID PRIMARY KEY,
-    candidate_id UUID NOT NULL REFERENCES users (id),
-    triggered_by_user_id UUID REFERENCES users (id),
-    source VARCHAR(30) NOT NULL,
-    risk_level VARCHAR(20) NOT NULL,
-    fraud_score INTEGER,
-    score_confidence DOUBLE PRECISION,
-    recommendation VARCHAR(40),
-    explanation TEXT,
-    flags_json JSONB,
-    review_status VARCHAR(30) NOT NULL DEFAULT 'OPEN',
-    reviewed_by_user_id UUID REFERENCES users (id),
-    reviewed_at TIMESTAMPTZ,
-    review_note TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ
-);
 
-CREATE INDEX IF NOT EXISTS idx_fraud_cases_candidate_created ON fraud_cases (candidate_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_fraud_cases_risk_created ON fraud_cases (risk_level, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_fraud_cases_review_status ON fraud_cases (review_status);
-CREATE INDEX IF NOT EXISTS idx_fraud_cases_source_created ON fraud_cases (source, created_at DESC);
-
-ALTER TABLE IF EXISTS fraud_cases
-    ALTER COLUMN flags_json TYPE JSONB
-    USING CASE
-        WHEN flags_json IS NULL OR TRIM(flags_json::text) = '' THEN '{"flags": []}'::jsonb
-        ELSE flags_json::jsonb
-    END;
 
 CREATE TABLE IF NOT EXISTS job_matches (
     id UUID PRIMARY KEY,
@@ -252,23 +215,7 @@ CREATE INDEX IF NOT EXISTS idx_formations_user_id ON formations (user_id);
 CREATE INDEX IF NOT EXISTS idx_formations_prediction_id ON formations (prediction_id);
 CREATE INDEX IF NOT EXISTS idx_formations_statut ON formations (statut);
 
--- Tickets (Jira)
-CREATE TABLE IF NOT EXISTS tickets (
-    id UUID PRIMARY KEY,
-    formation_id UUID NOT NULL REFERENCES formations (id),
-    jira_key VARCHAR(50) UNIQUE,
-    titre VARCHAR(300) NOT NULL,
-    description TEXT,
-    statut VARCHAR(30) NOT NULL DEFAULT 'OUVERT',
-    priorite VARCHAR(20) DEFAULT 'MOYENNE',
-    assignee VARCHAR(200),
-    url_jira VARCHAR(500),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ
-);
 
-CREATE INDEX IF NOT EXISTS idx_tickets_formation_id ON tickets (formation_id);
-CREATE INDEX IF NOT EXISTS idx_tickets_jira_key ON tickets (jira_key);
 
 -- PCM and Personality Tests
 CREATE TABLE IF NOT EXISTS pcm_results (

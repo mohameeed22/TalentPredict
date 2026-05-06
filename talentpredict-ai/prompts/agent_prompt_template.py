@@ -142,7 +142,7 @@ PROFILE CONSISTENCY SCORE
 CV ↔ LinkedIn alignment   : [Score /10]
 GitHub ↔ CV alignment     : [Score /10]
 Overall coherence         : [Score /10]
-Signal clarity            : [How easy it is for a recruiter to understand this profile]
+Signal clarity            : [How easy it is for a reviewer to understand this profile]
 
 ─────────────────────────────────────────
 IDENTIFIED GAPS

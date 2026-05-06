@@ -25,13 +25,11 @@ export class LoginComponent implements OnInit {
   loginForm: FormGroup = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
-    twoFactorCode: ['']
+
   });
 
   loading = false;
-  socialLoading = false;
-  showPassword = false;
-  requiresTwoFactor = false;
+
 
   ngOnInit(): void {
     // If already authenticated, redirect to appropriate dashboard
@@ -53,18 +51,13 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    if (this.requiresTwoFactor && this.loginForm.get('twoFactorCode')?.invalid) {
-      this.notificationService.warning('Veuillez renseigner le code de vérification à 6 chiffres.');
-      this.loginForm.get('twoFactorCode')?.markAsTouched();
-      return;
-    }
+
 
     if (this.loginForm.valid) {
       this.loading = true;
       this.authService.login(this.loginForm.value).subscribe({
         next: (response) => {
-          this.requiresTwoFactor = false;
-          this.disableTwoFactorField();
+
           this.notificationService.success('Connexion réussie !');
           // TASK 1: Role-based redirect using backend's redirectUrl
           const redirectUrl = response.redirectUrl || this.authService.getRedirectUrl();
@@ -75,12 +68,7 @@ export class LoginComponent implements OnInit {
           const message = error.error?.message || error.error?.error || '';
           const normalizedMessage = String(message).toLowerCase();
 
-          if (error.status === 428 || normalizedMessage.includes('2fa') || normalizedMessage.includes('verification code')) {
-            this.requiresTwoFactor = true;
-            this.enableTwoFactorField();
-            this.notificationService.info(message || 'Un code de sécurité a été envoyé à votre adresse e-mail.');
-            return;
-          }
+
 
           if (error.status === 403 && normalizedMessage.includes('verify your email')) {
             this.notificationService.warning('Veuillez vérifier votre e-mail avant de vous connecter.');
@@ -109,55 +97,5 @@ export class LoginComponent implements OnInit {
     }
   }
 
-  private enableTwoFactorField(): void {
-    const control = this.loginForm.get('twoFactorCode');
-    if (!control) return;
-
-    control.setValidators([Validators.required, Validators.pattern(/^\d{6}$/)]);
-    control.updateValueAndValidity();
-  }
-
-  private disableTwoFactorField(): void {
-    const control = this.loginForm.get('twoFactorCode');
-    if (!control) return;
-
-    control.clearValidators();
-    control.setValue('');
-    control.updateValueAndValidity();
-  }
-
-  startGoogle(): void {
-    this.socialLoading = true;
-    if (!environment.googleClientId) {
-      this.notificationService.error('ID client Google manquant.');
-      this.socialLoading = false;
-      return;
-    }
-    const redirectUri = this.authService.getOAuthRedirectUri('google');
-    const params = new URLSearchParams({
-      client_id: environment.googleClientId,
-      redirect_uri: redirectUri,
-      response_type: 'code',
-      scope: 'openid profile email',
-      access_type: 'online',
-      prompt: 'consent'
-    });
-    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-  }
-
-  startGithub(): void {
-    this.socialLoading = true;
-    if (!environment.githubClientId) {
-      this.notificationService.error('ID client GitHub manquant.');
-      this.socialLoading = false;
-      return;
-    }
-    const redirectUri = this.authService.getOAuthRedirectUri('github');
-    const params = new URLSearchParams({
-      client_id: environment.githubClientId,
-      redirect_uri: redirectUri,
-      scope: 'read:user user:email'
-    });
-    window.location.href = `https://github.com/login/oauth/authorize?${params.toString()}`;
-  }
+  showPassword = false;
 }

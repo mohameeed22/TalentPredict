@@ -37,6 +37,16 @@ public class UserServiceImpl implements IUserService {
     }
 
     @Override
+    public List<UserDto.LeaderboardResponse> getLeaderboard() {
+        return userRepository.findTop10ByOrderByXpDesc().stream().map(u -> UserDto.LeaderboardResponse.builder()
+                .id(u.getId())
+                .username(u.getUsername())
+                .xp(u.getXp() != null ? u.getXp() : 0)
+                .level(u.getLevel() != null ? u.getLevel() : 1)
+                .build()).toList();
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public User getUserById(UUID targetUserId, User currentUser) {
         if (currentUser == null) {
@@ -89,25 +99,13 @@ public class UserServiceImpl implements IUserService {
         entityManager.createQuery("DELETE FROM AuditLog al WHERE al.user.id = :userId")
                 .setParameter("userId", targetUserId).executeUpdate();
 
-        entityManager.createQuery("DELETE FROM TwoFactorCode tfc WHERE tfc.user.id = :userId")
-                .setParameter("userId", targetUserId).executeUpdate();
+
 
         entityManager.createQuery("DELETE FROM UserPrivacySetting ups WHERE ups.userId = :userId")
                 .setParameter("userId", targetUserId).executeUpdate();
         
         // Profiles usually have a one-to-one with user
         entityManager.createQuery("DELETE FROM Profile p WHERE p.user.id = :userId")
-                .setParameter("userId", targetUserId).executeUpdate();
-
-        // Manual cleanup for FraudCase where the user might be a trigger or reviewer
-        entityManager.createQuery("UPDATE FraudCase fc SET fc.triggeredByUser = null WHERE fc.triggeredByUser.id = :userId")
-                .setParameter("userId", targetUserId).executeUpdate();
-                
-        entityManager.createQuery("UPDATE FraudCase fc SET fc.reviewedByUser = null WHERE fc.reviewedByUser.id = :userId")
-                .setParameter("userId", targetUserId).executeUpdate();
-        
-        // Candidate cases in fraud
-        entityManager.createQuery("DELETE FROM FraudCase fc WHERE fc.candidate.id = :userId")
                 .setParameter("userId", targetUserId).executeUpdate();
 
         userRepository.delete(userToDelete);

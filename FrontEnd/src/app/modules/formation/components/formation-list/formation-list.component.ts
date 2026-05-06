@@ -15,8 +15,6 @@ import {
   LearningPlanRequest
 } from '../../../career/services/career.service';
 import { catchError, map, of, forkJoin } from 'rxjs';
-import { BiometricsService } from '../../../skill-test/services/biometrics.service';
-import { ProctoringService } from '../../../skill-test/services/proctoring.service';
 import { TestApiService } from '../../../skill-test/services/test-api.service';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -75,10 +73,8 @@ export class FormationListComponent implements OnInit, OnDestroy {
   private skillsService = inject(SkillsService);
   private softSkillsService = inject(SoftSkillsService);
   private careerService = inject(CareerService);
-  private biometrics = inject(BiometricsService);
-  private proctoring = inject(ProctoringService);
   private testApi = inject(TestApiService);
-  private currentUserId = '';
+  currentUserId = '';
 
   readonly kanbanColumns: KanbanColumn[] = [
     { status: StatutFormation.PROPOSEE, title: 'Proposées' },
@@ -106,9 +102,10 @@ export class FormationListComponent implements OnInit, OnDestroy {
   miniQuizSubmitting = signal<Record<string, boolean>>({});
   miniQuizMessage = signal<string | null>(null);
   miniQuizError = signal<string | null>(null);
-  miniQuizFraudVerdicts = signal<Record<string, Record<string, any>>>({});
+  miniQuizResult = signal<{ score: number; correct: number; total: number; passed: boolean } | null>(null);
 
   currentUserGamification = signal<{ xp: number; level: number } | null>(null);
+  gamificationLoading = signal(false);
 
   certificateUploadStatus = signal<Record<string, boolean>>({});
 
@@ -119,6 +116,7 @@ export class FormationListComponent implements OnInit, OnDestroy {
   courseActionLoadingKey = signal<string | null>(null);
   courseActionError = signal<string | null>(null);
   courseActionSuccess = signal<string | null>(null);
+  toastMessage = signal<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   private softWeakSkillSet = new Set<string>();
 
   // ── Tabs (Sidebar) ──────────────────────────────────────────────────
@@ -135,21 +133,21 @@ export class FormationListComponent implements OnInit, OnDestroy {
   timezone = 'UTC';
 
   readonly StatutFormation = StatutFormation;
-  private readonly miniQuizPassingScore = 70;
+  readonly miniQuizPassingScore = 70;
+
+  // Computed: how many roadmap phases have been completed (based on TERMINEE formations)
+  currentRoadmapPhase = computed(() => {
+    return this.formations().filter(f => f.statut === StatutFormation.TERMINEE).length;
+  });
   
-  // Mock data for new features
-  leaderboard = signal<LeaderboardEntry[]>([
-    { userId: '1', username: 'Alex M.', xp: 4500, level: 12, rank: 1 },
-    { userId: '2', username: 'Sarah J.', xp: 4200, level: 11, rank: 2 },
-    { userId: 'me', username: 'Vous', xp: 3800, level: 10, rank: 3 },
-    { userId: '3', username: 'David K.', xp: 3100, level: 8, rank: 4 }
-  ]);
+  // Leaderboard data now fetched from backend
+  leaderboard = signal<{ userId: string; username: string; xp: number; level: number; rank: number }[]>([]);
 
   dailyChallenge = signal<{title: string, desc: string, xp: number, completed: boolean}>({
     title: 'Focus sur l\'Architecture',
     desc: 'Terminez 1 module de conception de microservices aujourd\'hui.',
     xp: 50,
-    completed: false
+    completed: sessionStorage.getItem('daily_challenge_done') === new Date().toDateString()
   });
 
   private readonly miniQuizTemplates: Record<'tech' | 'soft' | 'certification', QuizTemplateQuestion[]> = {
@@ -181,11 +179,16 @@ export class FormationListComponent implements OnInit, OnDestroy {
       
       this.initializeDefaults();
       this.loadFormations();
+      this.loadLeaderboard();
 
       this.authService.fetchMyProfile().subscribe({
         next: (profile) => {
           if (profile.xp != null && profile.level != null) {
             this.currentUserGamification.set({ xp: profile.xp, level: profile.level });
+            // Sync real XP into leaderboard 'me' row
+            this.leaderboard.update(lb =>
+              lb.map(e => e.userId === this.currentUserId ? { ...e, xp: profile.xp ?? 0, level: profile.level ?? 0 } : e)
+            );
           }
         },
         error: () => {}
@@ -196,17 +199,27 @@ export class FormationListComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this._stopFraudMonitoring();
   }
 
-  private _startFraudMonitoring(): void {
-    this.biometrics.start();
-    void this.proctoring.start();
-  }
-
-  private _stopFraudMonitoring(): void {
-    this.biometrics.stop();
-    this.proctoring.stop();
+  private loadLeaderboard(): void {
+    this.gamificationLoading.set(true);
+    this.authService.getLeaderboard().subscribe({
+      next: (data) => {
+        const mapped = data.map((d, i) => ({
+          userId: d.id,
+          username: d.username,
+          xp: d.xp,
+          level: d.level,
+          rank: i + 1
+        }));
+        this.leaderboard.set(mapped);
+        this.gamificationLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Leaderboard error', err);
+        this.gamificationLoading.set(false);
+      }
+    });
   }
 
   loadFormations(): void {
@@ -267,9 +280,14 @@ export class FormationListComponent implements OnInit, OnDestroy {
 
   completeDailyChallenge() {
     this.dailyChallenge.update(c => ({...c, completed: true}));
+    sessionStorage.setItem('daily_challenge_done', new Date().toDateString());
     if (this.currentUserGamification()) {
       this.currentUserGamification.update(g => g ? {...g, xp: g.xp + 50} : null);
     }
+    // Sync 'me' row in leaderboard with real XP
+    const realXp = this.currentUserGamification()?.xp ?? 0;
+    this.leaderboard.update(lb => lb.map(e => e.userId === this.currentUserId ? {...e, xp: realXp} : e));
+    this.showToast('🎯 Défi quotidien accompli ! +50 XP', 'success');
   }
 
   // ── Filters & Computed ──────────────────────────────────────────────
@@ -347,11 +365,13 @@ export class FormationListComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: () => {
         this.courseActionSuccess.set(`Le cours "${course.title}" a été ajouté.`);
+        this.showToast(`✅ "${course.title}" ajouté à votre plan !`, 'success');
         this.loadFormations();
       },
       error: (err) => {
         console.error("Erreur ajout cours:", err);
         this.courseActionError.set('Erreur lors de l\'ajout du cours.');
+        this.showToast('❌ Erreur lors de l\'ajout du cours.', 'error');
       },
       complete: () => this.courseActionLoadingKey.set(null)
     });
@@ -497,17 +517,16 @@ export class FormationListComponent implements OnInit, OnDestroy {
   openMiniQuiz(formation: FormationResponse): void {
     if (this.isMiniQuizEligible(formation)) {
       this.activeQuizFormation.set(formation);
-      this._startFraudMonitoring();
       const qCount = this.miniQuizQuestions(formation).length;
       this.miniQuizAnswers.set({ [formation.id]: Array(qCount).fill(-1) });
       this.miniQuizMessage.set(null);
       this.miniQuizError.set(null);
+      this.miniQuizResult.set(null);
     }
   }
 
   closeMiniQuiz(): void {
     this.activeQuizFormation.set(null);
-    this._stopFraudMonitoring();
   }
 
   miniQuizQuestions(formation: FormationResponse): MiniQuizQuestion[] {
@@ -542,29 +561,37 @@ export class FormationListComponent implements OnInit, OnDestroy {
     const questions = this.miniQuizQuestions(formation);
     const correct = questions.reduce((acc, q, i) => acc + (answers[i] === q.correctIndex ? 1 : 0), 0);
     const score = Math.round((correct / questions.length) * 100);
-
-    const bio = this.biometrics.snapshot();
-    const proc = this.proctoring.snapshot();
-    this._stopFraudMonitoring();
+    const passed = score >= this.miniQuizPassingScore;
 
     this.miniQuizSubmitting.set({ [formation.id]: true });
-    
+    this.miniQuizError.set(null);
+
     this.formationService.submitMiniTest(formation.id, { score, correctAnswers: correct, totalQuestions: questions.length, passingScore: 70 }).subscribe({
       next: (res) => {
         this.upsertUpdatedFormation(res);
-        this.testApi.checkFraud({ candidateId: this.currentUserId, testType: 'mini_quiz', fraudContext: { biometrics: { ...bio, proctoring: proc } } }).subscribe(f => {
-           this.miniQuizFraudVerdicts.update(v => ({ ...v, [formation.id]: f as any }));
-        });
-        
-        if (res.miniTestPassed) {
-          this.miniQuizMessage.set(`Test réussi avec ${score}% !`);
+        this.miniQuizResult.set({ score, correct, total: questions.length, passed });
+        if (passed) {
+          this.showToast(`🎉 Test réussi avec ${score}% !`, 'success');
+          if (this.currentUserGamification()) {
+            this.currentUserGamification.update(g => g ? { ...g, xp: g.xp + 100 } : null);
+          }
         } else {
-          this.miniQuizError.set(`Échec avec ${score}%. Revoyez le cours.`);
+          this.showToast(`❌ Échec : ${score}%. Réessayez !`, 'error');
         }
       },
-      error: () => this.miniQuizError.set('Erreur serveur.'),
+      error: () => {
+        this.miniQuizError.set('Erreur serveur.');
+        this.miniQuizResult.set(null);
+      },
       complete: () => this.miniQuizSubmitting.set({ [formation.id]: false })
     });
+  }
+
+  retryMiniQuiz(formation: FormationResponse): void {
+    this.miniQuizResult.set(null);
+    this.miniQuizError.set(null);
+    const qCount = this.miniQuizQuestions(formation).length;
+    this.miniQuizAnswers.set({ [formation.id]: Array(qCount).fill(-1) });
   }
 
   isMiniQuizSubmitting(id: string) { return !!this.miniQuizSubmitting()[id]; }
@@ -573,13 +600,11 @@ export class FormationListComponent implements OnInit, OnDestroy {
 
   validateCertificate(formation: FormationResponse): void {
     if (!formation.certificateUrl) return;
-
-    // Set status to PENDING VALIDATION instead of TERMINATED directly
     this.formationService.updateFormationStatus(formation.id, StatutFormation.EN_ATTENTE_VALIDATION).subscribe({
       next: (res) => {
         this.upsertUpdatedFormation(res);
         this.activeQuizFormation.set(null);
-        this.miniQuizMessage.set('Votre demande de validation a été soumise à l\'administration.');
+        this.showToast('📋 Certificat envoyé à l\'administration pour validation !', 'info');
       }
     });
   }
@@ -637,8 +662,20 @@ export class FormationListComponent implements OnInit, OnDestroy {
   // ── Internal Helpers ─────────────────────────────────────────────────
   
   weakSkillBadgeClass(name: string) { return this.resolveFormationType(name) === TypeFormation.SOFT_SKILL ? 'soft' : 'tech'; }
-  courseReadinessGain(s: string, c: any) { return 2; } // simplified
-  courseExpectedLevelAfter(s: string, c: any) { return 8; } // simplified
+
+  // Dynamically compute readiness gain based on course duration vs skill gap
+  courseReadinessGain(skill: string, course: any): number {
+    const plan = this.learningPlan();
+    const gap = plan?.skill_gap_analysis?.breakdown?.find(
+      (b: any) => b.skill?.toLowerCase() === skill?.toLowerCase()
+    );
+    if (!gap) return 2;
+    const deficit = Math.max(0, (gap.required_level || 10) - (gap.current_level || 0));
+    const hours = course.duration_hours || 1;
+    return Math.min(25, Math.round((deficit / 10) * 15 + Math.log(hours + 1) * 2));
+  }
+
+  courseExpectedLevelAfter(s: string, c: any) { return 8; }
   
   private applyActiveFilter() {
     this.filteredFormations.set(this.selectedFilter() === 'ALL' ? this.formations() : this.formations().filter(f => f.statut === this.selectedFilter()));
@@ -679,47 +716,21 @@ export class FormationListComponent implements OnInit, OnDestroy {
   }
 
   private normalizeLearningPlan(plan: CareerLearningPlanResponse): CareerLearningPlanResponse {
-    // Basic normalization so properties exist
     const raw = plan as any;
     const skillGap = raw.skill_gap_analysis || {};
     const roadmap = raw.roadmap || [];
     const formations = raw.formations || [];
-    
     return {
-      meta: { 
-        estimated_ready_date: raw.meta?.estimated_ready_date || raw.generated_at || new Date().toISOString() 
-      },
-      summary: { 
-        overall_readiness_pct: raw.summary?.overall_readiness_pct || 40, 
-        profile_evaluation: raw.summary?.profile_evaluation || 'Analyse IA en attente...' 
-      },
-      skill_gap_analysis: { 
-        breakdown: (skillGap.breakdown || skillGap.target_role_requirements || []).map((b:any) => ({ 
-          skill: b.skill, 
-          current_level: b.current_level||0, 
-          required_level: b.required_level||10 
-        })) 
-      },
-      roadmap: roadmap.map((r:any) => ({ 
-        phase: r.phase || 1, 
-        title: r.title || `Phase ${r.phase}`, 
-        duration_weeks: r.duration_weeks || r.duration || 2, 
-        focus_skills: r.focus_skills || r.focus || [],
-        goals: r.goals || []
-      })),
-      formations: formations.map((f:any) => ({ 
-        skill: f.skill, 
-        priority: f.priority, 
-        courses: (f.courses||[]).map((c:any) => ({ 
-          id: c.id || Math.random().toString(36).substr(2, 9), 
-          title: c.title, 
-          platform: c.platform, 
-          url: c.url, 
-          duration_hours: c.duration_hours || c.duration || 0, 
-          level: c.level || 'Beginner', 
-          reason: c.reason || 'Recommandé par IA'
-        })) 
-      }))
+      meta: { estimated_ready_date: raw.meta?.estimated_ready_date || raw.generated_at || new Date().toISOString() },
+      summary: { overall_readiness_pct: raw.summary?.overall_readiness_pct || 40, profile_evaluation: raw.summary?.profile_evaluation || 'Analyse IA en attente...' },
+      skill_gap_analysis: { breakdown: (skillGap.breakdown || skillGap.target_role_requirements || []).map((b:any) => ({ skill: b.skill, current_level: b.current_level||0, required_level: b.required_level||10 })) },
+      roadmap: roadmap.map((r:any) => ({ phase: r.phase || 1, title: r.title || `Phase ${r.phase}`, duration_weeks: r.duration_weeks || r.duration || 2, focus_skills: r.focus_skills || r.focus || [], goals: r.goals || [] })),
+      formations: formations.map((f:any) => ({ skill: f.skill, priority: f.priority, courses: (f.courses||[]).map((c:any) => ({ id: c.id || Math.random().toString(36).substr(2, 9), title: c.title, platform: c.platform, url: c.url, duration_hours: c.duration_hours || c.duration || 0, level: c.level || 'Beginner', reason: c.reason || 'Recommandé par IA' })) }))
     } as any;
+  }
+
+  private showToast(text: string, type: 'success' | 'error' | 'info'): void {
+    this.toastMessage.set({ text, type });
+    setTimeout(() => this.toastMessage.set(null), 3500);
   }
 }

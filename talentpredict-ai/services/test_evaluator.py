@@ -116,7 +116,7 @@ def evaluate_answers(
         "confidence_accuracy": int(round(confidence_accuracy)),
         "speed_score": int(round(speed_score)),
         "passed": passed,
-        "fraud_flags": [],
+
         "summary": "",
     }
 

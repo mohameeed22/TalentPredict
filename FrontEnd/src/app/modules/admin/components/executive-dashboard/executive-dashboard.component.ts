@@ -17,10 +17,7 @@ import {
   AdminOverviewResponse,
   DashboardService,
 } from '../../../dashboard/services/dashboard.service';
-import {
-  RecruiterApiService,
-  RecruiterCandidateRow
-} from '../../../recruiter/services/recruiter-api.service';
+
 import { FormationService } from '../../../formation/services/formation.service';
 import { FormationResponse, StatutFormation } from '../../../formation/models/formation.model';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
@@ -69,11 +66,11 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
   @ViewChild('mbtiChartRef') mbtiChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('trendChartRef') trendChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('deptChartRef') deptChartRef!: ElementRef<HTMLCanvasElement>;
-  @ViewChild('riskChartRef') riskChartRef!: ElementRef<HTMLCanvasElement>;
+
 
   private notificationService = inject(NotificationService);
   private dashboardService = inject(DashboardService);
-  private recruiterApiService = inject(RecruiterApiService);
+
   private formationService = inject(FormationService);
 
   private clockIntervalId?: ReturnType<typeof setInterval>;
@@ -82,7 +79,7 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
   private mbtiChart?: Chart;
   private trendChart?: Chart;
   private deptChart?: Chart;
-  private riskChart?: Chart;
+
   private chartsInitialized = false;
 
   loading = signal(false);
@@ -93,10 +90,10 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
   activeAnalyticsTab = signal<'skills' | 'mbti' | 'trend'>('skills');
 
   // Alert dismissals
-  riskCount = signal(0);
+
   testCoverage = signal(0);
   pendingFormationCount = signal(0);
-  dismissAlert = signal({ risk: false, coverage: false, formation: false });
+  dismissAlert = signal({ coverage: false, formation: false });
 
   // KPIs
   kpis = signal<KpiCard[]>([]);
@@ -108,15 +105,7 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
   // Raw employee list (used only for derived analytics)
   employeesList = signal<any[]>([]);
 
-  // Derived analytics signals
-  riskBreakdown = computed(() => {
-    const list = this.employeesList();
-    return {
-      high:   list.filter(e => e.fraudRisk === 'high').length,
-      medium: list.filter(e => e.fraudRisk === 'medium').length,
-      low:    list.filter(e => !e.fraudRisk || e.fraudRisk === 'low').length
-    };
-  });
+
 
   topDepartment = computed(() => {
     const depts = this.departmentStats();
@@ -130,12 +119,7 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
     return dist.reduce((best, d) => d.count > best.count ? d : best, dist[0]).type;
   });
 
-  riskRate = computed(() => {
-    const total = this.employeesList().length;
-    if (!total) return 0;
-    const at = this.riskBreakdown().high + this.riskBreakdown().medium;
-    return Math.round((at / total) * 100);
-  });
+
 
   pendingFormationsList = signal<FormationResponse[]>([]);
 
@@ -188,7 +172,7 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
     this.notificationService.success('Relance envoyée aux employés sans test.');
   }
 
-  dismiss(type: 'risk' | 'coverage' | 'formation'): void {
+  dismiss(type: 'coverage' | 'formation'): void {
     this.dismissAlert.update(v => ({ ...v, [type]: true }));
   }
 
@@ -221,13 +205,12 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
 
     forkJoin({
       overview: this.dashboardService.getAdminOverview(),
-      candidates: this.recruiterApiService.listCandidates().pipe(catchError(() => of([] as RecruiterCandidateRow[]))),
       formations: this.formationService.getAllFormations().pipe(catchError(() => of([] as FormationResponse[])))
     })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: ({ overview, candidates, formations }) => {
-          this.processDashboardData(overview, candidates, formations);
+        next: ({ overview, formations }) => {
+          this.processDashboardData(overview, formations);
           this.currentTime.set(new Date());
           if (showToast) this.notificationService.success('Dashboard synchronisé avec succès.');
           // Give Angular time to render, then init charts
@@ -242,18 +225,16 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
 
   private processDashboardData(
     overview: AdminOverviewResponse,
-    candidates: RecruiterCandidateRow[],
     formations: FormationResponse[]
   ): void {
     const employees = overview.employees || [];
     const total = employees.length || 1;
 
     const enhancedEmployees = employees.map(emp => {
-      const cRow = candidates.find(c => c.userId === emp.id);
       return {
         ...emp,
-        fraudRisk: cRow?.fraudRisk?.toLowerCase() || 'low',
-        realScore: cRow?.realScore || 0,
+
+        realScore: 0,
         fullName: `${emp.firstName} ${emp.lastName}`.trim() || emp.email
       };
     });
@@ -263,7 +244,7 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
     const activeProfiles = enhancedEmployees.filter(e => e.active).length;
     const assessedProfiles = enhancedEmployees.filter(e => e.testCount > 0).length;
     const readyProfiles = enhancedEmployees.filter(e => e.active && e.testCount > 0 && e.formationCount > 0).length;
-    const riskProfiles = enhancedEmployees.filter(e => e.fraudRisk === 'high' || e.fraudRisk === 'medium').length;
+
 
     let totalScore = 0, scoredCount = 0;
     enhancedEmployees.forEach(e => {
@@ -275,7 +256,7 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
     const activeF = formations.filter(f => f.statut === StatutFormation.EN_COURS);
 
     this.pendingFormationsList.set(pendingF);
-    this.riskCount.set(riskProfiles);
+
     this.testCoverage.set(Math.round((assessedProfiles / total) * 100));
     this.pendingFormationCount.set(pendingF.length);
 
@@ -286,7 +267,7 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
       { label: 'Formations en attente', value: pendingF.length, subLabel: 'À approuver', trend: 'neutral', trendValue: '-', icon: 'clock', color: pendingF.length > 0 ? 'red' : 'green' },
       { label: 'Formations actives', value: activeF.length, subLabel: 'En cours', trend: 'up', trendValue: '+5', icon: 'play', color: 'orange' },
       { label: 'Profils complets', value: readyProfiles, subLabel: 'Testés + Formés', trend: 'up', trendValue: '+10', icon: 'award', color: 'teal' },
-      { label: 'Profils à risque', value: riskProfiles, subLabel: 'Fraude / Warning', trend: 'down', trendValue: '-2', icon: 'alert', color: riskProfiles > 0 ? 'red' : 'blue' }
+
     ]);
 
     // MBTI
@@ -329,7 +310,7 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
     this.renderMbtiChart();
     this.renderTrendChart();
     this.renderDeptChart();
-    this.renderRiskChart();
+
   }
 
   private renderActiveChart(): void {
@@ -489,42 +470,18 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
     });
   }
 
-  private renderRiskChart(): void {
-    const canvas = this.riskChartRef?.nativeElement;
-    if (!canvas) return;
-    if (this.riskChart) this.riskChart.destroy();
-    const rb = this.riskBreakdown();
-    this.riskChart = new Chart(canvas, {
-      type: 'doughnut',
-      data: {
-        labels: ['Élevé', 'Moyen', 'Faible'],
-        datasets: [{
-          data: [rb.high, rb.medium, rb.low],
-          backgroundColor: ['#ef4444', '#f59e0b', '#10b981'],
-          borderWidth: 3,
-          borderColor: '#fff',
-          hoverOffset: 8
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '68%',
-        plugins: { legend: { display: false } }
-      }
-    });
-  }
+
 
   private destroyCharts(): void {
     this.skillsChart?.destroy();
     this.mbtiChart?.destroy();
     this.trendChart?.destroy();
     this.deptChart?.destroy();
-    this.riskChart?.destroy();
+
     this.skillsChart = undefined;
     this.mbtiChart = undefined;
     this.trendChart = undefined;
     this.deptChart = undefined;
-    this.riskChart = undefined;
+
   }
 }

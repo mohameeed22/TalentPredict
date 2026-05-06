@@ -128,6 +128,7 @@ public class PredictionService {
         return convertToResponse(saved);
     }
 
+    @Transactional(readOnly = true)
     public List<PredictionDto.Response> getPredictionsByUser(UUID userId) {
         return predictionRepository.findByUserIdOrderByDatePredictionDesc(userId)
                 .stream()
@@ -135,6 +136,7 @@ public class PredictionService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public PredictionDto.Response getDernierePrediction(UUID userId) {
         return predictionRepository.findFirstByUserIdOrderByDatePredictionDesc(userId)
                 .map(this::convertToResponse)

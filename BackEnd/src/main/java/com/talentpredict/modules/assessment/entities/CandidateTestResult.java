@@ -37,9 +37,6 @@ public class CandidateTestResult {
     @Column(name = "skill_scores", columnDefinition = "TEXT")
     private String skillScoresJson;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "fraud_flags", columnDefinition = "jsonb")
-    private FraudFlags fraudFlags;
 
     @CreationTimestamp
     @Column(name = "taken_at", nullable = false, updatable = false)

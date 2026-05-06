@@ -99,65 +99,7 @@
       }
     </div>
 
-    <!-- 2FA -->
-    <div class="status-card" [class.ok]="dashboard.twoFactorEnabled" [class.warn]="!dashboard.twoFactorEnabled">
-      <div class="status-card-header">
-        <span class="status-icon">{{ dashboard.twoFactorEnabled ? '🔐' : '🔓' }}</span>
-        <h3>Authentification à deux facteurs</h3>
-        <span class="badge" [class]="getStatusBadgeClass(dashboard.twoFactorEnabled)">
-          {{ dashboard.twoFactorEnabled ? 'Activée' : 'Désactivée' }}
-        </span>
-      </div>
-      <p>
-        {{ dashboard.twoFactorEnabled
-          ? 'La 2FA est activée — votre compte est mieux protégé.'
-          : 'Activez la 2FA pour une couche de sécurité supplémentaire.' }}
-      </p>
 
-      @if (!twoFactorStep) {
-      <!-- Step 1: Choose method and request code -->
-      <div class="tfa-method-row">
-        <label class="method-label">Méthode :</label>
-        <select class="method-select" [(ngModel)]="twoFactorMethod">
-          <option value="2FA_EMAIL">📧 Email</option>
-          <option value="2FA_SMS">📱 SMS</option>
-          <option value="2FA_APP">🔑 App (Google Authenticator / Authy)</option>
-        </select>
-      </div>
-      <button
-        type="button"
-        class="btn-primary"
-        (click)="requestTwoFactorCode(dashboard.twoFactorEnabled ? 'DISABLE' : 'ENABLE')"
-        [disabled]="processing">
-        {{ dashboard.twoFactorEnabled ? '📤 Recevoir un code de désactivation' : '📤 Recevoir un code d\'activation' }}
-      </button>
-      }
-
-      @if (twoFactorStep === 'enter-code') {
-      <!-- Step 2: Enter code -->
-      <div class="tfa-step-box">
-        <p class="tfa-step-info">
-          📬 Un code à 6 chiffres a été envoyé via <strong>{{ twoFactorMethod === '2FA_EMAIL' ? 'email' : twoFactorMethod === '2FA_SMS' ? 'SMS' : 'votre application' }}</strong>.
-        </p>
-        <form class="inline-form" [formGroup]="twoFactorForm" (ngSubmit)="submitTwoFactorAction()">
-          <input
-            type="text"
-            formControlName="code"
-            placeholder="Code à 6 chiffres"
-            maxlength="6"
-            autocomplete="one-time-code"
-            [class.invalid]="twoFactorForm.get('code')?.invalid && twoFactorForm.get('code')?.touched"
-          />
-          <div class="inline-form-actions">
-            <button type="button" class="btn-ghost" (click)="cancelTwoFactor()">Annuler</button>
-            <button type="submit" class="btn-primary" [disabled]="processing || twoFactorForm.invalid">
-              {{ pendingTwoFactorAction === 'ENABLE' ? '✅ Activer 2FA' : '🔓 Désactiver 2FA' }}
-            </button>
-          </div>
-        </form>
-      </div>
-      }
-    </div>
 
   </div>
 
@@ -346,15 +288,7 @@
         </label>
       </div>
 
-      <div class="toggle-item">
-        <div class="toggle-info">
-          <span class="toggle-label">Changement du statut 2FA</span>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" formControlName="notifTwoFactorChange" />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
+
 
       <div class="toggle-item">
         <div class="toggle-info">

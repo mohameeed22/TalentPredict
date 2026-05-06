@@ -39,24 +39,7 @@
 
   <!-- ═══════════════════ ALERT BANNERS ═══════════════════ -->
   <div class="alerts-zone">
-    @if (riskCount() > 10 && !dismissAlert().risk) {
-      <div class="alert-strip alert-danger" role="alert">
-        <div class="alert-icon-wrap danger">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-        </div>
-        <div class="alert-body">
-          <strong>DANGER</strong> — {{ riskCount() }} profils à risque détectés dans la base.
-        </div>
-        <button class="alert-close" (click)="dismiss('risk')" aria-label="Fermer">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
-      </div>
-    }
+
     @if (testCoverage() < 20 && !dismissAlert().coverage) {
       <div class="alert-strip alert-warning" role="alert">
         <div class="alert-icon-wrap warning">
@@ -380,34 +363,7 @@
 
     <!-- Risk Distribution + Formation Summary -->
     <div class="side-panels">
-      <!-- Risk Breakdown -->
-      <div class="panel risk-panel">
-        <div class="panel-header">
-          <h2 class="panel-title">Distribution des Risques</h2>
-        </div>
-        <div class="risk-body">
-          <div class="risk-donut-wrap">
-            <canvas #riskChartRef id="riskChart"></canvas>
-          </div>
-          <div class="risk-legend">
-            <div class="risk-legend-row">
-              <span class="risk-dot dot-high"></span>
-              <span class="risk-legend-label">Risque élevé</span>
-              <span class="risk-legend-val">{{ riskBreakdown().high }}</span>
-            </div>
-            <div class="risk-legend-row">
-              <span class="risk-dot dot-medium"></span>
-              <span class="risk-legend-label">Risque moyen</span>
-              <span class="risk-legend-val">{{ riskBreakdown().medium }}</span>
-            </div>
-            <div class="risk-legend-row">
-              <span class="risk-dot dot-low"></span>
-              <span class="risk-legend-label">Risque faible</span>
-              <span class="risk-legend-val">{{ riskBreakdown().low }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+
 
       <!-- Key Insights -->
       <div class="panel insights-panel">
@@ -450,19 +406,7 @@
               <span class="insight-val">{{ testCoverage() }}%</span>
             </div>
           </div>
-          <div class="insight-row">
-            <div class="insight-icon insight-orange">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-                <line x1="12" y1="9" x2="12" y2="13"/>
-                <line x1="12" y1="17" x2="12.01" y2="17"/>
-              </svg>
-            </div>
-            <div class="insight-text">
-              <span class="insight-label">Taux de risque fraude</span>
-              <span class="insight-val">{{ riskRate() }}%</span>
-            </div>
-          </div>
+
           <div class="insight-row">
             <div class="insight-icon insight-teal">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

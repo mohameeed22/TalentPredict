@@ -61,6 +61,21 @@ export class NotificationCenterApiService {
     return this.http.delete<void>(`${this.baseUrl}/${notificationId}`);
   }
 
+  /**
+   * Admin → send a direct in-app notification to a specific user.
+   * The message is persisted in the DB and SSE-pushed in real time.
+   */
+  sendDirect(payload: {
+    targetUserId: string;
+    title: string;
+    body: string;
+    type?: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR';
+    targetUrl?: string;
+    emailAlert?: boolean;
+  }): Observable<ServerNotificationResponse> {
+    return this.http.post<ServerNotificationResponse>(`${this.baseUrl}/admin/direct`, payload);
+  }
+
   clearAll(): Observable<{ message: string }> {
     return this.http.delete<{ message: string }>(`${this.baseUrl}/clear`);
   }

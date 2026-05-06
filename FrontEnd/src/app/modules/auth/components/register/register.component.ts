@@ -36,8 +36,13 @@ export class RegisterComponent {
   });
 
   loading = false;
-  socialLoading = false;
+
   showPassword = false;
+
+  hasUpperCase(): boolean { return /[A-Z]/.test(this.registerForm.get('password')?.value || ''); }
+  hasLowerCase(): boolean { return /[a-z]/.test(this.registerForm.get('password')?.value || ''); }
+  hasDigit(): boolean { return /\d/.test(this.registerForm.get('password')?.value || ''); }
+  hasSpecial(): boolean { return /[^A-Za-z0-9]/.test(this.registerForm.get('password')?.value || ''); }
 
   onSubmit(): void {
     if (this.registerForm.valid) {
@@ -74,38 +79,5 @@ export class RegisterComponent {
     }
   }
 
-  startGoogle(): void {
-    this.socialLoading = true;
-    if (!environment.googleClientId) {
-      this.notificationService.error('ID client Google manquant.');
-      this.socialLoading = false;
-      return;
-    }
-    const redirectUri = this.authService.getOAuthRedirectUri('google');
-    const params = new URLSearchParams({
-      client_id: environment.googleClientId,
-      redirect_uri: redirectUri,
-      response_type: 'code',
-      scope: 'openid profile email',
-      access_type: 'online',
-      prompt: 'consent'
-    });
-    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
-  }
 
-  startGithub(): void {
-    this.socialLoading = true;
-    if (!environment.githubClientId) {
-      this.notificationService.error('ID client GitHub manquant.');
-      this.socialLoading = false;
-      return;
-    }
-    const redirectUri = this.authService.getOAuthRedirectUri('github');
-    const params = new URLSearchParams({
-      client_id: environment.githubClientId,
-      redirect_uri: redirectUri,
-      scope: 'read:user user:email'
-    });
-    window.location.href = `https://github.com/login/oauth/authorize?${params.toString()}`;
-  }
 }

@@ -22,7 +22,7 @@ export interface RadarSlice {
         }
     
         <!-- Axis Lines -->
-        @for (axis of axes; track axis; let i = $index) {
+        @for (axis of axes; track axis.label; let i = $index) {
           <line
             [attr.x1]="center" [attr.y1]="center"
             [attr.x2]="getAxisX(i)" [attr.y2]="getAxisY(i)"
@@ -32,12 +32,12 @@ export interface RadarSlice {
     
         <!-- Data Polygon -->
         <polygon [attr.points]="dataPoints" class="data-area" />
-        @for (p of dataDots; track p) {
+        @for (p of dataDots; track $index) {
           <circle [attr.cx]="p.x" [attr.cy]="p.y" r="4" class="data-dot" />
         }
     
         <!-- Labels -->
-        @for (axis of axes; track axis; let i = $index) {
+        @for (axis of axes; track axis.label; let i = $index) {
           <text
             [attr.x]="getLabelX(i)"
             [attr.y]="getLabelY(i)"

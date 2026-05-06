@@ -71,7 +71,7 @@ app.include_router(analyze_router)
 app.include_router(test_router)
 app.include_router(analysis_router)
 app.include_router(career_router)
-#every router become an endpoint in the backend, for example: /api/analyze, /api/test, /api/analysis, /api/jobs, /api/career, /api/recruiter
+#every router become an endpoint in the backend, for example: /api/analyze, /api/test, /api/analysis, /api/jobs, /api/career
 
 
 

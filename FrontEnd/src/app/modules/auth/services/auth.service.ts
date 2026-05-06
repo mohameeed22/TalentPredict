@@ -60,27 +60,7 @@ export class AuthService {
     );
   }
 
-  /** Social login: exchanges OAuth code for backend JWT */
-  loginWithGoogle(code: string, redirectUri?: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.baseUrl}/oauth/google`, {
-      code,
-      redirectUri: redirectUri || this.getOAuthRedirectUri('google')
-    }).pipe(tap(res => this.setSession(res)));
-  }
 
-  loginWithGithub(code: string, redirectUri?: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.baseUrl}/oauth/github`, {
-      code,
-      redirectUri: redirectUri || this.getOAuthRedirectUri('github')
-    }).pipe(tap(res => this.setSession(res)));
-  }
-
-  getOAuthRedirectUri(provider: 'google' | 'github'): string {
-    if (typeof window !== 'undefined' && window.location?.origin) {
-      return `${window.location.origin}/auth/callback/${provider}`;
-    }
-    return `${environment.oauthRedirectBase}/auth/callback/${provider}`;
-  }
 
   /**
    * TASK 1: Register — sends role in payload, redirectUrl returned by backend.
@@ -184,6 +164,10 @@ export class AuthService {
         this.userProfileSubject.next(profile);
       })
     );
+  }
+
+  getLeaderboard(): Observable<{ id: string, username: string, xp: number, level: number }[]> {
+    return this.http.get<any[]>(`${this.usersUrl}/leaderboard`);
   }
 
   /**
@@ -326,7 +310,7 @@ export class AuthService {
       email: authResponse.email,
       role: authResponse.role as Role,
       emailVerified: authResponse.emailVerified,
-      twoFactorEnabled: authResponse.twoFactorEnabled,
+
       dateInscription: new Date()
     };
     localStorage.setItem('user', JSON.stringify(user));

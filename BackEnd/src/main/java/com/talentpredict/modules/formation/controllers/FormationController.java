@@ -1,6 +1,7 @@
 package com.talentpredict.modules.formation.controllers;
 
 import java.util.UUID;
+import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,7 @@ public class FormationController {
     private final FormationService formationService;
     
     @PostMapping("/utilisateur/{userId}")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("#userId == principal.user.id or hasRole('ADMIN')")
     public ResponseEntity<FormationDto.FormationResponse> createFormation(
             @PathVariable UUID userId,
             @RequestBody FormationDto.FormationRequest request) {
@@ -40,29 +41,28 @@ public class FormationController {
     }
 
     @GetMapping("/utilisateur/{userId}")
-
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    public ResponseEntity<java.util.List<FormationDto.FormationResponse>> getFormationsByUser(@PathVariable UUID userId) {
-        java.util.List<FormationDto.FormationResponse> formations = formationService.getFormationsByUser(userId);
+    @PreAuthorize("#userId == principal.user.id or hasRole('ADMIN')")
+    public ResponseEntity<List<FormationDto.FormationResponse>> getFormationsByUser(@PathVariable UUID userId) {
+        List<FormationDto.FormationResponse> formations = formationService.getFormationsByUser(userId);
         return ResponseEntity.ok(formations);
     }
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<java.util.List<FormationDto.FormationResponse>> getAllFormations() {
-        java.util.List<FormationDto.FormationResponse> formations = formationService.getAllFormations();
+    public ResponseEntity<List<FormationDto.FormationResponse>> getAllFormations() {
+        List<FormationDto.FormationResponse> formations = formationService.getAllFormations();
         return ResponseEntity.ok(formations);
     }
     
-    @GetMapping("/{formationId}")
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    public ResponseEntity<FormationDto.FormationResponse> getFormationById(@PathVariable UUID formationId) {
-        FormationDto.FormationResponse formation = formationService.getFormationById(formationId);
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @formationService.getFormationById(#id).userId == principal.user.id")
+    public ResponseEntity<FormationDto.FormationResponse> getFormationById(@PathVariable UUID id) {
+        FormationDto.FormationResponse formation = formationService.getFormationById(id);
         return ResponseEntity.ok(formation);
     }
     
     @PutMapping("/{formationId}/statut")
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or @formationService.getFormationById(#formationId).userId == principal.user.id")
     public ResponseEntity<FormationDto.FormationResponse> updateStatut(
             @PathVariable UUID formationId,
             @RequestParam Formation.StatutFormation statut) {
@@ -71,7 +71,7 @@ public class FormationController {
     }
     
     @PutMapping("/{formationId}/progression")
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or @formationService.getFormationById(#formationId).userId == principal.user.id")
     public ResponseEntity<FormationDto.FormationResponse> updateProgression(
             @PathVariable UUID formationId,
             @RequestParam Integer progression) {
@@ -94,7 +94,7 @@ public class FormationController {
     }
 
     @PutMapping("/{formationId}/mini-test")
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or @formationService.getFormationById(#formationId).userId == principal.user.id")
     public ResponseEntity<FormationDto.FormationResponse> submitMiniTest(
             @PathVariable UUID formationId,
             @RequestBody FormationDto.MiniTestSubmissionRequest request) {
@@ -103,7 +103,7 @@ public class FormationController {
     }
 
     @PostMapping("/{formationId}/certificate")
-    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or @formationService.getFormationById(#formationId).userId == principal.user.id")
     public ResponseEntity<FormationDto.FormationResponse> uploadCertificate(
             @PathVariable UUID formationId,
             @RequestParam("file") MultipartFile file) {

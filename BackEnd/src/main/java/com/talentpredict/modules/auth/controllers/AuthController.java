@@ -67,7 +67,6 @@ public class AuthController {
                 user.getFirstName(),
                 redirectUrl);
         responseDto.setEmailVerified(Boolean.TRUE.equals(user.getEmailVerified()));
-        responseDto.setTwoFactorEnabled(Boolean.TRUE.equals(user.getTwoFactorEnabled()));
 
         log.info("Registered: {} role={} → {}", user.getEmail(), user.getRole(), redirectUrl);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
@@ -102,14 +101,7 @@ public class AuthController {
                     "Please verify your email before logging in. Use the verification link sent to your inbox."));
         }
 
-        try {
-            authServiceImpl.ensureTwoFactorForLogin(user, request.getTwoFactorCode());
-        } catch (IllegalArgumentException ex) {
-            HttpStatus status = ex.getMessage() != null && ex.getMessage().toLowerCase().contains("sent")
-                ? HttpStatus.PRECONDITION_REQUIRED
-                : HttpStatus.BAD_REQUEST;
-            return ResponseEntity.status(status).body(new AuthDto.MessageResponse(ex.getMessage()));
-        }
+
 
         authServiceImpl.registerSuccessfulLogin(request.getEmail());
         String accessToken = jwtService.generateAccessToken(user.getEmail());
@@ -131,7 +123,6 @@ public class AuthController {
                 user.getFirstName(),
                 redirectUrl);
         responseDto.setEmailVerified(Boolean.TRUE.equals(user.getEmailVerified()));
-        responseDto.setTwoFactorEnabled(Boolean.TRUE.equals(user.getTwoFactorEnabled()));
 
         log.info("Login: {} role={} → {}", user.getEmail(), user.getRole(), redirectUrl);
         auditLogService.logLogin(

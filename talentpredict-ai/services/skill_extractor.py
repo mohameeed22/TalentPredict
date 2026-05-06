@@ -498,7 +498,7 @@ _ALIASES: dict[str, str] = {
 
     # Design & Product
     "figma": "Figma",
-    "jira": "Jira",
+
     "confluence": "Confluence",
     "notion": "Notion",
     "linear": "Linear",

@@ -23,17 +23,12 @@ export interface LoginEventInfo {
 
 export interface SecurityDashboardResponse {
   emailVerified: boolean;
-  twoFactorEnabled: boolean;
-  twoFactorMethod: string;
+
   activeSessions: SecuritySessionInfo[];
   loginHistory: LoginEventInfo[];
 }
 
-export interface TwoFactorStateResponse {
-  enabled: boolean;
-  method: string;
-  message: string;
-}
+
 
 export interface PrivacySettingsResponse {
   marketingEmailsConsent: boolean;
@@ -90,17 +85,7 @@ export class SecurityPrivacyService {
     return this.http.get<LoginEventInfo[]>(`${this.securityBaseUrl}/login-history`);
   }
 
-  sendTwoFactorCode(purpose: 'ENABLE' | 'DISABLE'): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.securityBaseUrl}/2fa/send-code`, { purpose });
-  }
 
-  enableTwoFactor(code: string): Observable<TwoFactorStateResponse> {
-    return this.http.post<TwoFactorStateResponse>(`${this.securityBaseUrl}/2fa/enable`, { code });
-  }
-
-  disableTwoFactor(code: string): Observable<TwoFactorStateResponse> {
-    return this.http.post<TwoFactorStateResponse>(`${this.securityBaseUrl}/2fa/disable`, { code });
-  }
 
   getPrivacySettings(): Observable<PrivacySettingsResponse> {
     return this.http.get<PrivacySettingsResponse>(`${this.privacyBaseUrl}/settings`);

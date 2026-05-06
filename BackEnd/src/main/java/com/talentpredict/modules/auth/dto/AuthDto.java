@@ -28,7 +28,7 @@ public class AuthDto {
         /** Role-based redirect URL returned to frontend */
         private String redirectUrl;
         private Boolean emailVerified;
-        private Boolean twoFactorEnabled;
+
 
         public Response(String token, UUID id, String email, String role,
                 String nom, String prenom, String redirectUrl) {
@@ -40,7 +40,7 @@ public class AuthDto {
             this.prenom = prenom;
             this.redirectUrl = redirectUrl;
             this.emailVerified = false;
-            this.twoFactorEnabled = false;
+
         }
     }
 
@@ -87,8 +87,7 @@ public class AuthDto {
         @Size(min = 8, message = "Password must be at least 8 characters")
         private String password;
 
-        @Pattern(regexp = "^$|^[0-9]{6}$", message = "2FA code must contain 6 digits")
-        private String twoFactorCode;
+
     }
 
     @Data
@@ -153,14 +152,7 @@ public class AuthDto {
         private String type = "Bearer";
     }
 
-    @Data
-    public static class SocialLoginRequest {
-        @NotBlank(message = "Authorization code is required")
-        private String code;
 
-        @NotBlank(message = "Redirect URI is required")
-        private String redirectUri;
-    }
 
     public enum DeliveryChannel {
         EMAIL,

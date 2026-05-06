@@ -17,7 +17,6 @@ export const routes: Routes = [
       { path: 'forgot-password', loadComponent: () => import('./modules/auth/components/forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent) },
       { path: 'reset-password', loadComponent: () => import('./modules/auth/components/reset-password/reset-password.component').then(m => m.ResetPasswordComponent) },
       { path: 'verify-email', loadComponent: () => import('./modules/auth/components/verify-email/verify-email.component').then(m => m.VerifyEmailComponent) },
-      { path: 'callback/:provider', loadComponent: () => import('./modules/auth/components/oauth-callback/oauth-callback.component').then(m => m.OauthCallbackComponent) }
     ]
   },
   { path: 'dashboard', canActivate: [authGuard], loadComponent: () => import('./modules/dashboard/components/user-dashboard/user-dashboard.component').then(m => m.UserDashboardComponent) },
@@ -115,37 +114,7 @@ export const routes: Routes = [
       }
     ]
   },
-  {
-    path: 'recruiter',
-    canActivate: [authGuard, roleGuard(['ADMIN'])],
-    loadComponent: () =>
-      import('./modules/recruiter/components/recruiter-shell/recruiter-shell.component').then(
-        m => m.RecruiterShellComponent
-      ),
-    children: [
-      {
-        path: '',
-        pathMatch: 'full',
-        redirectTo: 'candidates'
-      },
-      {
-        path: 'candidates',
-        loadComponent: () =>
-          import(
-            './modules/recruiter/components/recruiter-candidate-list/recruiter-candidate-list.component'
-          ).then(m => m.RecruiterCandidateListComponent)
-      },
-      {
-        path: 'fraud',
-        loadComponent: () =>
-          import(
-            './modules/recruiter/components/recruiter-fraud-alerts/recruiter-fraud-alerts.component'
-          ).then(m => m.RecruiterFraudAlertsComponent)
-      }
-    ]
-  },
   { path: 'formations', canActivate: [authGuard], loadComponent: () => import('./modules/formation/components/formation-list/formation-list.component').then(m => m.FormationListComponent) },
-  { path: 'jira', canActivate: [authGuard, roleGuard(['ADMIN'])], loadComponent: () => import('./modules/jira/components/jira-tickets/jira-tickets.component').then(m => m.JiraTicketsComponent) },
   {
     path: 'skill-test',
     canActivate: [authGuard],

@@ -31,7 +31,7 @@ export interface ProctoringSnapshot {
   multipleFacesCount: number;
   voiceActivityCount: number;
   events: ProctoringEvent[];
-  auditFrames: string[];              // base64 JPEG thumbnails for recruiter audit
+  auditFrames: string[];              // base64 JPEG thumbnails for audit
   sessionDurationSeconds: number;
 }
 
@@ -232,7 +232,7 @@ export class ProctoringService {
     return { hasFace, faceCount: Math.max(faceCount, estimatedFaces) };
   }
 
-  /** Saves a 80×60 JPEG frame as base64 for recruiter audit trail. */
+  /** Saves a 80×60 JPEG frame as base64 for reviewer audit trail. */
   private _saveAuditFrame(): void {
     if (!this._canvas || !this._video) return;
     try {

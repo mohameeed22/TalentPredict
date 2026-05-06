@@ -47,6 +47,12 @@ public class SkillService {
         Skill saved = skillRepository.save(skill);
         return convertToResponse(saved);
     }
+
+    public SkillDto.Response getSkillById(UUID skillId) {
+        Skill skill = skillRepository.findById(skillId)
+            .orElseThrow(() -> new ResourceNotFoundException("Skill non trouvé avec l'ID: " + skillId));
+        return convertToResponse(skill);
+    }
     
     public List<SkillDto.Response> getSkillsByUser(UUID userId) {
         return skillRepository.findByUserId(userId)
@@ -129,6 +135,9 @@ public class SkillService {
     private SkillDto.Response convertToResponse(Skill skill) {
         SkillDto.Response response = new SkillDto.Response();
         response.setId(skill.getId());
+        if (skill.getUser() != null) {
+            response.setUserId(skill.getUser().getId());
+        }
         response.setNom(skill.getNom());
         response.setType(skill.getType());
         response.setNiveau(skill.getNiveau());

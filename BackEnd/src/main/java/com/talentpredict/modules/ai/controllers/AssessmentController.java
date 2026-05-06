@@ -59,25 +59,9 @@ public class AssessmentController {
             @RequestBody ScenarioEvaluateRequestDto request) {
         log.info("POST /api/assessment/scenario/evaluate");
         Map<String, Object> result = proxyService.evaluateScenarioResponse(
-                request.getScenario(), request.getResponse(), request.getFraudContext());
+                request.getScenario(), request.getResponse());
         return ResponseEntity.ok(result);
     }
 
-    // ── Standalone Fraud Check ──────────────────────────────────────────────
 
-    @PostMapping("/fraud/check")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ResponseEntity<Map<String, Object>> checkFraud(
-            @RequestBody Map<String, Object> request) {
-        log.info("POST /api/assessment/fraud/check");
-        String candidateId = request.get("candidateId") != null
-                ? request.get("candidateId").toString() : "";
-        String testType = request.get("testType") != null
-                ? request.get("testType").toString() : "mini_quiz";
-        @SuppressWarnings("unchecked")
-        Map<String, Object> fraudContext = request.get("fraudContext") instanceof Map
-                ? (Map<String, Object>) request.get("fraudContext") : null;
-        Map<String, Object> result = proxyService.checkFraud(candidateId, testType, fraudContext);
-        return ResponseEntity.ok(result);
-    }
 }

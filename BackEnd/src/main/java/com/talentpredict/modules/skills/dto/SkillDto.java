@@ -34,6 +34,7 @@ public class SkillDto {
     @Data
     public static class Response {
         private UUID id;
+        private UUID userId;
         private String nom;
         private Skill.TypeSkill type;
         private Integer niveau;

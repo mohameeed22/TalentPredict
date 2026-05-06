@@ -61,10 +61,7 @@ public class TestController {
                 .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
                         org.springframework.http.HttpStatus.BAD_REQUEST, "candidate not found"));
         assessmentPersistenceService.persistMcqEvaluation(candidate, result);
-        if (isRecruiter(actor)) {
-            return ResponseEntity.ok(result);
-        }
-        return ResponseEntity.ok(assessmentPersistenceService.stripFraudForCandidate(result));
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/code-challenge/generate")

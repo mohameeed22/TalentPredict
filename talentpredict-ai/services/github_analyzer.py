@@ -34,7 +34,7 @@ async def _fetch_github_repos(username: str) -> list[dict[str, Any]]:
     async with httpx.AsyncClient(timeout=15.0, headers=_auth_headers()) as client:
         response = await client.get(url, params=params)
         if response.status_code == 404:
-            raise ValueError(f"GitHub user '{username}' not found.")
+            raise ValueError(f"Utilisateur GitHub '{username}' introuvable.")
         response.raise_for_status()
         return response.json()
 
@@ -78,7 +78,7 @@ async def analyze_github_profile(username: str, claimed_skills: list[str]) -> di
         return {
             "status": "error",
             "username": username,
-            "message": f"Could not reach GitHub API: {e}",
+            "message": f"Impossible de joindre l'API GitHub : {e}",
         }
 
     repo_summary = _summarize_repos(raw_repos)
@@ -87,7 +87,7 @@ async def analyze_github_profile(username: str, claimed_skills: list[str]) -> di
         return {
             "status": "error",
             "username": username,
-            "message": f"No original public repositories found for '{username}'.",
+            "message": f"Aucun dépôt public original trouvé pour '{username}'.",
         }
 
     import json

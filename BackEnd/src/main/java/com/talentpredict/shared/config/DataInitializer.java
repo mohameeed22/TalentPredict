@@ -31,8 +31,7 @@ public class DataInitializer implements ApplicationRunner {
             admin.setIsActive(true);
             admin.setEmailVerified(true);
             admin.setEmailVerifiedAt(Instant.now());
-            admin.setTwoFactorEnabled(false);
-            admin.setTwoFactorMethod("NONE");
+
             userRepository.save(admin);
             log.info("=======================================================");
             log.info("  Default admin account created:");

@@ -22,5 +22,5 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID> {
 
     Optional<Profile> findByPublicSlug(String publicSlug);
 
-    List<Profile> findByFraudRiskIn(List<String> risks);
+
 }

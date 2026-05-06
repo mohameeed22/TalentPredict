@@ -78,6 +78,7 @@ async def call_ollama(
     - Ollama native: POST /api/generate
     - OpenAI-compatible: POST /v1/chat/completions
     """
+    prompt = f"{prompt}\n\nIMPORTANT: All generated text content MUST be in French."
     m = model or OLLAMA_MODEL
     temp = OLLAMA_TEMPERATURE if temperature is None else temperature
     generate_url = f"{OLLAMA_BASE_URL}/api/generate"

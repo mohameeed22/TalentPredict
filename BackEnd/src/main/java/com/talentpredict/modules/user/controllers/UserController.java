@@ -47,6 +47,17 @@ public class UserController {
     }
 
     /**
+     * GET /api/users/leaderboard — List top 10 users by XP.
+     * Accessible by USER and ADMIN.
+     */
+    @GetMapping("/leaderboard")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ResponseEntity<List<UserDto.LeaderboardResponse>> getLeaderboard() {
+        log.info("Request for gamification leaderboard");
+        return ResponseEntity.ok(accountService.getLeaderboard());
+    }
+
+    /**
      * POST /api/users — Create a new user (Admin only).
      * BUG FIX: this endpoint was missing despite SecurityConfig referencing it.
      */

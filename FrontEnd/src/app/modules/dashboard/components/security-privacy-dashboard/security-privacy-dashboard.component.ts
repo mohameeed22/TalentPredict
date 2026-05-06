@@ -18,8 +18,7 @@ const EVENT_LABELS: Record<string, string> = {
   LOGIN_FAILED: 'Tentative de connexion échouée',
   LOGOUT: 'Déconnexion',
   PASSWORD_CHANGED: 'Mot de passe modifié',
-  TWO_FACTOR_ENABLED: 'Authentification 2FA activée',
-  TWO_FACTOR_DISABLED: 'Authentification 2FA désactivée',
+
   EMAIL_VERIFIED: 'Email vérifié',
   ALL_SESSIONS_REVOKED: 'Toutes les sessions révoquées',
   SESSION_REVOKED: 'Session révoquée',
@@ -46,10 +45,7 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
   loading = true;
   processing = false;
 
-  // 2FA step: null | 'request' | 'enter-code' | 'done'
-  twoFactorStep: null | 'enter-code' = null;
-  pendingTwoFactorAction: 'ENABLE' | 'DISABLE' | null = null;
-  twoFactorMethod: '2FA_EMAIL' | '2FA_SMS' | '2FA_APP' = '2FA_EMAIL';
+
 
   // Password change
   showPasswordChange = false;
@@ -82,14 +78,12 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
     // Notification preferences
     notifNewLogin: true,
     notifPasswordChange: true,
-    notifTwoFactorChange: true,
+
     notifExportRequest: false,
     notifAdminView: false,
   });
 
-  twoFactorForm = this.fb.nonNullable.group({
-    code: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]]
-  });
+
 
   passwordForm = this.fb.nonNullable.group({
     currentPassword: ['', Validators.required],
@@ -136,60 +130,7 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
     });
   }
 
-  // ========== 2FA ==========
 
-  requestTwoFactorCode(action: 'ENABLE' | 'DISABLE'): void {
-    this.processing = true;
-    this.service.sendTwoFactorCode(action).subscribe({
-      next: (response) => {
-        this.pendingTwoFactorAction = action;
-        this.twoFactorStep = 'enter-code';
-        this.twoFactorForm.reset();
-        this.notificationService.info(response.message || 'Code de vérification envoyé.');
-      },
-      error: (error) => {
-        this.notificationService.error(error.error?.message || 'Impossible d\'envoyer le code de vérification.');
-      },
-      complete: () => {
-        this.processing = false;
-      }
-    });
-  }
-
-  cancelTwoFactor(): void {
-    this.twoFactorStep = null;
-    this.pendingTwoFactorAction = null;
-    this.twoFactorForm.reset();
-  }
-
-  submitTwoFactorAction(): void {
-    if (!this.pendingTwoFactorAction || this.twoFactorForm.invalid) {
-      this.twoFactorForm.markAllAsTouched();
-      return;
-    }
-
-    const code = this.twoFactorForm.get('code')?.value || '';
-    const request$ = this.pendingTwoFactorAction === 'ENABLE'
-      ? this.service.enableTwoFactor(code)
-      : this.service.disableTwoFactor(code);
-
-    this.processing = true;
-    request$.subscribe({
-      next: (response) => {
-        this.notificationService.success(response.message || 'Paramètre 2FA mis à jour.');
-        this.twoFactorStep = null;
-        this.pendingTwoFactorAction = null;
-        this.twoFactorForm.reset();
-        this.reloadDashboard();
-      },
-      error: (error) => {
-        this.notificationService.error(error.error?.message || 'Code invalide ou expiré.');
-      },
-      complete: () => {
-        this.processing = false;
-      }
-    });
-  }
 
   // ========== Password ==========
 
@@ -426,7 +367,7 @@ export class SecurityPrivacyDashboardComponent implements OnInit {
   ): void {
     const items: { label: string; done: boolean; action?: string }[] = [
       { label: 'Email vérifié', done: !!dashboard?.emailVerified, action: 'Vérifier' },
-      { label: 'Authentification 2FA activée', done: !!dashboard?.twoFactorEnabled, action: 'Activer' },
+
       { label: 'Mot de passe fort (8+ caractères)', done: true }, // Assumed if logged in
       { label: 'Profil visible aux recruteurs configuré', done: privacy?.profileVisibilityConsent !== undefined },
       { label: 'Consentement RGPD accepté', done: !!privacy?.dataProcessingConsent, action: 'Configurer' },

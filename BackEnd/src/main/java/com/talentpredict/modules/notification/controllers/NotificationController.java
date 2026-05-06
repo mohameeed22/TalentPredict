@@ -72,12 +72,7 @@ public class NotificationController {
         return ResponseEntity.ok(notificationCenterService.createStatusChangeEvent(principal.getUser(), request));
     }
 
-    @PostMapping("/events/interview-scheduled")
-    public ResponseEntity<NotificationDto.Response> createInterviewScheduledEvent(
-            @org.springframework.security.core.annotation.AuthenticationPrincipal UserDetailsImpl principal,
-            @Valid @RequestBody NotificationDto.InterviewScheduledEventRequest request) {
-        return ResponseEntity.ok(notificationCenterService.createInterviewScheduledEvent(principal.getUser(), request));
-    }
+
 
     @PostMapping("/events/new-match")
     public ResponseEntity<NotificationDto.Response> createNewMatchEvent(
@@ -98,6 +93,19 @@ public class NotificationController {
             @org.springframework.security.core.annotation.AuthenticationPrincipal UserDetailsImpl principal) {
         int updated = notificationCenterService.markAllRead(principal.getUser());
         return ResponseEntity.ok(new NotificationDto.MessageResponse("Marked " + updated + " notifications as read."));
+    }
+
+    /**
+     * Admin → send a direct in-app notification to any user.
+     * The message lands instantly in the target user's notification center
+     * (SSE push if they are online, and persisted for when they are offline).
+     */
+    @PostMapping("/admin/direct")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<NotificationDto.Response> sendDirectMessage(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal UserDetailsImpl principal,
+            @Valid @RequestBody NotificationDto.DirectMessageRequest request) {
+        return ResponseEntity.ok(notificationCenterService.sendDirectMessage(principal.getUser(), request));
     }
 
     @DeleteMapping("/{notificationId}")

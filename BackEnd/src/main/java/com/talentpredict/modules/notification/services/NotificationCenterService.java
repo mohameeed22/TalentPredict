@@ -85,27 +85,7 @@ public class NotificationCenterService {
         return toResponse(created);
     }
 
-    @Transactional
-    public NotificationDto.Response createInterviewScheduledEvent(
-            User actor,
-            NotificationDto.InterviewScheduledEventRequest request) {
-        User target = resolveTargetUser(actor, request.getTargetUserId());
-        String title = "Interview scheduled";
-        String body = "Your interview for " + request.getRole() + " is scheduled at " + request.getInterviewAt() + "."
-                + (StringUtils.hasText(request.getChannel()) ? " Channel: " + request.getChannel().trim() + "." : "")
-                + (StringUtils.hasText(request.getMeetingLink()) ? " Link: " + request.getMeetingLink().trim() : "");
 
-        UserNotification created = createNotification(
-                target,
-                UserNotification.NotificationType.SUCCESS,
-                UserNotification.NotificationCategory.INTERVIEW_SCHEDULED,
-                title,
-                body,
-                "/recruiter/candidates",
-                Boolean.TRUE.equals(request.getEmailAlert()));
-
-        return toResponse(created);
-    }
 
     @Transactional
     public NotificationDto.Response createNewMatchEvent(User actor, NotificationDto.NewMatchEventRequest request) {
@@ -122,6 +102,31 @@ public class NotificationCenterService {
                 title,
                 body,
                 "/dashboard",
+                Boolean.TRUE.equals(request.getEmailAlert()));
+
+        return toResponse(created);
+    }
+
+    /**
+     * Admin → send a direct in-app notification to any user.
+     * The notification is persisted and SSE-pushed immediately if the user is online.
+     */
+    @Transactional
+    public NotificationDto.Response sendDirectMessage(User admin, NotificationDto.DirectMessageRequest request) {
+        if (admin.getRole() != User.Role.ADMIN) {
+            throw new IllegalArgumentException("Only admins can send direct messages.");
+        }
+
+        User target = userRepository.findById(request.getTargetUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("Target user not found."));
+
+        UserNotification created = createNotification(
+                target,
+                parseType(request.getType()),
+                UserNotification.NotificationCategory.SYSTEM,
+                request.getTitle(),
+                request.getBody(),
+                request.getTargetUrl(),
                 Boolean.TRUE.equals(request.getEmailAlert()));
 
         return toResponse(created);

@@ -5,6 +5,7 @@ export interface Notification {
   type: 'success' | 'error' | 'info' | 'warning';
   message: string;
   duration?: number;
+  id?: string; // Link to app notification
 }
 
 export interface AppNotification {
@@ -33,24 +34,24 @@ export class NotificationService {
   private unreadCountSubject = new BehaviorSubject<number>(0);
   public unreadCount$: Observable<number> = this.unreadCountSubject.asObservable();
 
-  success(message: string, duration = 3000): void {
-    this.show({ type: 'success', message, duration });
-    this.addAppNotification('success', 'Succès', message);
+  success(message: string, duration = 3000, id?: string): void {
+    this.show({ type: 'success', message, duration, id });
+    if (!id) this.addAppNotification('success', 'Succès', message);
   }
 
-  error(message: string, duration = 5000): void {
-    this.show({ type: 'error', message, duration });
-    this.addAppNotification('error', 'Erreur', message);
+  error(message: string, duration = 5000, id?: string): void {
+    this.show({ type: 'error', message, duration, id });
+    if (!id) this.addAppNotification('error', 'Erreur', message);
   }
 
-  info(message: string, duration = 3000): void {
-    this.show({ type: 'info', message, duration });
-    this.addAppNotification('info', 'Information', message);
+  info(message: string, duration = 3000, id?: string): void {
+    this.show({ type: 'info', message, duration, id });
+    if (!id) this.addAppNotification('info', 'Information', message);
   }
 
-  warning(message: string, duration = 4000): void {
-    this.show({ type: 'warning', message, duration });
-    this.addAppNotification('warning', 'Attention', message);
+  warning(message: string, duration = 4000, id?: string): void {
+    this.show({ type: 'warning', message, duration, id });
+    if (!id) this.addAppNotification('warning', 'Attention', message);
   }
 
   private show(notification: Notification): void {
@@ -79,7 +80,10 @@ export class NotificationService {
   syncServerNotifications(serverNotifications: AppNotification[]): void {
     const localNotifications = this.appNotifSubject.value.filter(notification => notification.source === 'local');
 
+    // Simple grouping logic: if multiple notifications of same type/title/body arrive, 
+    // we could group them, but for now we just deduplicate by ID.
     const merged = [...serverNotifications, ...localNotifications]
+      .filter((v, i, a) => a.findIndex(t => t.id === v.id) === i)
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, 100);
 

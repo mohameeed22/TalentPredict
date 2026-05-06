@@ -5,12 +5,12 @@ Extracts text from PDF and Word documents for skill analysis
 
 import os
 import logging
+import io
+from pathlib import Path
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
-from pathlib import Path
 import PyPDF2
 from docx import Document
-import io
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -27,21 +27,57 @@ ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 
-def extract_pdf_text(file_bytes: bytes) -> str:
-    """Extract text from PDF file"""
+def extract_pdf_text(file_bytes: bytes, filename: str) -> str:
+    """Extract text from PDF file with robust error handling"""
     try:
-        pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_bytes))
+        if not file_bytes:
+            logger.error(f"Empty PDF file: {filename}")
+            raise HTTPException(
+                status_code=422,
+                detail={"error": "PDF is empty", "code": "PDF_EMPTY"}
+            )
+
+        stream = io.BytesIO(file_bytes)
+        try:
+            pdf_reader = PyPDF2.PdfReader(stream)
+        except Exception as e:
+            logger.error(f"Corrupted PDF file: {filename} - {str(e)}")
+            raise HTTPException(
+                status_code=422,
+                detail={"error": "PDF could not be read", "code": "PDF_CORRUPT"}
+            )
+
+        if pdf_reader.is_encrypted:
+            logger.error(f"Password protected PDF: {filename}")
+            raise HTTPException(
+                status_code=422,
+                detail={"error": "PDF is password protected", "code": "PDF_ENCRYPTED"}
+            )
+
         text = ""
         for page_num, page in enumerate(pdf_reader.pages):
             try:
-                text += f"\n--- Page {page_num + 1} ---\n"
-                text += page.extract_text()
+                page_text = page.extract_text()
+                if page_text:
+                    text += f"\n--- Page {page_num + 1} ---\n"
+                    text += page_text
             except Exception as e:
-                logger.warning(f"Failed to extract page {page_num + 1}: {str(e)}")
+                logger.warning(f"Failed to extract page {page_num + 1} from {filename}: {str(e)}")
                 continue
+        
+        if not text.strip():
+             logger.warning(f"No text extracted from PDF: {filename}")
+             # We don't throw here, the main block will handle empty string check
+
         return text
+    except HTTPException:
+        raise
     except Exception as e:
-        raise Exception(f"PDF extraction failed: {str(e)}")
+        logger.error(f"Unexpected PDF extraction error for {filename}: {str(e)}")
+        raise HTTPException(
+            status_code=422,
+            detail={"error": "PDF could not be read", "code": "PDF_CORRUPT"}
+        )
 
 
 def extract_docx_text(file_bytes: bytes) -> str:
@@ -110,7 +146,7 @@ async def extract_cv(file: UploadFile = File(...)) -> JSONResponse:
         logger.info(f"Extracting text from: {file.filename}")
         
         if file_ext == ".pdf":
-            extracted_text = extract_pdf_text(file_bytes)
+            extracted_text = extract_pdf_text(file_bytes, file.filename)
         elif file_ext in {".docx", ".doc"}:
             extracted_text = extract_docx_text(file_bytes)
         elif file_ext == ".txt":
@@ -121,9 +157,10 @@ async def extract_cv(file: UploadFile = File(...)) -> JSONResponse:
         # Clean and validate extracted text
         extracted_text = extracted_text.strip()
         if not extracted_text:
+            logger.error(f"Extraction resulted in empty text for: {file.filename}")
             raise HTTPException(
-                status_code=400,
-                detail="No text could be extracted from the file"
+                status_code=422,
+                detail={"error": "PDF is empty", "code": "PDF_EMPTY"}
             )
         
         logger.info(f"Successfully extracted {len(extracted_text)} characters")
@@ -140,10 +177,10 @@ async def extract_cv(file: UploadFile = File(...)) -> JSONResponse:
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error extracting CV: {str(e)}")
+        logger.error(f"Error extracting CV {file.filename}: {str(e)}")
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to extract text: {str(e)}"
+            status_code=422,
+            detail={"error": "PDF could not be read", "code": "PDF_CORRUPT"}
         )
 
 

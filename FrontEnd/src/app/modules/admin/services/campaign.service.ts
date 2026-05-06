@@ -31,7 +31,19 @@ export class CampaignService {
     return this.http.get<CampaignApi[]>(this.baseUrl);
   }
 
+  getById(id: string): Observable<CampaignApi> {
+    return this.http.get<CampaignApi>(`${this.baseUrl}/${id}`);
+  }
+
   saveCampaign(payload: CampaignUpsertRequest): Observable<CampaignApi> {
     return this.http.post<CampaignApi>(this.baseUrl, payload);
+  }
+
+  update(id: string, data: CampaignUpsertRequest): Observable<CampaignApi> {
+    return this.http.put<CampaignApi>(`${this.baseUrl}/${id}`, data);
+  }
+
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 }

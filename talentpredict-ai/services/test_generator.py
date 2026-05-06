@@ -170,42 +170,42 @@ def _fallback_questions(skills: list[str], level: str, target_count: int | None 
     # Pool of generic question templates to avoid "question replay"
     templates = [
         {
-            "q": "In {skill}, which practice is most effective to reduce production bugs while keeping code maintainable?",
+            "q": "En {skill}, quelle pratique est la plus efficace pour réduire les bugs en production tout en gardant le code maintenable ?",
             "options": {
-                "A": "Skip tests to move faster and rely on manual checks after release.",
-                "B": "Write large files with mixed concerns to centralize logic.",
-                "C": "Use clear interfaces, focused tests, and enforce input validation.",
-                "D": "Duplicate working code in multiple places to avoid refactoring.",
+                "A": "Ignorer les tests pour aller plus vite et s'appuyer sur des vérifications manuelles après la sortie.",
+                "B": "Écrire de gros fichiers mélangeant les responsabilités pour centraliser la logique.",
+                "C": "Utiliser des interfaces claires, des tests ciblés et imposer la validation des entrées.",
+                "D": "Dupliquer le code fonctionnel à plusieurs endroits pour éviter la refactorisation.",
             },
             "correct": "C"
         },
         {
-            "q": "When optimizing a {skill} application for performance, what is the most recommended first step?",
+            "q": "Lors de l'optimisation des performances d'une application {skill}, quelle est la première étape recommandée ?",
             "options": {
-                "A": "Rewrite the entire codebase in a lower-level language immediately.",
-                "B": "Profile the application to identify bottlenecks before making changes.",
-                "C": "Add more hardware resources without checking software efficiency.",
-                "D": "Disable all logging and monitoring to save CPU cycles.",
+                "A": "Réécrire immédiatement toute la base de code dans un langage de plus bas niveau.",
+                "B": "Profiler l'application pour identifier les goulots d'étranglement avant de faire des modifications.",
+                "C": "Ajouter plus de ressources matérielles sans vérifier l'efficacité du logiciel.",
+                "D": "Désactiver tous les journaux (logs) et la supervision pour économiser les cycles CPU.",
             },
             "correct": "B"
         },
         {
-            "q": "Regarding security in {skill}, which approach provides the most robust protection against common vulnerabilities?",
+            "q": "Concernant la sécurité en {skill}, quelle approche offre la protection la plus robuste contre les vulnérabilités courantes ?",
             "options": {
-                "A": "Trusting all user input by default to improve user experience.",
-                "B": "Storing sensitive credentials directly in the source code.",
-                "C": "Implementing a multi-layered security strategy with regular audits.",
-                "D": "Hiding the source code and assuming security through obscurity.",
+                "A": "Faire confiance par défaut à toutes les entrées utilisateur pour améliorer l'expérience.",
+                "B": "Stocker les identifiants sensibles directement dans le code source.",
+                "C": "Mettre en œuvre une stratégie de sécurité multicouche avec des audits réguliers.",
+                "D": "Cacher le code source et supposer que l'obscurité garantit la sécurité.",
             },
             "correct": "C"
         },
         {
-            "q": "What is a core benefit of using modular architecture in a {skill} project?",
+            "q": "Quel est l'un des principaux avantages de l'utilisation d'une architecture modulaire dans un projet {skill} ?",
             "options": {
-                "A": "It makes the codebase harder to understand for new developers.",
-                "B": "It allows for better separation of concerns and easier testing.",
-                "C": "It significantly increases the time required for any small change.",
-                "D": "It forces all developers to work on the same file simultaneously.",
+                "A": "Cela rend la base de code plus difficile à comprendre pour les nouveaux développeurs.",
+                "B": "Cela permet une meilleure séparation des responsabilités et facilite les tests.",
+                "C": "Cela augmente considérablement le temps nécessaire pour toute petite modification.",
+                "D": "Cela oblige tous les développeurs à travailler simultanément sur le même fichier.",
             },
             "correct": "B"
         }

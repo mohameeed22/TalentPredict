@@ -11,6 +11,7 @@ public interface IUserService {
     // read
     List<User> listUsers();
     User getUserById(UUID targetUserId, User currentUser);
+    List<UserDto.LeaderboardResponse> getLeaderboard();
 
 
     // write

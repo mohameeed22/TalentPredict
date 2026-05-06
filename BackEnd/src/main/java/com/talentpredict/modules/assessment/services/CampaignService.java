@@ -1,9 +1,12 @@
 package com.talentpredict.modules.assessment.services;
 
 import java.util.List;
+import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.talentpredict.modules.assessment.dto.CampaignDto;
 import com.talentpredict.modules.assessment.entities.Campaign;
@@ -24,6 +27,13 @@ public class CampaignService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public CampaignDto findById(UUID id) {
+        return campaignRepository.findById(id)
+                .map(this::toDto)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Campaign not found"));
+    }
+
     @Transactional
     public CampaignDto saveCampaign(CampaignDto request) {
         Campaign entity = request.id() != null
@@ -37,6 +47,24 @@ public class CampaignService {
         apply(entity, request);
         Campaign saved = campaignRepository.save(entity);
         return toDto(saved);
+    }
+
+    @Transactional
+    public CampaignDto update(UUID id, CampaignDto request) {
+        Campaign entity = campaignRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Campaign not found"));
+        
+        apply(entity, request);
+        Campaign saved = campaignRepository.save(entity);
+        return toDto(saved);
+    }
+
+    @Transactional
+    public void delete(UUID id) {
+        if (!campaignRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Campaign not found");
+        }
+        campaignRepository.deleteById(id);
     }
 
     private void apply(Campaign entity, CampaignDto request) {

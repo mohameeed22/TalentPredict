@@ -98,14 +98,6 @@ export class App implements OnInit, OnDestroy {
     return this.authService.isAdmin();
   }
 
-  canAccessRecruiter(): boolean {
-    return this.isAdmin();
-  }
-
-  isRecruiterSectionActive(): boolean {
-    return this.router.url.startsWith('/recruiter');
-  }
-
   isProfileSectionActive(): boolean {
     return this.router.url.startsWith('/profile') || this.router.url.startsWith('/security');
   }

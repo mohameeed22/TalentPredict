@@ -5,8 +5,7 @@ import { Router } from '@angular/router';
 import { take } from 'rxjs/operators';
 import { TestApiService } from '../../services/test-api.service';
 import { NotificationService } from '../../../../core/services/notification.service';
-import { BiometricsService } from '../../services/biometrics.service';
-import { ProctoringService } from '../../services/proctoring.service';
+
 import { SoftSkillsService } from '../../../evaluation/services/soft-skills.service';
 import { AuthService } from '../../../auth/services/auth.service';
 
@@ -29,17 +28,7 @@ interface ScenarioEvaluation {
   culture_add_profile: string;
 }
 
-interface FraudFlag {
-  type: string;
-  description: string;
-}
 
-interface FraudVerdict {
-  fraud_score: number;
-  fraud_risk: string;
-  explanation: string;
-  flags?: FraudFlag[];
-}
 
 @Component({
   selector: 'app-scenario-simulator',
@@ -53,8 +42,7 @@ export class ScenarioSimulatorComponent implements OnInit, OnDestroy {
   private notify   = inject(NotificationService);
   private router   = inject(Router);
   private cdr      = inject(ChangeDetectorRef);
-  private biometrics  = inject(BiometricsService);
-  private proctoring  = inject(ProctoringService);
+
   private authService = inject(AuthService);
   private softSkillsService = inject(SoftSkillsService);
 
@@ -82,13 +70,9 @@ export class ScenarioSimulatorComponent implements OnInit, OnDestroy {
   candidateResponse = '';
   submitting = false;
   evaluation: ScenarioEvaluation | null = null;
-  fraudVerdict: FraudVerdict | null = null;
 
-  // ── Proctoring / biometric status exposed to template ──────────
-  get proctoringActive(): boolean { return this.proctoring.isActive; }
-  get proctoringDenied(): boolean { return this.proctoring.isDenied; }
-  get tabSwitchCount(): number    { return this.biometrics.tabSwitchCount; }
-  get pasteWarning(): boolean     { return this.biometrics.suspiciousLargePaste; }
+
+
 
   // ── Character counter ──────────────────────────────────────────
   get responseLength(): number { return this.candidateResponse.length; }
@@ -126,7 +110,7 @@ export class ScenarioSimulatorComponent implements OnInit, OnDestroy {
     this.generatingScenario = true;
     this.scenario = null;
     this.evaluation = null;
-    this.fraudVerdict = null;
+
     this.candidateResponse = '';
     this.cdr.markForCheck();
 
@@ -139,14 +123,7 @@ export class ScenarioSimulatorComponent implements OnInit, OnDestroy {
         this.scenario = res as ScenarioData;
         this.cdr.markForCheck();
 
-        // Start fraud monitoring when the scenario becomes visible
-        this.biometrics.start();
-        void this.proctoring.start().then(granted => {
-          if (!granted) {
-            this.notify.warning('Caméra non disponible — suivi en mode biométrique uniquement.');
-          }
-          this.cdr.markForCheck();
-        });
+
       },
       error: (err: any) => {
         this.generatingScenario = false;
@@ -159,11 +136,7 @@ export class ScenarioSimulatorComponent implements OnInit, OnDestroy {
   submitResponse(): void {
     if (!this.scenario || this.responseTooShort || this.submitting) return;
 
-    // Capture fraud snapshots before stopping monitoring
-    const biometricSnapshot  = this.biometrics.snapshot();
-    const proctoringSnapshot = this.proctoring.snapshot();
-    this.biometrics.stop();
-    this.proctoring.stop();
+
 
     this.submitting = true;
     this.cdr.markForCheck();
@@ -171,14 +144,12 @@ export class ScenarioSimulatorComponent implements OnInit, OnDestroy {
     this.testApi.evaluateScenario({
       scenario: this.scenario.scenario_description,
       response: this.candidateResponse.trim(),
-      fraudContext: {
-        biometrics: { ...biometricSnapshot, proctoring: proctoringSnapshot }
-      }
+
     }).pipe(take(1)).subscribe({
       next: (res: any) => {
         this.submitting = false;
         this.evaluation = res as ScenarioEvaluation;
-        this.fraudVerdict = (res as any)?._fraud_verdict ?? null;
+
         // Save scenario result and navigate to soft results
         const existing = sessionStorage.getItem('softSkillsResult');
         const softData = existing ? JSON.parse(existing) : {};
@@ -208,38 +179,31 @@ export class ScenarioSimulatorComponent implements OnInit, OnDestroy {
   }
 
   reset(): void {
-    this._stopFraudMonitoring();
+
     this.scenario = null;
     this.evaluation = null;
-    this.fraudVerdict = null;
+
     this.candidateResponse = '';
     this.role = '';
   }
 
   newScenarioSameRole(): void {
-    this._stopFraudMonitoring();
+
     this.evaluation = null;
-    this.fraudVerdict = null;
+
     this.candidateResponse = '';
     this.generateScenario();
   }
 
   goBack(): void {
-    this._stopFraudMonitoring();
+
     void this.router.navigate(['/skill-test']);
   }
 
   goToSoftResults(): void {
-    this._stopFraudMonitoring();
+
     void this.router.navigate(['/evaluation/results']);
   }
 
-  ngOnDestroy(): void {
-    this._stopFraudMonitoring();
-  }
-
-  private _stopFraudMonitoring(): void {
-    this.biometrics.stop();
-    this.proctoring.stop();
-  }
+  ngOnDestroy(): void {}
 }

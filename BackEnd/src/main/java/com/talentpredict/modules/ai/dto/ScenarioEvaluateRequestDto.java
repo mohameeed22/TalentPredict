@@ -8,5 +8,4 @@ import lombok.Data;
 public class ScenarioEvaluateRequestDto {
     private String scenario;
     private String response;
-    private Map<String, Object> fraudContext;
 }
