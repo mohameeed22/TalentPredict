@@ -11,7 +11,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.beans.factory.annotation.Value;
@@ -150,7 +149,7 @@ public class CvAnalysisService {
     // ================================================================
 
     private String extraireTextePDF(InputStream inputStream) throws Exception {
-        try (PDDocument document = Loader.loadPDF(inputStream.readAllBytes())) {
+        try (PDDocument document = PDDocument.load(inputStream.readAllBytes())) {
             PDFTextStripper stripper = new PDFTextStripper();
             String texte = stripper.getText(document);
 

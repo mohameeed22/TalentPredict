@@ -52,52 +52,82 @@ _URL_HINTS_BY_PLATFORM: dict[str, list[str]] = {
 
 
 class CareerPredictionBody(BaseModel):
-    candidate_id: str
-    full_name: str = "Candidate"
-    skills: list[str] = Field(default_factory=list)
-    test_results: dict[str, Any] = Field(default_factory=dict)
-    target_role: str = ""
-    language: str = "en"
+    candidate_id: str | None = None
+    full_name: str | None = "Candidate"
+    skills: list[Any] | None = Field(default_factory=list)
+    test_results: list[Any] | None = Field(default_factory=list)
+    target_role: str | None = ""
+    language: str | None = "en"
+
 
 
 @router.post("/prediction")
 async def generate_career_prediction(body: CareerPredictionBody) -> dict[str, Any]:
     """Generate a rich AI career prediction and recommendations."""
     
+    # We ask for a structured response that the Java backend can parse via markers.
     prompt = f"""You are an elite career coach and talent analyst.
 Analyze the following candidate profile and provide a professional career prediction.
 Return the result as valid JSON ONLY.
 
 SCHEMA:
 {{
-  "analysis": "A detailed 2-3 paragraph analysis of the profile, strengths and career trajectory.",
+  "personality_type": "One word personality category (e.g. Analyseur, Empathique, etc.)",
+  "analysis_summary": "A detailed 2-3 paragraph analysis of the profile.",
+  "soft_skills_scores": {{
+     "Skill Name": 8.5,
+     "Another Skill": 7.0
+  }},
   "recommendations_soft": "3-4 specific soft skills to develop.",
   "recommendations_tech": "3-4 specific technical skills or tools to learn.",
   "confidence_score": 0.0 to 1.0
 }}
 
-CANDIDATE: {body.full_name} (ID: {body.candidate_id})
+CANDIDATE: {body.full_name or 'Candidate'} (ID: {body.candidate_id or 'unknown'})
 SKILLS: {body.skills}
 TEST RESULTS: {body.test_results}
 TARGET ROLE: {body.target_role or 'Strategic growth'}
-LANGUAGE: {body.language}
+LANGUAGE: {body.language or 'en'}
 """
 
     try:
         data = await call_ollama_json(prompt, temperature=0.5)
-        if isinstance(data, dict) and "analysis" in data:
+        if isinstance(data, dict):
+            # Format the 'analysis' field with markers so Java extractSection() works
+            p_type = data.get("personality_type", "Analyseur")
+            summary = data.get("analysis_summary", "Profil prometteur avec un fort potentiel.")
+            scores_map = data.get("soft_skills_scores", {})
+            
+            scores_text = ""
+            if isinstance(scores_map, dict):
+                for k, v in scores_map.items():
+                    scores_text += f"- {k}: {v}/10\n"
+
+            formatted_analysis = (
+                f"TYPE_PERSONNALITE:\n{p_type}\n\n"
+                f"ANALYSE:\n{summary}\n\n"
+                f"SCORES_SOFT_SKILLS:\n{scores_text}\n"
+            )
+
             return {
-                "analysis": str(data.get("analysis")),
-                "recommendations_soft": str(data.get("recommendations_soft", "Développer le leadership et l'autonomie.")),
+                "analysis": formatted_analysis,
+                "recommendations_soft": str(data.get("recommendations_soft", "Développer le leadership.")),
                 "recommendations_tech": str(data.get("recommendations_tech", "Se perfectionner sur les frameworks modernes.")),
                 "confidence_score": float(data.get("confidence_score", 0.85))
             }
     except Exception as e:
         logger.error(f"Career prediction failed: {e}")
 
-    # Fallback
+    # Fallback with markers for Java
+    fallback_scores = "- Leadership: 8/10\n- Adaptabilité: 7.5/10\n- Communication: 8/10\n"
+    fallback_analysis = (
+        "TYPE_PERSONNALITE:\nAnalyseur\n\n"
+        "ANALYSE:\nBasé sur votre profil, vous démontrez une excellente capacité d'analyse et une approche structurée des problèmes.\n\n"
+        f"SCORES_SOFT_SKILLS:\n{fallback_scores}\n"
+    )
+
     return {
-        "analysis": f"Basé sur vos {len(body.skills)} compétences et {len(body.test_results)} tests, votre profil est très prometteur. Vous démontrez une bonne capacité d'adaptation.",
+        "analysis": fallback_analysis,
         "recommendations_soft": "Leadership, Communication interculturelle, Gestion du stress.",
         "recommendations_tech": "Architectures Cloud, CI/CD, GraphQL.",
         "confidence_score": 0.65

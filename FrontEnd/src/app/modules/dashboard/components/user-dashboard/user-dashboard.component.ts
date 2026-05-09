@@ -216,6 +216,41 @@ export class UserDashboardComponent implements OnInit {
     return Math.round(v * 10) / 10;
   }
 
+  formatRecommendation(value?: string | null): string {
+    if (!value) return '';
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      const inner = trimmed.slice(1, -1).trim();
+      if (!inner) return '';
+      return inner
+        .split(',')
+        .map(part => part.trim().replace(/^['"]|['"]$/g, ''))
+        .filter(Boolean)
+        .join(', ');
+    }
+
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map(item => String(item).trim()).filter(Boolean).join(', ');
+        }
+        if (parsed && typeof parsed === 'object') {
+          return Object.values(parsed)
+            .map(item => String(item).trim())
+            .filter(Boolean)
+            .join(', ');
+        }
+      } catch {
+        return trimmed;
+      }
+    }
+
+    return trimmed;
+  }
+
   get scoreMoyen(): number {
     return this.formatPercent(this.dashboardData?.scoreEvaluationMoyen);
   }
@@ -282,8 +317,8 @@ export class UserDashboardComponent implements OnInit {
     const weakestSkill = this.radarBottom3[0];
 
     const recommendationFromAi =
-      this.dashboardData?.dernierePrediction?.recommandationSoft ||
-      this.dashboardData?.dernierePrediction?.recommandationTech;
+      this.formatRecommendation(this.dashboardData?.dernierePrediction?.recommandationSoft) ||
+      this.formatRecommendation(this.dashboardData?.dernierePrediction?.recommandationTech);
 
     return {
       skillChange: strongestProgress

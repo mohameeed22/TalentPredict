@@ -177,16 +177,36 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
+        <!-- PDFBox 2.x is required by openhtmltopdf 1.0.10 -->
+        <!-- PDFBox 3.x removed PDType1Font static constants causing NoSuchFieldError -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
-            <version>3.0.3</version>
+            <version>2.0.31</version>
         </dependency>
 
         <dependency>
             <groupId>com.openhtmltopdf</groupId>
             <artifactId>openhtmltopdf-pdfbox</artifactId>
             <version>1.0.10</version>
+            <exclusions>
+                <!-- Exclude any pdfbox pulled transitively to use our pinned 2.0.31 -->
+                <exclusion>
+                    <groupId>org.apache.pdfbox</groupId>
+                    <artifactId>pdfbox</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.pdfbox</groupId>
+                    <artifactId>fontbox</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- fontbox must also be 2.x to match pdfbox 2.0.31 -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>fontbox</artifactId>
+            <version>2.0.31</version>
         </dependency>
         <dependency>
             <groupId>io.github.cdimascio</groupId>

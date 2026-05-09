@@ -119,8 +119,8 @@ public class PredictionService {
                 .datePrediction(java.time.LocalDateTime.now())
                 .scoreConfiance(scoreConfiance)
                 .statut(Prediction.StatutPrediction.COMPLETEE)
-                .recommandationSoft(aiResponse.get("recommendations_soft") != null ? aiResponse.get("recommendations_soft").toString() : null)
-                .recommandationTech(aiResponse.get("recommendations_tech") != null ? aiResponse.get("recommendations_tech").toString() : null)
+            .recommandationSoft(normalizeRecommendation(aiResponse.get("recommendations_soft")))
+            .recommandationTech(normalizeRecommendation(aiResponse.get("recommendations_tech")))
                 .build();
 
         log.info("Saving prediction for user {} with confidence {}", userId, scoreConfiance);
@@ -175,5 +175,48 @@ public class PredictionService {
         response.setStatut(formation.getStatut());
         response.setProgression(formation.getProgression());
         return response;
+    }
+
+    private static String normalizeRecommendation(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof String s) {
+            return normalizeRecommendationString(s);
+        }
+        if (value instanceof List<?> list) {
+            return list.stream()
+                    .map(item -> item == null ? "" : item.toString().trim())
+                    .filter(item -> !item.isBlank())
+                    .collect(Collectors.joining(", "));
+        }
+        if (value instanceof Map<?, ?> map) {
+            return map.values().stream()
+                    .map(item -> item == null ? "" : item.toString().trim())
+                    .filter(item -> !item.isBlank())
+                    .collect(Collectors.joining(", "));
+        }
+        return value.toString();
+    }
+
+    private static String normalizeRecommendationString(String value) {
+        if (value == null) {
+            return "";
+        }
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+            return "";
+        }
+        if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+            String inner = trimmed.substring(1, trimmed.length() - 1).trim();
+            if (inner.isEmpty()) {
+                return "";
+            }
+            return java.util.Arrays.stream(inner.split(","))
+                    .map(part -> part.trim().replaceAll("^['\"]|['\"]$", ""))
+                    .filter(part -> !part.isBlank())
+                    .collect(Collectors.joining(", "));
+        }
+        return trimmed;
     }
 }

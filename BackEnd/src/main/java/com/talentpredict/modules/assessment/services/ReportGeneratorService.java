@@ -10,7 +10,6 @@ import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.springframework.stereotype.Service;
 
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
@@ -299,7 +298,7 @@ public class ReportGeneratorService {
             float margin = 50;
             float y = page.getMediaBox().getHeight() - margin;
             float leading = 15;
-            PDType1Font baseFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            PDType1Font baseFont = PDType1Font.HELVETICA;
 
             PDPageContentStream content = new PDPageContentStream(document, page);
             content.setFont(baseFont, 11);

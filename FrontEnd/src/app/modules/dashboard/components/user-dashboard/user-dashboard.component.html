@@ -92,16 +92,16 @@
       <div class="ai-content">
         <div class="ai-score-ring">
           <div class="ring-circle">
-            <span class="ring-val">{{ formatPercent(latestPrediction.scoreFinal) }}%</span>
+            <span class="ring-val">{{ formatPercent(latestPrediction.scoreFinal ?? latestPrediction.scoreConfiance) }}%</span>
             <span class="ring-lbl">Global</span>
           </div>
         </div>
         <div class="ai-reco">
           @if (latestPrediction.recommandationSoft) {
-          <p><span>Soft:</span> {{ latestPrediction.recommandationSoft }}</p>
+          <p><span>Soft:</span> {{ formatRecommendation(latestPrediction.recommandationSoft) }}</p>
           }
           @if (latestPrediction.recommandationTech) {
-          <p><span>Tech:</span> {{ latestPrediction.recommandationTech }}</p>
+          <p><span>Tech:</span> {{ formatRecommendation(latestPrediction.recommandationTech) }}</p>
           }
         </div>
       </div>
