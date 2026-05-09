@@ -437,12 +437,31 @@
 
 .campaign-empty {
   grid-column: 1 / -1;
-  padding: 1rem;
-  border-radius: 12px;
+  padding: 1.35rem;
+  border-radius: 14px;
   border: 1px dashed var(--border);
   color: var(--text-secondary);
-  font-size: 0.82rem;
+  font-size: 0.86rem;
   text-align: center;
+  background: rgba(255, 255, 255, 0.6);
+
+  h3 {
+    margin: 0 0 0.35rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  p {
+    margin: 0 0 0.9rem;
+  }
+}
+
+.empty-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .campaign-card {

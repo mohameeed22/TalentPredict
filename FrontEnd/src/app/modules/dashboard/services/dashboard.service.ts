@@ -114,4 +114,18 @@ export class DashboardService {
   getLatestPrediction(userId: string): Observable<PredictionResponse | null> {
     return this.http.get<PredictionResponse | null>(`${this.predictionsUrl}/users/${userId}/derniere`);
   }
+
+  /**
+   * Reporting — GET /api/reporting/talent-passport/{userId}
+   */
+  getTalentPassport(userId: string): Observable<Blob> {
+    return this.http.get(`${environment.apiUrl}/reporting/talent-passport/${userId}`, { responseType: 'blob' });
+  }
+
+  /**
+   * Global HR Report — GET /api/reporting/hr-global-report
+   */
+  getHrGlobalReport(): Observable<Blob> {
+    return this.http.get(`${environment.apiUrl}/reporting/hr-global-report`, { responseType: 'blob' });
+  }
 }

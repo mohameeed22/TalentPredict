@@ -165,7 +165,22 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
   }
 
   exportReport(): void {
-    this.notificationService.info('Export du rapport PDF en cours...');
+    this.notificationService.info('Génération du rapport RH en cours...');
+    this.dashboardService.getHrGlobalReport().subscribe({
+      next: (blob: Blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Rapport_RH_Global_${new Date().toISOString().split('T')[0]}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        this.notificationService.success('Rapport exporté avec succès.');
+      },
+      error: (err: any) => {
+        console.error('Export error:', err);
+        this.notificationService.error('Erreur lors de l\'exportation du rapport.');
+      }
+    });
   }
 
   sendBulkReminder(): void {

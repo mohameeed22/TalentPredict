@@ -248,7 +248,7 @@ export class UserManagementComponent implements OnInit {
     this.skillsService.getUserSkills(userId)
       .pipe(finalize(() => this.skillsLoading.set(false)))
       .subscribe({
-        next: (s) => this.userSkills.set(s),
+        next: (s: SkillResponse[]) => this.userSkills.set(s),
         error: () => {
           this.userSkills.set([]);
           this.skillsError.set('Erreur lors du chargement des compétences');
@@ -288,7 +288,7 @@ export class UserManagementComponent implements OnInit {
     this.skillsService.validateSkill(skillId)
       .pipe(finalize(() => this.setSkillValidating(skillId, false)))
       .subscribe({
-        next: (updated) => {
+        next: (updated: SkillResponse) => {
           this.userSkills.update(list => list.map(s => s.id === updated.id ? updated : s));
           this.notifService.success('Compétence validée.');
         },

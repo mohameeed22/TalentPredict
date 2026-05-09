@@ -403,6 +403,24 @@ button { font-family: inherit; cursor: pointer; outline: none; }
 
 .btn-micro { background: var(--lh-primary); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
 
+.btn-delete-micro {
+  background: transparent;
+  border: none;
+  color: var(--lh-muted2);
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-delete-micro:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--lh-danger);
+}
+
+
 /* ── ROADMAP TAB ────────────────────────────────────────── */
 .phase-badge { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--lh-primary); font-weight: 800; margin-bottom: 4px; }
 .nc-meta-group { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }

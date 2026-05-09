@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../../auth/services/auth.service';
 import { CvExtractorService } from '../../../../core/services/cv-extractor.service';
 import { TestApiService } from '../../../skill-test/services/test-api.service';
-import { SkillsService } from '../../../skills/services/skills.service';
+import { SkillsService, SkillResponse } from '../../../skills/services/skills.service';
 import { TestStateService } from '../../../skill-test/services/test-state.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { AiAnalysisService } from '../../../skills/services/ai-analysis.service';
@@ -70,11 +70,11 @@ export class CompetencesIntakeComponent implements OnInit {
     // Pre-fill GitHub from stored skills if available
     if (this.currentUser?.id) {
       this.skillsService.getUserSkills(String(this.currentUser.id)).subscribe({
-        next: (skills) => {
+        next: (skills: SkillResponse[]) => {
           this.existingSkills = skills
-            .filter(s => s.type === 'TECH' || (s.type as string) === 'TECH')
-            .sort((a, b) => (b.niveau ?? 0) - (a.niveau ?? 0))
-            .map(s => s.nom);
+            .filter((s: SkillResponse) => s.type === 'TECH' || (s.type as string) === 'TECH')
+            .sort((a: SkillResponse, b: SkillResponse) => (b.niveau ?? 0) - (a.niveau ?? 0))
+            .map((s: SkillResponse) => s.nom);
         }
       });
     }

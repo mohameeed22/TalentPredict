@@ -174,10 +174,10 @@ export class SkillsRadarChartComponent implements OnInit, AfterViewInit {
     }
 
     this.skillsService.getUserSkills(String(user.id)).subscribe({
-      next: (skills) => {
+      next: (skills: SkillResponse[]) => {
         this.skills = skills;
-        this.techCount = skills.filter(s => s.type === 'TECH').length;
-        this.softCount = skills.filter(s => s.type === 'SOFT').length;
+        this.techCount = skills.filter((s: SkillResponse) => s.type === 'TECH').length;
+        this.softCount = skills.filter((s: SkillResponse) => s.type === 'SOFT').length;
         this.prepareRadarData(skills);
         this.loading = false;
         // If canvas was already initialized by AfterViewInit, draw now

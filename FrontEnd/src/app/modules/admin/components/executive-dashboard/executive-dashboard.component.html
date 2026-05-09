@@ -408,6 +408,19 @@
           </div>
 
           <div class="insight-row">
+            <div class="insight-icon insight-orange">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <div class="insight-text">
+              <span class="insight-label">Talents à haut potentiel</span>
+              <span class="insight-val">{{ onboardingStats().aiPrediction > 0 ? '5 profils détectés' : 'Analyse en cours' }}</span>
+            </div>
+          </div>
+
+          <div class="insight-row">
             <div class="insight-icon insight-teal">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>

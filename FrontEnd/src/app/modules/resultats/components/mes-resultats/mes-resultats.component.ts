@@ -157,11 +157,11 @@ export class MesResultatsComponent implements OnInit {
     } catch { }
 
     this.skillsService.getUserSkills(userId).subscribe({
-      next: (skills) => {
+      next: (skills: SkillResponse[]) => {
         this.techSkills = skills
-          .filter(s => s.type === 'TECH' || (s.type as string) === 'TECH')
+          .filter((s: SkillResponse) => s.type === 'TECH' || (s.type as string) === 'TECH')
           .sort((a: any, b: any) => (b.niveau ?? 0) - (a.niveau ?? 0))
-          .map(s => ({
+          .map((s: SkillResponse) => ({
             ...s,
             delta: Math.floor(Math.random() * 3) - 1,
             score100: Math.round(((s.niveau ?? 0) / 5) * 100)

@@ -5,7 +5,7 @@ import { FormationService } from '../../services/formation.service';
 import { FormationResponse, StatutFormation, TypeFormation } from '../../models/formation.model';
 import { AuthService } from '../../../auth/services/auth.service';
 import { Role } from '../../../auth/models/user.model';
-import { SkillsService } from '../../../skills/services/skills.service';
+import { SkillsService, SkillResponse } from '../../../skills/services/skills.service';
 import { TypeSkill } from '../../../skills/models/skill.model';
 import { SoftSkillsService } from '../../../evaluation/services/soft-skills.service';
 import { SoftSkillsResult } from '../../../evaluation/models/soft-skills.model';
@@ -226,8 +226,20 @@ export class FormationListComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.formationService.getUserFormations(this.currentUserId).subscribe({
       next: (data) => {
-        this.formations.set(data);
-        this.hydrateReviewDrafts(data);
+        // Deduplicate by ID AND Title (case-insensitive) to prevent duplicates
+        const seenIds = new Set<string>();
+        const seenTitles = new Set<string>();
+        const unique = data.filter(f => {
+          if (seenIds.has(f.id)) return false;
+          const normalizedTitle = f.titre.trim().toLowerCase();
+          if (seenTitles.has(normalizedTitle)) return false;
+          
+          seenIds.add(f.id);
+          seenTitles.add(normalizedTitle);
+          return true;
+        });
+        this.formations.set(unique);
+        this.hydrateReviewDrafts(unique);
         this.applyActiveFilter();
         this.loading.set(false);
       },
@@ -480,6 +492,20 @@ export class FormationListComponent implements OnInit, OnDestroy {
     return this.statusActionLoadingId() === id;
   }
 
+  deleteFormation(id: string): void {
+    if (confirm('Voulez-vous vraiment supprimer cette formation ?')) {
+      this.statusActionLoadingId.set(id);
+      this.formationService.deleteFormation(id).subscribe({
+        next: () => {
+          this.formations.update(rows => rows.filter(r => r.id !== id));
+          this.showToast('✅ Formation supprimée', 'success');
+        },
+        error: () => this.showToast('❌ Erreur lors de la suppression', 'error'),
+        complete: () => this.statusActionLoadingId.set(null)
+      });
+    }
+  }
+
   // ── Risk & Deadlines ─────────────────────────────────────────────────
   deadlineRiskLevel(formation: FormationResponse): DeadlineRiskLevel {
     if (formation.statut === StatutFormation.TERMINEE || (formation.progression ?? 0) >= 100) return 'on-track';
@@ -703,9 +729,15 @@ export class FormationListComponent implements OnInit, OnDestroy {
       skills: this.skillsService.getUserSkills(userId).pipe(catchError(() => of([]))),
       soft: this.softSkillsService.getLastAnalysis().pipe(catchError(() => of(null)))
     }).pipe(
-      map(({ skills, soft }) => {
-        const techWeak = skills.filter(s => s.type === TypeSkill.TECH).sort((a,b) => (a.niveau||1)-(b.niveau||1)).slice(0,3).map(s => ({ name: s.nom, score: (s.niveau||1)*2, required_level: 8 }));
-        const softWeak = Object.entries(soft?.mergedSoftSkills || {}).sort((a,b) => a[1]-b[1]).slice(0,3).map(([k,v]) => ({ name: k, score: v, required_level: 8 }));
+      map(({ skills, soft }: { skills: SkillResponse[], soft: any }) => {
+        const techWeak = skills.filter((s: SkillResponse) => s.type === TypeSkill.TECH)
+          .sort((a: SkillResponse, b: SkillResponse) => (a.niveau || 1) - (b.niveau || 1))
+          .slice(0, 3)
+          .map((s: SkillResponse) => ({ name: s.nom, score: (s.niveau || 1) * 2, required_level: 8 }));
+        const softWeak = (Object.entries(soft?.mergedSoftSkills || {}) as [string, number][])
+          .sort((a, b) => a[1] - b[1])
+          .slice(0, 3)
+          .map(([k, v]) => ({ name: k, score: v, required_level: 8 }));
         
         const softKeys = new Set(softWeak.map(s => s.name.toLowerCase()));
         if (!softKeys.size) softKeys.add('communication');

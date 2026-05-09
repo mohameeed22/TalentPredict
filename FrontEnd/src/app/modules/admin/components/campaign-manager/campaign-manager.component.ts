@@ -269,11 +269,18 @@ export class CampaignManagerComponent implements OnInit {
     const target = this.directSelectedUser();
     if (!target) return;
 
+    const title = this.directForm.title.trim();
+    const body = this.directForm.body.trim();
+    if (!title || !body) {
+      this.notificationService.error('Renseignez un objet et un message.');
+      return;
+    }
+
     this.directSending.set(true);
     this.notifApiService.sendDirect({
       targetUserId: target.id,
-      title: this.directForm.title.trim(),
-      body: this.directForm.body.trim(),
+      title,
+      body,
       type: this.directForm.type,
       emailAlert: this.directForm.emailAlert
     })
@@ -281,7 +288,7 @@ export class CampaignManagerComponent implements OnInit {
     .subscribe({
       next: () => {
         this.directSentLog.update(log => [
-          { name: `${target.firstName} ${target.lastName}`, title: this.directForm.title, sentAt: new Date().toLocaleString('fr-FR') },
+          { name: `${target.firstName} ${target.lastName}`, title, sentAt: new Date().toLocaleString('fr-FR') },
           ...log
         ]);
         this.directForm = { title: '', body: '', type: 'INFO', emailAlert: false };

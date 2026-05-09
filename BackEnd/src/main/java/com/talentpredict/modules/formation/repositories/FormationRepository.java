@@ -13,6 +13,7 @@ import java.util.UUID;
 @Repository
 public interface FormationRepository extends JpaRepository<Formation, UUID> {
     List<Formation> findByUserId(UUID userId);
+    boolean existsByUserIdAndTitreIgnoreCase(UUID userId, String titre);
     long countByUserId(UUID userId);
     long countByUserIdAndStatut(UUID userId, Formation.StatutFormation statut);
 

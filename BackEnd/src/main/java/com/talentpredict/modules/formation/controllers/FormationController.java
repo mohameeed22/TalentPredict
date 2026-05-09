@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -109,6 +110,13 @@ public class FormationController {
             @RequestParam("file") MultipartFile file) {
         FormationDto.FormationResponse response = formationService.uploadCertificate(formationId, file);
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or @formationService.getFormationById(#id).userId == principal.user.id")
+    public ResponseEntity<Void> deleteFormation(@PathVariable UUID id) {
+        formationService.supprimerFormation(id);
+        return ResponseEntity.noContent().build();
     }
 
     private String resolveReviewerIdentity(UserDetailsImpl principal) {

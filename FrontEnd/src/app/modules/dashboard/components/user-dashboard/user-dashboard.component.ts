@@ -156,6 +156,26 @@ export class UserDashboardComponent implements OnInit {
     });
   }
 
+  downloadPassport(): void {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser?.id) return;
+    
+    this.dashboardService.getTalentPassport(String(currentUser.id)).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `TalentPassport_${this.displayName.replace(' ', '_')}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        console.error('Export error:', err);
+        this.notificationService.error('Erreur lors de l\'exportation du PDF.');
+      }
+    });
+  }
+
   get displayName(): string {
     if (this.dashboardData) {
       return `${this.dashboardData.firstName} ${this.dashboardData.lastName}`;

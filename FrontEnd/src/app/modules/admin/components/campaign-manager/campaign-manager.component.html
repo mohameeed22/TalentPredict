@@ -166,6 +166,16 @@
       @if (loading() && campaigns().length === 0) {
         <div class="campaign-loading">Chargement des campagnes...</div>
       }
+      @if (!loading() && filteredCampaigns().length === 0) {
+        <div class="campaign-empty">
+          <h3>Aucune campagne pour l'instant</h3>
+          <p>Synchronisez les donnees live ou creez une nouvelle campagne pour demarrer.</p>
+          <div class="empty-actions">
+            <button class="btn btn-primary" (click)="startNewCampaign()">Creer une campagne</button>
+            <button class="btn btn-ghost" (click)="refreshLiveData()">Sync Donnees Live</button>
+          </div>
+        </div>
+      }
       @for (c of filteredCampaigns(); track c.id) {
       <div class="campaign-card">
         <div class="cc-top-row">
@@ -220,6 +230,164 @@
   <!-- Templates/Logs/Direct tabs remain similar but simplified to focus on audit fixes -->
   @if (activeTab() === 'templates') { <div class="p-20 text-center">Gestion des templates accessible via l'onglet Campagnes.</div> }
   @if (activeTab() === 'logs') { <div class="p-20 text-center">Consultez les logs détaillés dans la base de données.</div> }
-  @if (activeTab() === 'direct') { <div class="p-20 text-center">Messagerie directe active. Sélectionnez un employé.</div> }
+  @if (activeTab() === 'direct') {
+  <div class="direct-layout">
+    <div class="direct-picker-col">
+      <div class="direct-col-header">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+        Selectionner un collaborateur
+      </div>
+
+      <div class="emp-search-wrap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input
+          class="emp-search-input"
+          [ngModel]="directSearch()"
+          (ngModelChange)="directSearch.set($event)"
+          placeholder="Rechercher par nom, email ou departement"
+        />
+      </div>
+
+      @if (usersLoading()) {
+        <div class="emp-loading">Chargement des utilisateurs...</div>
+      } @else if (filteredUsers().length === 0) {
+        <div class="emp-empty">Aucun utilisateur trouve.</div>
+      } @else {
+        <div class="emp-list">
+          @for (u of filteredUsers(); track u.id) {
+          <div class="emp-row" (click)="selectDirectUser(u)" [class.emp-selected]="directSelectedUser()?.id === u.id">
+            <div class="emp-avatar">{{ getUserInitials(u) }}</div>
+            <div class="emp-details">
+              <div class="emp-name">{{ u.firstName }} {{ u.lastName }}</div>
+              <div class="emp-email">{{ u.email }}</div>
+              @if (u.department) {
+              <div class="emp-dept">{{ u.department }}</div>
+              }
+            </div>
+            <div class="emp-status">
+              <span class="emp-role-badge" [class.emp-role-admin]="u.role === 'ADMIN'">{{ u.role === 'ADMIN' ? 'Admin' : 'Employe' }}</span>
+              <span class="emp-role-badge">{{ u.isActive ? 'Actif' : 'Inactif' }}</span>
+              @if (directSelectedUser()?.id === u.id) {
+                <svg class="emp-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              }
+            </div>
+          </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="direct-composer-col">
+      <div class="direct-col-header">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        Composer un message
+      </div>
+
+      @if (directSelectedUser()) {
+      <div class="selected-user-card">
+        <div class="suc-avatar">{{ getUserInitials(directSelectedUser()!) }}</div>
+        <div class="suc-info">
+          <p class="suc-name">{{ directSelectedUser()!.firstName }} {{ directSelectedUser()!.lastName }}</p>
+          <p class="suc-email">{{ directSelectedUser()!.email }}</p>
+          @if (directSelectedUser()!.department) {
+          <span class="suc-dept">{{ directSelectedUser()!.department }}</span>
+          }
+        </div>
+        <button class="suc-clear" (click)="clearDirectUser()" title="Retirer la selection">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+      } @else {
+      <div class="composer-hint">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        <p>Selectionnez un collaborateur pour demarrer une communication professionnelle.</p>
+      </div>
+      }
+
+      <div class="composer-panel" [class.composer-disabled]="!directSelectedUser()">
+        @if (!directSelectedUser()) {
+        <div class="composer-placeholder">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          <span>Le contenu du message apparaitra ici apres la selection.</span>
+        </div>
+        }
+
+        <div class="compose-form" [class.compose-form-hidden]="!directSelectedUser()">
+          <div class="form-group">
+            <label class="form-label">Objet</label>
+            <input class="form-input" name="directTitle" [(ngModel)]="directForm.title" placeholder="Ex: Mise a jour du planning" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Type de message</label>
+            <div class="type-selector">
+              <button type="button" class="type-btn" [class.type-active-info]="directForm.type === 'INFO'" (click)="directForm.type = 'INFO'">Info</button>
+              <button type="button" class="type-btn" [class.type-active-success]="directForm.type === 'SUCCESS'" (click)="directForm.type = 'SUCCESS'">Succes</button>
+              <button type="button" class="type-btn" [class.type-active-warning]="directForm.type === 'WARNING'" (click)="directForm.type = 'WARNING'">Alerte</button>
+              <button type="button" class="type-btn" [class.type-active-error]="directForm.type === 'ERROR'" (click)="directForm.type = 'ERROR'">Important</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Message</label>
+            <textarea
+              class="form-input compose-textarea"
+              name="directBody"
+              [(ngModel)]="directForm.body"
+              placeholder="Restez concis, clair et oriente action."
+            ></textarea>
+            <span class="char-count">{{ directForm.body.length }} caracteres</span>
+          </div>
+
+          <div class="email-alert-row">
+            <label class="toggle-label">
+              <input type="checkbox" name="directEmailAlert" [(ngModel)]="directForm.emailAlert" />
+              <span class="toggle-text">Envoyer aussi par email</span>
+            </label>
+          </div>
+
+          <button
+            class="btn btn-primary btn-send"
+            (click)="sendDirectMessage()"
+            [disabled]="directSending() || !directSelectedUser() || !directForm.title.trim() || !directForm.body.trim()"
+          >
+            @if (directSending()) { <span class="spinner-sm"></span> }
+            {{ directSending() ? 'Envoi en cours...' : 'Envoyer le message' }}
+          </button>
+        </div>
+      </div>
+
+      @if (directSentLog().length) {
+      <div class="direct-sent-log">
+        <h4 class="sent-log-title">Derniers envois</h4>
+        @for (entry of directSentLog(); track $index) {
+        <div class="sent-entry">
+          <span class="sent-to">{{ entry.name }}</span>
+          <span class="sent-title-preview">{{ entry.title }}</span>
+          <span class="sent-at">{{ entry.sentAt }}</span>
+        </div>
+        }
+      </div>
+      }
+    </div>
+  </div>
+  }
 
 </section>

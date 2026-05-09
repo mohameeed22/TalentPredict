@@ -38,6 +38,11 @@ public class FormationService {
     @Transactional
     public FormationDto.FormationResponse creerFormation(UUID accountId, FormationDto.FormationRequest request) {
         User user = authServiceImpl.getUserById(accountId);
+
+        // Guard against duplicate formations with the same title for the same user
+        if (formationRepository.existsByUserIdAndTitreIgnoreCase(accountId, request.getTitre())) {
+            throw new BadRequestException("Une formation avec ce titre existe déjà dans votre plan.");
+        }
         
         Formation formation = new Formation();
         formation.setUser(user);
@@ -279,6 +284,14 @@ public class FormationService {
         }
 
         return convertToResponse(formationRepository.save(formation));
+    }
+
+    @Transactional
+    public void supprimerFormation(UUID id) {
+        if (!formationRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Formation non trouvée avec l'ID: " + id);
+        }
+        formationRepository.deleteById(id);
     }
     
     public Long countFormationsByUser(UUID userId) {

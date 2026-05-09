@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, ChangeDetectorRef, OnDestroy } from '@angular/core';
-import { CommonModule, TitleCasePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { take } from 'rxjs/operators';
@@ -33,7 +33,7 @@ interface ScenarioEvaluation {
 @Component({
   selector: 'app-scenario-simulator',
   standalone: true,
-  imports: [CommonModule, FormsModule, TitleCasePipe],
+  imports: [CommonModule, FormsModule],
   templateUrl: './scenario-simulator.component.html',
   styleUrl: './scenario-simulator.component.scss'
 })

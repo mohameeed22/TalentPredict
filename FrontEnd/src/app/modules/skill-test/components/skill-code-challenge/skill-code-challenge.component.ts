@@ -6,7 +6,7 @@ import { take } from 'rxjs/operators';
 import { AuthService } from '../../../auth/services/auth.service';
 import { TestApiService } from '../../services/test-api.service';
 import { TestStateService } from '../../services/test-state.service';
-import { SkillsService } from '../../../skills/services/skills.service';
+import { SkillsService, SkillResponse } from '../../../skills/services/skills.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import { BiometricsService } from '../../services/biometrics.service';
 
@@ -79,11 +79,11 @@ export class SkillCodeChallengeComponent implements OnInit, OnDestroy {
     this.skills.getUserSkills(String(user.id))
       .pipe(take(1))  // ensure single emission – no double calls
       .subscribe({
-        next: (list) => {
+        next: (list: SkillResponse[]) => {
           this.techSkillNames = list
-            .filter(s => s.type === 'TECH' || (s.type as string) === 'TECH')
-            .sort((a, b) => (b.niveau ?? 0) - (a.niveau ?? 0))
-            .map(s => s.nom);
+            .filter((s: SkillResponse) => s.type === 'TECH' || (s.type as string) === 'TECH')
+            .sort((a: SkillResponse, b: SkillResponse) => (b.niveau ?? 0) - (a.niveau ?? 0))
+            .map((s: SkillResponse) => s.nom);
 
           // Keep selectedSkill in sync if it's not in this user's list
           if (this.techSkillNames.length > 0 && !this.techSkillNames.includes(this.selectedSkill)) {
