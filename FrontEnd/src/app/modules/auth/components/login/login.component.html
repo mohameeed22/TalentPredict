@@ -75,13 +75,13 @@
         <p>Connectez-vous pour accéder à votre espace.</p>
       </div>
 
-      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form">
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="auth-form" autocomplete="off">
         <div class="field">
           <label for="login-email" class="field__label">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
             Adresse email
           </label>
-          <input id="login-email" type="email" formControlName="email" placeholder="nom@entreprise.com"
+          <input id="login-email" type="email" formControlName="email" placeholder="nom@entreprise.com" autocomplete="off"
             class="field__input"
             [class.field__input--error]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched" />
           @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
@@ -98,7 +98,7 @@
             Mot de passe
           </label>
           <div class="field__password-wrap">
-            <input id="login-password" [type]="showPassword ? 'text' : 'password'" formControlName="password"
+            <input id="login-password" [type]="showPassword ? 'text' : 'password'" formControlName="password" autocomplete="new-password"
               placeholder="••••••••" class="field__input"
               [class.field__input--error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" />
             <button type="button" class="field__eye" (click)="showPassword = !showPassword"

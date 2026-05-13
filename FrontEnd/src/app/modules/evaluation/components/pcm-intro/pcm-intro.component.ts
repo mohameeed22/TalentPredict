@@ -40,7 +40,6 @@ export class PcmIntroComponent implements OnInit {
       fullName: [initialName, Validators.required],
       email: [this.currentUser?.email || '', [Validators.required, Validators.email]],
       githubUsername: [''],
-      linkedinUrl: [''],
     });
 
     // 1. Try loading from session cache first for instant UX
@@ -54,7 +53,6 @@ export class PcmIntroComponent implements OnInit {
             const name = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
             if (name) this.profileForm.patchValue({ fullName: name });
             if (profile.githubUrl) this.profileForm.patchValue({ githubUsername: profile.githubUrl });
-            if (profile.lienLinkedin) this.profileForm.patchValue({ linkedinUrl: profile.lienLinkedin });
           }
         },
         error: () => {
@@ -70,7 +68,6 @@ export class PcmIntroComponent implements OnInit {
       if (cached) {
         const urls = JSON.parse(cached);
         if (urls.githubUrl) this.profileForm.patchValue({ githubUsername: urls.githubUrl });
-        if (urls.linkedinUrl) this.profileForm.patchValue({ linkedinUrl: urls.linkedinUrl });
       }
     } catch {}
   }

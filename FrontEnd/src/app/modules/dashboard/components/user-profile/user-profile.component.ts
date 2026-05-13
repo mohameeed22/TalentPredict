@@ -26,7 +26,6 @@ export class UserProfileComponent implements OnInit, OnDestroy {
   loading = true;
   saving = false;
   error: string | null = null;
-  showPublicPreview = false;
   generatingBio = false;
   lastUpdated: string | null = null;
 
@@ -263,11 +262,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
     return 'https://' + url;
   }
 
-  // ========== Public preview ==========
 
-  togglePublicPreview(): void {
-    this.showPublicPreview = !this.showPublicPreview;
-  }
 
   // ========== Form actions ==========
 
@@ -413,7 +408,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
         portfolioUrl: profile.portfolioUrl ?? '',
         titreProfessionnel: profile.titreProfessionnel ?? ''
       }));
-    } catch {}
+    } catch { }
   }
 
   ngOnDestroy(): void {

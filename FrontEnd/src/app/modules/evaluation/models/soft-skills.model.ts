@@ -3,8 +3,6 @@ export interface SoftSkillsAnalysisRequest {
   email: string;
   githubUsername?: string;
   cvText?: string;
-  linkedinUrl?: string;
-  linkedinContent?: string;
   // PCM questions (0-10)
   q1: number;  q2: number;  q3: number;   // communication
   q4: number;  q5: number;  q6: number;   // discipline

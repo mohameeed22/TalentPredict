@@ -12,9 +12,7 @@ import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -59,7 +57,6 @@ public class ExportService {
         int    skillsSoft    = safeInt(d.getNombreSkillsSoft());
         int    skillsTech    = safeInt(d.getNombreSkillsTech());
         int    formTotal     = safeInt(d.getNombreFormationsTotal());
-        int    formEnCours   = safeInt(d.getNombreFormationsEnCours());
         int    formTerminees = safeInt(d.getNombreFormationsTerminees());
         String generated     = LocalDateTime.now().format(FMT);
 
@@ -128,7 +125,6 @@ public class ExportService {
                 String statut = f.getStatut() != null ? f.getStatut().name().replace("_", " ") : "—";
                 String statutColor = "EN COURS".equals(statut) ? "#f59e0b"
                         : "TERMINEE".equals(statut) ? "#22c55e" : "#94a3b8";
-                String prog = f.getProgression() != null ? f.getProgression() + "%" : "—";
                 String fournisseur = f.getFournisseur() != null ? esc(f.getFournisseur()) : "—";
                 String dateDebut = f.getDateDebut() != null ? f.getDateDebut().format(FMT) : "—";
                 String miniTest = Boolean.TRUE.equals(f.getMiniTestPassed()) ? "&#10003; Réussi"

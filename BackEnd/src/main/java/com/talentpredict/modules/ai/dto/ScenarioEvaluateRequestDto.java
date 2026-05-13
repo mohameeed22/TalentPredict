@@ -1,6 +1,6 @@
 package com.talentpredict.modules.ai.dto;
 
-import java.util.Map;
+
 
 import lombok.Data;
 

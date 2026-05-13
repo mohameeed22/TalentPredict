@@ -31,7 +31,7 @@ import lombok.RequiredArgsConstructor;
 @RestController("assessmentJobMatchController")
 @RequestMapping("/api/jobs")
 @RequiredArgsConstructor
-@SuppressWarnings("null")
+
 public class JobMatchController {
 
     private final TalentPredictAiProxyService aiProxyService;

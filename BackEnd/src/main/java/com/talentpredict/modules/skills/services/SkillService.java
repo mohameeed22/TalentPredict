@@ -25,7 +25,7 @@ import lombok.RequiredArgsConstructor;
  */
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings("null")
+
 public class SkillService {
     
     private final SkillRepository skillRepository;

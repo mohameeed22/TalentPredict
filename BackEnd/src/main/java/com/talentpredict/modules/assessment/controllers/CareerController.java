@@ -46,7 +46,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/api/career")
 @RequiredArgsConstructor
 @Slf4j
-@SuppressWarnings("null")
+
 public class CareerController {
 
     private final TalentPredictAiProxyService aiProxyService;

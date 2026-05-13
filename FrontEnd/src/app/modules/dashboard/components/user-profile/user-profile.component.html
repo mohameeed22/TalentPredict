@@ -11,9 +11,6 @@
     </button>
     <h1>Mon Profil</h1>
     <div class="header-actions">
-      <button class="btn-preview" (click)="togglePublicPreview()">
-        👁️ Voir mon profil public
-      </button>
       <button class="btn-security" (click)="goToSecurity()">
         🔒 Sécurité & Confidentialité
       </button>
@@ -134,83 +131,7 @@
     <!-- Profile Completeness Score -->
     <app-profile-completeness [profile]="profile" />
 
-    <!-- Public Preview Modal -->
-    @if (showPublicPreview) {
-    <div class="preview-overlay" (click)="togglePublicPreview()">
-      <div class="preview-modal" (click)="$event.stopPropagation()">
-        <div class="preview-header">
-          <h3>👁️ Vue recruteur</h3>
-          <button class="btn-close-preview" (click)="togglePublicPreview()">✕</button>
-        </div>
-        <div class="preview-body">
-          <div class="preview-avatar">
-            @if (getPhotoUrl()) {
-            <img [src]="getPhotoUrl()" class="preview-photo" alt="Photo" />
-            } @else {
-            <div class="preview-initials" [style.background]="initialsColor">{{ initials }}</div>
-            }
-          </div>
-          <h2 class="preview-name">{{ profile.firstName }} {{ profile.lastName }}</h2>
-          <p class="preview-title">{{ profile.titreProfessionnel || profile.poste || '—' }}</p>
 
-          <div class="preview-meta">
-            @if (profile.ville) { <span class="preview-meta-item">📍 {{ profile.ville }}</span> }
-          </div>
-
-          <!-- AI Verdict / Summary -->
-          @if (profile.aiSummary) {
-          <div class="preview-ai-verdict">
-            <div class="ai-verdict-header">
-              <span class="sparkle">✨</span>
-              <span>Analyse IA</span>
-            </div>
-            <p>{{ profile.aiSummary }}</p>
-          </div>
-          }
-
-          @if (profile.description) {
-          <div class="preview-bio">
-            <h4>À propos</h4>
-            <p>{{ profile.description }}</p>
-          </div>
-          }
-
-          <!-- New: Professional Metrics -->
-          <div class="preview-stats-grid">
-            <div class="p-stat">
-              <span class="p-stat-val">{{ profile.experienceAns || 0 }} ans</span>
-              <span class="p-stat-lbl">Expérience</span>
-            </div>
-            <div class="p-stat">
-              <span class="p-stat-val">{{ profile.githubRepos || 0 }}</span>
-              <span class="p-stat-lbl">Repos GitHub</span>
-            </div>
-            <div class="p-stat">
-              <span class="p-stat-val">{{ profile.niveauEtudes || 'N/A' }}</span>
-              <span class="p-stat-lbl">Formation</span>
-            </div>
-          </div>
-
-
-          @if (profile.poste || profile.departementEditable) {
-          <div class="preview-tags">
-            @if (profile.poste) { <span class="tag tag-blue">{{ profile.poste }}</span> }
-            @if (profile.departementEditable) { <span class="tag tag-purple">{{ profile.departementEditable }}</span> }
-          </div>
-          }
-
-          <div class="preview-links">
-            @if (profile.lienLinkedin) { <a [href]="profile.lienLinkedin" target="_blank"
-              class="social-link linkedin">LinkedIn</a> }
-            @if (profile.githubUrl) { <a [href]="profile.githubUrl" target="_blank"
-              class="social-link github">GitHub</a> }
-            @if (profile.portfolioUrl) { <a [href]="profile.portfolioUrl" target="_blank"
-              class="social-link portfolio">Portfolio</a> }
-          </div>
-        </div>
-      </div>
-    </div>
-    }
 
     <!-- Crop Modal -->
     @if (showCropModal) {

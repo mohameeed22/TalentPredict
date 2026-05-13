@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@SuppressWarnings("null")
+
 public class PythonAiClient {
 
     @Value("${talentpredict.ai.base-url:}")

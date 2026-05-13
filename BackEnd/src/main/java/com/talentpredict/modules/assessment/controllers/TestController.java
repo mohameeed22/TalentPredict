@@ -21,6 +21,7 @@ import com.talentpredict.modules.assessment.services.AssessmentPersistenceServic
 import com.talentpredict.modules.assessment.services.TalentPredictAiProxyService;
 import com.talentpredict.modules.user.entities.User;
 import com.talentpredict.modules.user.repositories.UserRepository;
+
 import com.talentpredict.shared.security.UserDetailsImpl;
 
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/api/test")
 @RequiredArgsConstructor
 @Slf4j
-@SuppressWarnings("null")
+
 public class TestController {
 
     private final TalentPredictAiProxyService aiProxyService;
@@ -229,9 +230,7 @@ public class TestController {
         return "function solve(items) {\\n  // TODO: implement\\n  return [];\\n}";
     }
 
-    private boolean isRecruiter(User actor) {
-        return actor.getRole() == User.Role.ADMIN;
-    }
+
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> objectToMap(JsonNode node) {

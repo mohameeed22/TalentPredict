@@ -12,7 +12,7 @@ import io.netty.channel.ChannelOption;
 import reactor.netty.http.client.HttpClient;
 
 @Configuration
-@SuppressWarnings("null")
+
 public class AiWebClientConfig {
 
     @Bean

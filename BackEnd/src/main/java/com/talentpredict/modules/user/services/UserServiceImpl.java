@@ -20,7 +20,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@SuppressWarnings("null")
+
 public class UserServiceImpl implements IUserService {
 
     private final UserRepository userRepository;
@@ -63,7 +63,7 @@ public class UserServiceImpl implements IUserService {
 
     @Override
     @Transactional
-    @SuppressWarnings("null")
+    
     public void deleteUser(UUID targetUserId, User currentUser) {
         if (currentUser == null) {
             throw new UnauthorizedException("User not authenticated");

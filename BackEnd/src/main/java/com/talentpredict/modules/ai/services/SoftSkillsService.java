@@ -387,14 +387,7 @@ public class SoftSkillsService {
 
 
 
-    private double toDoubleSafe(Object value) {
-        if (value == null) return 0;
-        try {
-            return Double.parseDouble(value.toString());
-        } catch (NumberFormatException ignored) {
-            return 0;
-        }
-    }
+
 
     private User findUser(UUID userId) {
         return userRepository.findById(userId)

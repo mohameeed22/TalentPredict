@@ -33,12 +33,12 @@ public class AnalysisProxyController {
     @TimeLimiter(name = "aiService")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> analyzeGithub(
             @RequestBody Map<String, Object> payload) {
-        
+
         return CompletableFuture.supplyAsync(() -> {
             String username = (String) payload.get("username");
             @SuppressWarnings("unchecked")
             List<String> claimedSkills = (List<String>) payload.get("claimed_skills");
-            
+
             log.info("Proxying GitHub analysis for user: {}", username);
             Map<String, Object> result = proxyService.analyzeGithub(username, claimedSkills);
             return ResponseEntity.ok(result);
@@ -52,16 +52,19 @@ public class AnalysisProxyController {
     @TimeLimiter(name = "aiService")
     public CompletableFuture<ResponseEntity<Map<String, Object>>> predictCareer(
             @RequestBody Map<String, Object> payload) {
-        
+
         return CompletableFuture.supplyAsync(() -> {
             log.info("Proxying career prediction request");
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> skills = (List<Map<String, Object>>) payload.get("skills");
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> testResults = (List<Map<String, Object>>) payload.get("test_results");
             Map<String, Object> result = proxyService.generateCareerPrediction(
                     (String) payload.get("candidate_id"),
                     (String) payload.get("full_name"),
-                    (List<Map<String, Object>>) payload.get("skills"),
-                    (List<Map<String, Object>>) payload.get("test_results"),
-                    (String) payload.get("target_role")
-            );
+                    skills,
+                    testResults,
+                    (String) payload.get("target_role"));
             return ResponseEntity.ok(result);
         });
     }
@@ -73,11 +76,10 @@ public class AnalysisProxyController {
     public CompletableFuture<ResponseEntity<Map<String, Object>>> fallbackAnalysis(Throwable t) {
         log.error("AI Service fallback triggered: {}", t.getMessage());
         return CompletableFuture.completedFuture(
-            ResponseEntity.status(503).body(Map.of(
-                "status", "error",
-                "message", "Le service d'analyse IA est temporairement indisponible. Veuillez réessayer plus tard.",
-                "error_type", t.getClass().getSimpleName()
-            ))
-        );
+                ResponseEntity.status(503).body(Map.of(
+                        "status", "error",
+                        "message",
+                        "Le service d'analyse IA est temporairement indisponible. Veuillez réessayer plus tard.",
+                        "error_type", t.getClass().getSimpleName())));
     }
 }

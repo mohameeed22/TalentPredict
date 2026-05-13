@@ -31,7 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-@SuppressWarnings("null")
+
 public class OpenRouterService {
 
     @Value("${openrouter.apikey:}")

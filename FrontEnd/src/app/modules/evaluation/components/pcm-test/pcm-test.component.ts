@@ -133,23 +133,8 @@ export class PcmTestComponent implements OnInit {
   questions: PCMQuestion[] = [];
 
   ngOnInit(): void {
-    // Better randomization: ensure at least 1 question from each unique category
-    const categories = Array.from(new Set(this.allQuestions.map(q => q.category)));
-    const selected: PCMQuestion[] = [];
-    
-    // 1. Pick one random question per category
-    categories.forEach(cat => {
-      const catQuestions = this.allQuestions.filter(q => q.category === cat);
-      const randomQ = catQuestions[Math.floor(Math.random() * catQuestions.length)];
-      selected.push(randomQ);
-    });
-
-    // 2. Fill the rest with random questions until we have a total of 10-12
-    const remainingCount = (10 + Math.floor(Math.random() * 3)) - selected.length;
-    const available = this.allQuestions.filter(q => !selected.find(s => s.id === q.id));
-    const extra = available.sort(() => Math.random() - 0.5).slice(0, remainingCount);
-    
-    this.questions = [...selected, ...extra].sort(() => Math.random() - 0.5);
+    // Non-randomized: show all questions in their defined order
+    this.questions = [...this.allQuestions];
     this.totalSteps = this.questions.length;
 
     // Initialize both responses (for PCM endpoint) and answers (for soft skills endpoint)
@@ -248,8 +233,6 @@ export class PcmTestComponent implements OnInit {
       email:          profileData.email          || '',
       githubUsername: this.normalizeGithubUsername(profileData.githubUsername || ''),
       cvText:         profileData.cvText         || '',
-      linkedinUrl:    profileData.linkedinUrl    || '',
-      linkedinContent: profileData.linkedinContent || '',
       // Send each answer individually — NEVER use defaults
       q1:  this.answers['q1']  ?? 5,
       q2:  this.answers['q2']  ?? 5,

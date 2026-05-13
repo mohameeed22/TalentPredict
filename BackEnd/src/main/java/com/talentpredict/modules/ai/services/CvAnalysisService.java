@@ -1,9 +1,5 @@
 package com.talentpredict.modules.ai.services;
 
-
-
-
-
 import java.io.InputStream;
 import java.net.URLConnection;
 import java.nio.file.Files;
@@ -26,16 +22,18 @@ import lombok.extern.slf4j.Slf4j;
  * Service d'analyse de CV PDF.
  *
  * Deux modes supportés:
- *   1. Upload direct (MultipartFile) → fichier envoyé depuis le frontend
- *   2. URL publique (String) → PDF déjà hébergé (Cloudinary, S3, Drive public, etc.)
+ * 1. Upload direct (MultipartFile) → fichier envoyé depuis le frontend
+ * 2. URL publique (String) → PDF déjà hébergé (Cloudinary, S3, Drive public,
+ * etc.)
  *
- * Le texte est extrait avec Apache PDFBox puis envoyé à Claude via OpenRouterService.
+ * Le texte est extrait avec Apache PDFBox puis envoyé à Claude via
+ * OpenRouterService.
  *
  * DÉPENDANCE REQUISE dans pom.xml:
  * <dependency>
- *     <groupId>org.apache.pdfbox</groupId>
- *     <artifactId>pdfbox</artifactId>
- *     <version>3.0.3</version>
+ * <groupId>org.apache.pdfbox</groupId>
+ * <artifactId>pdfbox</artifactId>
+ * <version>3.0.3</version>
  * </dependency>
  */
 @Service
@@ -54,8 +52,8 @@ public class CvAnalysisService {
     // Limite du texte envoyé à Claude (évite de dépasser la fenêtre de contexte)
     private static final int MAX_TEXTE_CV = 4000;
 
-    // 3EZ2EUZIAE   K================================================================
-    //  CAS 1 : CV uploadé directement (MultipartFile depuis le frontend)
+    // 3EZ2EUZIAE K================================================================
+    // CAS 1 : CV uploadé directement (MultipartFile depuis le frontend)
     // ================================================================
 
     public OpenRouterService.FullProfileExtraction analyserCvFileComplet(MultipartFile file) {
@@ -87,12 +85,13 @@ public class CvAnalysisService {
     }
 
     // ================================================================
-    //  CAS 2 : CV depuis une URL publique (déjà stocké quelque part)
+    // CAS 2 : CV depuis une URL publique (déjà stocké quelque part)
     // ================================================================
 
     public OpenRouterService.FullProfileExtraction analyserCvUrlComplet(String cvUrl) {
         OpenRouterService.FullProfileExtraction fallback = new OpenRouterService.FullProfileExtraction();
-        if (cvUrl == null || cvUrl.isBlank()) return fallback;
+        if (cvUrl == null || cvUrl.isBlank())
+            return fallback;
 
         try {
             log.info("Analyse CV complète depuis URL: {}", cvUrl);
@@ -145,7 +144,7 @@ public class CvAnalysisService {
     }
 
     // ================================================================
-    //  HELPER INTERNE : Extraction du texte depuis un PDF (PDFBox)
+    // HELPER INTERNE : Extraction du texte depuis un PDF (PDFBox)
     // ================================================================
 
     private String extraireTextePDF(InputStream inputStream) throws Exception {
@@ -158,8 +157,8 @@ public class CvAnalysisService {
 
             // Limite pour Claude
             return texte.length() > MAX_TEXTE_CV
-                ? texte.substring(0, MAX_TEXTE_CV)
-                : texte;
+                    ? texte.substring(0, MAX_TEXTE_CV)
+                    : texte;
         }
     }
 }

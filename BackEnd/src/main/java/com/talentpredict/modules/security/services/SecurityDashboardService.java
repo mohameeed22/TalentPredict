@@ -1,7 +1,7 @@
 package com.talentpredict.modules.security.services;
 
 import java.util.List;
-import java.util.Locale;
+
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -16,7 +16,7 @@ import com.talentpredict.modules.auth.services.AuditLogService;
 
 import com.talentpredict.modules.security.dto.SecurityDto;
 import com.talentpredict.modules.user.entities.User;
-import com.talentpredict.modules.user.repositories.UserRepository;
+
 import com.talentpredict.shared.exception.ResourceNotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -28,7 +28,7 @@ public class SecurityDashboardService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final AuditLogRepository auditLogRepository;
 
-    private final UserRepository userRepository;
+
     private final AuditLogService auditLogService;
 
     @Transactional(readOnly = true)

@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import com.talentpredict.modules.assessment.entities.CandidateBadge;
 import com.talentpredict.modules.assessment.entities.CandidateTestResult;
 
@@ -25,13 +25,13 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@SuppressWarnings("null")
+
 public class AssessmentPersistenceService {
 
     private final CandidateTestResultRepository candidateTestResultRepository;
     private final CandidateBadgeRepository candidateBadgeRepository;
     private final ProfileRepository profileRepository;
-    private final ObjectMapper objectMapper;
+
 
 
     @Transactional
