@@ -1,9 +1,11 @@
+import { HttpClient } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../auth/services/auth.service';
 import { CvExtractorService } from '../../../../core/services/cv-extractor.service';
+import { NotificationService } from '../../../../core/services/notification.service';
 
 @Component({
   selector: 'app-pcm-intro',
@@ -25,7 +27,9 @@ export class PcmIntroComponent implements OnInit {
     private fb: FormBuilder,
     private router: Router,
     private authService: AuthService,
-    private cvExtractorService: CvExtractorService
+    private cvExtractorService: CvExtractorService,
+    private notificationService: NotificationService,
+    private http: HttpClient
   ) {}
 
   ngOnInit(): void {
@@ -53,6 +57,11 @@ export class PcmIntroComponent implements OnInit {
             const name = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
             if (name) this.profileForm.patchValue({ fullName: name });
             if (profile.githubUrl) this.profileForm.patchValue({ githubUsername: profile.githubUrl });
+            
+            // Auto-fill CV if present in profile
+            if (profile.cvUrl) {
+              this.loadCvFromUrl(profile.cvUrl);
+            }
           }
         },
         error: () => {
@@ -70,6 +79,29 @@ export class PcmIntroComponent implements OnInit {
         if (urls.githubUrl) this.profileForm.patchValue({ githubUsername: urls.githubUrl });
       }
     } catch {}
+  }
+
+  private loadCvFromUrl(cvUrl: string): void {
+    const absoluteUrl = this.authService.getAssetUrl(cvUrl);
+    this.isExtracting = true;
+    this.http.get(absoluteUrl, { responseType: 'blob' }).subscribe({
+      next: (blob) => {
+        const filename = cvUrl.substring(cvUrl.lastIndexOf('/') + 1) || 'cv.pdf';
+        const file = new File([blob], filename, { type: blob.type || 'application/pdf' });
+        this.selectedFile = file;
+        this.isExtracting = false;
+
+        this.cvExtractorService.extractFromFile(file).then(extracted => {
+          this.extractedCvText = extracted.text || '';
+        }).catch(err => {
+          console.warn('Extraction of preloaded CV failed:', err);
+        });
+      },
+      error: (err) => {
+        console.warn('Failed to load CV from profile:', err);
+        this.isExtracting = false;
+      }
+    });
   }
 
   async onFileSelected(event: Event): Promise<void> {
@@ -104,6 +136,18 @@ export class PcmIntroComponent implements OnInit {
       this.extractedCvText = extracted.text || '';
       if (!this.extractedCvText.trim()) {
         this.extractionError = 'Le CV est lisible mais aucun texte exploitable n\'a été extrait.';
+      } else {
+        // Auto-save CV to user profile
+        if (this.currentUser?.id) {
+          this.authService.uploadCv(String(this.currentUser.id), file).subscribe({
+            next: () => {
+              this.notificationService.success('CV sauvegardé dans votre profil !');
+            },
+            error: (err) => {
+              console.warn('Failed to auto-save CV to profile:', err);
+            }
+          });
+        }
       }
     } catch (error) {
       const details = error instanceof Error ? error.message : String(error);

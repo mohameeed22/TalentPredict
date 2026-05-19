@@ -1,5 +1,4 @@
 import {
-  AfterViewInit,
   Component,
   ElementRef,
   OnDestroy,
@@ -20,6 +19,8 @@ import {
 
 import { FormationService } from '../../../formation/services/formation.service';
 import { FormationResponse, StatutFormation } from '../../../formation/models/formation.model';
+import { HiPoService } from '../../../evaluation/services/hipo.service';
+import { HiPoDto } from '../../../evaluation/models/hipo.model';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 import {
   Chart,
@@ -61,7 +62,7 @@ export interface KpiCard {
   templateUrl: './executive-dashboard.component.html',
   styleUrl: './executive-dashboard.component.scss'
 })
-export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDestroy {
+export class ExecutiveDashboardComponent implements OnInit, OnDestroy {
   @ViewChild('skillsChartRef') skillsChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('mbtiChartRef') mbtiChartRef!: ElementRef<HTMLCanvasElement>;
   @ViewChild('trendChartRef') trendChartRef!: ElementRef<HTMLCanvasElement>;
@@ -70,8 +71,8 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
 
   private notificationService = inject(NotificationService);
   private dashboardService = inject(DashboardService);
-
   private formationService = inject(FormationService);
+  private hipoService = inject(HiPoService);
 
   private clockIntervalId?: ReturnType<typeof setInterval>;
   private refreshIntervalId?: ReturnType<typeof setInterval>;
@@ -101,6 +102,7 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
   // Analytics raw data
   mbtiDistribution = signal<{ type: string; count: number }[]>([]);
   departmentStats = signal<any[]>([]);
+  hipoTalents = signal<HiPoDto[]>([]);
 
   // Raw employee list (used only for derived analytics)
   employeesList = signal<any[]>([]);
@@ -148,9 +150,7 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
     this.loadLiveDashboardData();
   }
 
-  ngAfterViewInit(): void {
-    // Charts will be initialized after data loads
-  }
+
 
   ngOnDestroy(): void {
     if (this.clockIntervalId) clearInterval(this.clockIntervalId);
@@ -220,12 +220,16 @@ export class ExecutiveDashboardComponent implements OnInit, AfterViewInit, OnDes
 
     forkJoin({
       overview: this.dashboardService.getAdminOverview(),
-      formations: this.formationService.getAllFormations().pipe(catchError(() => of([] as FormationResponse[])))
+      formations: this.formationService.getAllFormations().pipe(catchError(() => of([] as FormationResponse[]))),
+      hipos: this.hipoService.getAllUsersHiPo().pipe(catchError(() => of([] as HiPoDto[])))
     })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: ({ overview, formations }) => {
+        next: ({ overview, formations, hipos }) => {
           this.processDashboardData(overview, formations);
+          // Filter to only show actual HiPo or high performers for the highlight list
+          const topTalents = hipos.filter(h => h.isHiPo || h.category === 'High Performer').sort((a,b) => b.finalHiPoScore - a.finalHiPoScore);
+          this.hipoTalents.set(topTalents);
           this.currentTime.set(new Date());
           if (showToast) this.notificationService.success('Dashboard synchronisé avec succès.');
           // Give Angular time to render, then init charts

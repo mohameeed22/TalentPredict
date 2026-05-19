@@ -792,6 +792,84 @@ $teal   : #14b8a6;
   letter-spacing: -0.02em;
 }
 
+// ─── HiPo Panel ────────────────────────────────────────────────────────────────
+.hipo-panel {}
+
+.hipo-list {
+  padding: 8px 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.hipo-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 22px;
+  transition: background 0.15s;
+
+  &:hover { background: #f8fafc; }
+  & + & { border-top: 1px solid #f1f5f9; }
+}
+
+.hipo-item-icon {
+  width: 36px;
+  height: 36px;
+  background: rgba($purple, 0.1);
+  color: $purple;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  svg { width: 18px; height: 18px; }
+}
+
+.hipo-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hipo-item-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: $text-primary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hipo-item-cat {
+  font-size: 0.75rem;
+  color: $text-muted;
+}
+
+.hipo-item-score {
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: $purple;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 20px;
+  color: $text-muted;
+  text-align: center;
+  gap: 10px;
+  
+  svg { width: 32px; height: 32px; opacity: 0.5; }
+  p { margin: 0; font-size: 0.85rem; font-weight: 500; }
+}
+
 // ─── Responsive ───────────────────────────────────────────────────────────────
 @media (max-width: 1200px) {
   .mid-row { grid-template-columns: 1fr; }

@@ -1,3 +1,4 @@
+import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject } from '@angular/core';
 
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -28,6 +29,7 @@ export class CompetencesIntakeComponent implements OnInit {
   private testState = inject(TestStateService);
   private notify = inject(NotificationService);
   private aiService = inject(AiAnalysisService);
+  private http = inject(HttpClient);
 
   form!: FormGroup;
   selectedFile: File | null = null;
@@ -56,7 +58,44 @@ export class CompetencesIntakeComponent implements OnInit {
       portfolioUrl: [''],
     });
 
-    // Auto-fill URLs from profile cache
+    if (this.currentUser?.id) {
+      const userId = String(this.currentUser.id);
+
+      // Fetch fresh profile to auto-fill URLs and CV
+      this.authService.getProfile(userId).subscribe({
+        next: (profile) => {
+          if (profile) {
+            this.form.patchValue({
+              githubUrl: profile.githubUrl ?? '',
+              linkedinUrl: profile.lienLinkedin ?? '',
+              portfolioUrl: profile.portfolioUrl ?? ''
+            });
+
+            if (profile.cvUrl) {
+              this.loadCvFromUrl(profile.cvUrl);
+            }
+          }
+        },
+        error: (err) => {
+          console.warn('Failed to load profile for autofill:', err);
+          this.loadFromCacheFallback();
+        }
+      });
+
+      this.skillsService.getUserSkills(userId).subscribe({
+        next: (skills: SkillResponse[]) => {
+          this.existingSkills = skills
+            .filter((s: SkillResponse) => s.type === 'TECH' || (s.type as string) === 'TECH')
+            .sort((a: SkillResponse, b: SkillResponse) => (b.niveau ?? 0) - (a.niveau ?? 0))
+            .map((s: SkillResponse) => s.nom);
+        }
+      });
+    } else {
+      this.loadFromCacheFallback();
+    }
+  }
+
+  private loadFromCacheFallback(): void {
     try {
       const cached = sessionStorage.getItem('userProfileUrls');
       if (cached) {
@@ -66,18 +105,29 @@ export class CompetencesIntakeComponent implements OnInit {
         if (urls.portfolioUrl) this.form.patchValue({ portfolioUrl: urls.portfolioUrl });
       }
     } catch {}
+  }
 
-    // Pre-fill GitHub from stored skills if available
-    if (this.currentUser?.id) {
-      this.skillsService.getUserSkills(String(this.currentUser.id)).subscribe({
-        next: (skills: SkillResponse[]) => {
-          this.existingSkills = skills
-            .filter((s: SkillResponse) => s.type === 'TECH' || (s.type as string) === 'TECH')
-            .sort((a: SkillResponse, b: SkillResponse) => (b.niveau ?? 0) - (a.niveau ?? 0))
-            .map((s: SkillResponse) => s.nom);
-        }
-      });
-    }
+  private loadCvFromUrl(cvUrl: string): void {
+    const absoluteUrl = this.authService.getAssetUrl(cvUrl);
+    this.isExtracting = true;
+    this.http.get(absoluteUrl, { responseType: 'blob' }).subscribe({
+      next: (blob) => {
+        const filename = cvUrl.substring(cvUrl.lastIndexOf('/') + 1) || 'cv.pdf';
+        const file = new File([blob], filename, { type: blob.type || 'application/pdf' });
+        this.selectedFile = file;
+        this.isExtracting = false;
+
+        this.cvExtractor.extractFromFile(file).then(extracted => {
+          this.extractedCvText = extracted.text || '';
+        }).catch(err => {
+          console.warn('Extraction of preloaded CV failed:', err);
+        });
+      },
+      error: (err) => {
+        console.warn('Failed to load CV from profile:', err);
+        this.isExtracting = false;
+      }
+    });
   }
 
   get githubUsername(): string {
@@ -127,6 +177,18 @@ export class CompetencesIntakeComponent implements OnInit {
             this.notify.success(`Profil GitHub détecté : ${detectedHandle}`);
           }
         }
+      }
+
+      // Auto-save CV to user profile
+      if (this.currentUser?.id) {
+        this.authService.uploadCv(String(this.currentUser.id), file).subscribe({
+          next: () => {
+            this.notify.success('CV sauvegardé dans votre profil !');
+          },
+          error: (err) => {
+            console.warn('Failed to auto-save CV to profile:', err);
+          }
+        });
       }
     } catch (err) {
       this.extractionError = `Extraction impossible : ${err instanceof Error ? err.message : String(err)}`;
@@ -216,7 +278,7 @@ export class CompetencesIntakeComponent implements OnInit {
       skills,
       level,
       candidate_id: userId,
-      question_count: 8 + Math.floor(Math.random() * 5), // 8-12 random
+      question_count: 6 + Math.floor(Math.random() * 3), // 6-8 questions: balanced load for local Ollama
     }).subscribe({
       next: (res: any) => {
         const questions = res?.questions ?? res?.data?.questions ?? [];

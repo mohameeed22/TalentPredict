@@ -1,5 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../auth/services/auth.service';
 import { SkillsService } from '../../../skills/services/skills.service';
@@ -9,6 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { AuthUser } from '../../../auth/models/user.model';
 import { SoftSkillsResult } from '../../../evaluation/models/soft-skills.model';
 import { SkillResponse } from '../../../skills/models/skill.model';
+import { environment } from '../../../../../environments/environment';
 
 type TechSkill = SkillResponse & {
   delta: number;
@@ -22,6 +24,14 @@ interface TechTestResult {
   skillScores: Record<string, number>;
 }
 
+interface CandidateProgressItem {
+  test_type?: string;
+  overall_score?: number;
+  skill_scores?: Record<string, number>;
+  taken_at: string;
+  passed?: boolean;
+}
+
 
 @Component({
   selector: 'app-mes-resultats',
@@ -33,6 +43,7 @@ interface TechTestResult {
 export class MesResultatsComponent implements OnInit {
   Math = Math;
   private router = inject(Router);
+  private http = inject(HttpClient);
   private authService = inject(AuthService);
   private skillsService = inject(SkillsService);
   private softSkillsService = inject(SoftSkillsService);
@@ -58,7 +69,7 @@ export class MesResultatsComponent implements OnInit {
   isProfilePublic = false;
 
   get formattedTechScore(): number {
-    let score = this.latestTechTest?.overall_score ?? 0;
+    let score = this.latestTechTest?.finalScore ?? this.latestTechTest?.overall_score ?? 0;
     if (score <= 1 && score > 0) score *= 100;
     return Math.round(score * 10) / 10;
   }
@@ -177,6 +188,10 @@ export class MesResultatsComponent implements OnInit {
       if (storedTech) {
         try { this.latestTechTest = JSON.parse(storedTech); } catch { }
       }
+    }
+
+    if (!this.latestTechTest) {
+      this.loadLatestTechTest(userId);
     }
 
     const stored = sessionStorage.getItem('softSkillsResult');
@@ -304,6 +319,28 @@ export class MesResultatsComponent implements OnInit {
     setTimeout(() => {
       window.print();
     }, 600);
+  }
+
+  private loadLatestTechTest(userId: string): void {
+    const url = `${environment.apiUrl}/candidates/${userId}/progress`;
+    this.http.get<CandidateProgressItem[]>(url).subscribe({
+      next: (rows) => {
+        const latest = rows?.[0];
+        if (!latest) return;
+        const score = Number(latest.overall_score ?? 0);
+        const skillScores = (latest.skill_scores && typeof latest.skill_scores === 'object')
+          ? latest.skill_scores as Record<string, number>
+          : {};
+        this.latestTechTest = {
+          finalScore: Number.isFinite(score) ? score : 0,
+          overall_score: Number.isFinite(score) ? score : 0,
+          passed: !!latest.passed,
+          skillScores
+        };
+        try { sessionStorage.setItem('latestTechResult', JSON.stringify(this.latestTechTest)); } catch { }
+      },
+      error: () => { }
+    });
   }
 
   goToTech(): void { this.router.navigate(['/competences']); }

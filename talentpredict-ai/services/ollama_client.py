@@ -71,6 +71,7 @@ async def call_ollama(
     model: str | None = None,
     temperature: float | None = None,
     top_p: float = 0.9,
+    json_mode: bool = False,
 ) -> str:
     """Call local model server and return response text.
 
@@ -86,8 +87,11 @@ async def call_ollama(
         "model": m,
         "prompt": prompt,
         "stream": False,
-        "options": {"temperature": temp, "top_p": top_p},
+        "options": {"temperature": temp, "top_p": top_p, "num_predict": 2048, "num_ctx": 4096},
     }
+    if json_mode:
+        generate_payload["format"] = "json"
+
     timeout = httpx.Timeout(OLLAMA_TIMEOUT)
     async with httpx.AsyncClient(timeout=timeout) as client:
         try:
@@ -114,8 +118,12 @@ async def call_ollama(
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": temp,
                 "top_p": top_p,
+                "max_tokens": 2048,
                 "stream": False,
             }
+            if json_mode:
+                chat_payload["response_format"] = {"type": "json_object"}
+
             chat_response = await client.post(chat_url, json=chat_payload)
             chat_response.raise_for_status()
             chat_data = chat_response.json()
@@ -131,9 +139,10 @@ async def call_ollama_json(
     model: str | None = None,
     temperature: float | None = None,
     retry_stricter: bool = True,
+    json_mode: bool = True,
 ) -> Any:
     """Call Ollama and parse JSON; retry once with stricter instruction if parse fails."""
-    text = await call_ollama(prompt, model=model, temperature=temperature)
+    text = await call_ollama(prompt, model=model, temperature=temperature, json_mode=json_mode)
     try:
         return parse_json_lenient(text)
     except (json.JSONDecodeError, TypeError, ValueError) as e:
@@ -144,7 +153,7 @@ async def call_ollama_json(
             f"{prompt}\n\n"
             "CRITICAL: Output ONLY valid JSON. No markdown, no prose, no code fences."
         )
-        text2 = await call_ollama(strict, model=model, temperature=0.3)
+        text2 = await call_ollama(strict, model=model, temperature=0.3, json_mode=json_mode)
         return parse_json_lenient(text2)
 
 def parse_json_lenient(text):

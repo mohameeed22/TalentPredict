@@ -4,6 +4,7 @@ FROM n8nio/n8n:latest
 # Switch to root to install dependencies
 USER root
 
+
 # Install Node.js packages for PDF server
 WORKDIR /home/node/pdf-server
 
@@ -14,6 +15,10 @@ RUN npm install --production
 # Copy PDF server code
 COPY pdf-server.js .
 
+# Copy entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Expose both n8n (5678) and PDF server (3001) ports
 EXPOSE 5678 3001
 
@@ -23,6 +28,6 @@ USER node
 # Set working directory back to n8n home
 WORKDIR /home/node
 
-# Start n8n normally (PDF server can be started separately via API if needed)
-# Using default n8n entrypoint
+# Use custom entrypoint to start PDF server and n8n
+ENTRYPOINT ["tini", "--", "/entrypoint.sh"]
 

@@ -54,17 +54,7 @@ public class AnalysisProxyController {
 
 
 
-    @PostMapping("/cv-authenticity")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<JsonNode> cvAuthenticity(
-            @RequestBody JsonNode body,
-            @AuthenticationPrincipal UserDetailsImpl principal) {
-        User u = principal.getUser();
-        if (u.getRole() != User.Role.ADMIN) {
-            assertCandidate(u, body);
-        }
-        return ResponseEntity.ok(aiProxyService.postJson("/api/analysis/cv-authenticity", objectToMap(body)));
-    }
+
 
     /**
      * Proxy for the AI candidate profile analysis.

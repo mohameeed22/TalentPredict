@@ -361,11 +361,39 @@
       </div>
     </div>
 
-    <!-- Risk Distribution + Formation Summary -->
+    <!-- HiPo Talents + Risk Distribution -->
     <div class="side-panels">
 
-
-      <!-- Key Insights -->
+      <!-- HiPo Talents List -->
+      <div class="panel hipo-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Talents HiPo (9-Box)</h2>
+          <span class="badge badge-purple">{{ hipoTalents().length }} détectés</span>
+        </div>
+        <div class="hipo-list">
+          @if (hipoTalents().length === 0) {
+            <div class="empty-state">
+              <p>Aucun profil HiPo détecté pour le moment</p>
+            </div>
+          }
+          @for (talent of hipoTalents(); track talent.userId) {
+            <div class="hipo-item">
+              <div class="hipo-item-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+              </div>
+              <div class="hipo-item-info">
+                <span class="hipo-item-name">{{ talent.fullName }}</span>
+                <span class="hipo-item-cat">{{ talent.category }} ({{ talent.nineBoxPosition }})</span>
+              </div>
+              <div class="hipo-item-score">
+                <span class="score-val">{{ talent.finalHiPoScore | number:'1.0-0' }}</span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
       <div class="panel insights-panel">
         <div class="panel-header">
           <h2 class="panel-title">Résumé Clé</h2>
@@ -416,7 +444,7 @@
             </div>
             <div class="insight-text">
               <span class="insight-label">Talents à haut potentiel</span>
-              <span class="insight-val">{{ onboardingStats().aiPrediction > 0 ? '5 profils détectés' : 'Analyse en cours' }}</span>
+              <span class="insight-val">{{ hipoTalents().length > 0 ? hipoTalents().length + ' profils détectés' : 'Analyse en cours' }}</span>
             </div>
           </div>
 

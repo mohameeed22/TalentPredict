@@ -35,8 +35,7 @@ export class TechResultsComponent implements OnInit {
   // AI Forensics
   githubDeepResult: any = null;
   loadingGithubDeep = false;
-  cvAuthenticityResult: any = null;
-  loadingCvAuthenticity = false;
+
 
   ngOnInit(): void {
     // 1. Load quiz result from router state
@@ -97,10 +96,7 @@ export class TechResultsComponent implements OnInit {
         
         this.detectedSkills = parsed.detectedSkills ?? [];
 
-        // Auto-run AI Forensics if we have data
-        if (parsed.cvText && parsed.cvText.length > 50) {
-            this.runCvAuthenticity(parsed.cvText);
-        }
+
         
         const ghUser = this.githubResult?.username || parsed.githubUsername;
         if (ghUser) {
@@ -257,23 +253,5 @@ export class TechResultsComponent implements OnInit {
     });
   }
 
-  runCvAuthenticity(cvText: string): void {
-    const user = this.authService.getCurrentUser();
-    if (!user || !cvText) return;
 
-    this.loadingCvAuthenticity = true;
-    this.testApi.checkCvAuthenticity({
-      candidate_id: user.id,
-      cv_text: cvText
-    }).subscribe({
-      next: (res: any) => {
-        this.cvAuthenticityResult = res;
-        this.loadingCvAuthenticity = false;
-      },
-      error: (err) => {
-        this.loadingCvAuthenticity = false;
-        this.cvAuthenticityResult = { error: "Erreur lors de l'analyse du CV: " + (err?.message || "Service injoignable") };
-      }
-    });
-  }
 }

@@ -8,7 +8,6 @@ import { TestApiService } from '../../services/test-api.service';
 import { TestStateService } from '../../services/test-state.service';
 import { SkillsService, SkillResponse } from '../../../skills/services/skills.service';
 import { NotificationService } from '../../../../core/services/notification.service';
-import { BiometricsService } from '../../services/biometrics.service';
 
 @Component({
   selector: 'app-skill-code-challenge',
@@ -25,10 +24,6 @@ export class SkillCodeChallengeComponent implements OnInit, OnDestroy {
   private notify  = inject(NotificationService);
   private router  = inject(Router);
   private cdr     = inject(ChangeDetectorRef);
-  private biometrics = inject(BiometricsService);
-
-  get suspiciousPaste(): boolean { return this.biometrics.suspiciousLargePaste; }
-  get pasteSwitchCount(): number { return this.biometrics.pasteEventCount; }
 
   // ── Skills picker ─────────────────────────────────────────────
   techSkillNames: string[] = [];
@@ -65,9 +60,6 @@ export class SkillCodeChallengeComponent implements OnInit, OnDestroy {
     this.selectedSkill = this.state.codeSkill();
     this.selectedLevel = this.state.codeLevel();
 
-    // ── Biometrics: start tracking paste/tab events ──────────────
-    this.biometrics.start();
-
     const user = this.auth.getCurrentUser();
     if (!user?.id) {
       this.loadingSkills = false;
@@ -100,7 +92,6 @@ export class SkillCodeChallengeComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.biometrics.stop();
     this.stopTimer();
   }
 

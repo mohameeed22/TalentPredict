@@ -94,7 +94,6 @@ _ALIASES: dict[str, str] = {
     "gatsby": "Gatsby",
     "remix": "Remix",
     "astro": "Astro",
-    "solid": "SolidJS",
     "solidjs": "SolidJS",
     "qwik": "Qwik",
     "ember": "Ember.js",

@@ -8,47 +8,20 @@ import json
 import logging
 import math
 import re
-from copy import deepcopy
+
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import quote_plus
 
 import httpx
 from fastapi import APIRouter
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from services.ollama_client import call_ollama_json
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/career", tags=["career"])
-
-_DEFAULT_PLATFORMS = [
-    "linkedin",
-    "upwork",
-    "indeed",
-    "glassdoor",
-    "wellfound",
-    "freelancer",
-    "weworkremotely",
-    "remoteok",
-    "remotive",
-    "arbeitnow",
-]
-
-_SUPPORTED_PLATFORMS = set(_DEFAULT_PLATFORMS)
-
-_URL_HINTS_BY_PLATFORM: dict[str, list[str]] = {
-    "linkedin": ["/jobs/view", "linkedin.com/jobs/"],
-    "upwork": ["/jobs/~", "/freelance-jobs/", "/nx/search/jobs/"],
-    "indeed": ["/viewjob", "jk="],
-    "glassdoor": ["/job-listing", "/job/"],
-    "wellfound": ["/jobs/"],
-    "freelancer": ["/projects/", "/jobs/"],
-    "weworkremotely": ["/remote-jobs/"],
-}
-
-
 
 
 class CareerPredictionBody(BaseModel):

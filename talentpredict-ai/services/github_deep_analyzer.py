@@ -3,37 +3,10 @@
 from __future__ import annotations
 
 import logging
-import math
-import os
-from collections import defaultdict
 from datetime import datetime
 from typing import Any
 
-import httpx
-
-from services.ollama_client import call_ollama
-
 logger = logging.getLogger(__name__)
-
-
-def _headers() -> dict[str, str]:
-    token = os.getenv("GITHUB_TOKEN", "")
-    h = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
-    if token:
-        h["Authorization"] = f"Bearer {token}"
-    return h
-
-
-def _score_commit_message(msg: str) -> float:
-    if not msg:
-        return 0.0
-    first = msg.strip().split("\n", 1)[0]
-    if len(first) < 8:
-        return 0.3
-    if "#" in first or "fix #" in first.lower() or "closes" in first.lower():
-        return 1.0
-    # imperative-ish: no trailing period often
-    return 0.7
 
 
 async def analyze_github_deep(github_username: str, candidate_id: str, github_data: dict[str, Any] | None = None) -> dict[str, Any]:

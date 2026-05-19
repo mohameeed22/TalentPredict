@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.talentpredict.modules.assessment.entities.CandidateBadge;
 import com.talentpredict.modules.assessment.entities.CandidateTestResult;
@@ -31,8 +30,6 @@ public class AssessmentPersistenceService {
     private final CandidateTestResultRepository candidateTestResultRepository;
     private final CandidateBadgeRepository candidateBadgeRepository;
     private final ProfileRepository profileRepository;
-
-
 
     @Transactional
     public void persistMcqEvaluation(User user, JsonNode result) {
@@ -70,7 +67,6 @@ public class AssessmentPersistenceService {
             });
         }
 
-
     }
 
     private void upsertBadge(User user, String skill, int score) {
@@ -81,7 +77,5 @@ public class AssessmentPersistenceService {
         b.setIssuedAt(Instant.now());
         candidateBadgeRepository.save(b);
     }
-
-
 
 }

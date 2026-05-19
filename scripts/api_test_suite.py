@@ -133,20 +133,26 @@ class TalentPredictTester:
  
     def test_personality_tests(self):
         payload = {
-            "typeTest": "MBTI",
-            "reponses": {"q1": "A", "q2": "B"}
+            "fullName": "API Tester",
+            "email": self.email,
+            "githubUsername": "test-github",
+            "q1": 5, "q2": 5, "q3": 5, "q4": 5, "q5": 5, "q6": 5, "q7": 5, "q8": 5, "q9": 5,
+            "q10": 5, "q11": 5, "q12": 5, "q13": 5, "q14": 5, "q15": 5, "q16": 5, "q17": 5, "q18": 5
         }
         try:
-            resp = requests.post(f"{BASE_URL}/api/tests-personnalite/accounts/{self.user_id}", json=payload, headers=self.headers)
-            if resp.status_code == 201:
-                log_test("Submit Personality Test", True)
+            resp = requests.post(f"{BASE_URL}/api/soft-skills/analyze", json=payload, headers=self.headers)
+            if resp.status_code == 200:
+                log_test("Submit Soft Skills Analysis", True)
             else:
-                log_test("Submit Personality Test", False, f"Status: {resp.status_code}", resp.text)
- 
-            resp = requests.get(f"{BASE_URL}/api/tests-personnalite/accounts/{self.user_id}", headers=self.headers)
-            log_test("List Personality Tests", resp.status_code == 200)
+                log_test("Submit Soft Skills Analysis", False, f"Status: {resp.status_code}", resp.text)
+  
+            resp = requests.get(f"{BASE_URL}/api/soft-skills/last", headers=self.headers)
+            log_test("Get Last Soft Skills Analysis", resp.status_code == 200)
+
+            resp = requests.get(f"{BASE_URL}/api/soft-skills/progress", headers=self.headers)
+            log_test("Get Soft Skills Progress", resp.status_code == 200)
         except Exception as e:
-            log_test("Personality Test Testing", False, str(e))
+            log_test("Soft Skills Analysis Testing", False, str(e))
  
     def test_formations(self):
         payload = {
@@ -159,13 +165,13 @@ class TalentPredictTester:
             "dateDebut": "2026-05-01T10:00:00"
         }
         try:
-            resp = requests.post(f"{BASE_URL}/api/formations/accounts/{self.user_id}", json=payload, headers=self.headers)
+            resp = requests.post(f"{BASE_URL}/api/formations/utilisateur/{self.user_id}", json=payload, headers=self.headers)
             if resp.status_code == 201:
                 log_test("Create Formation", True)
             else:
                 log_test("Create Formation", False, f"Status: {resp.status_code}", resp.text)
  
-            resp = requests.get(f"{BASE_URL}/api/formations/accounts/{self.user_id}", headers=self.headers)
+            resp = requests.get(f"{BASE_URL}/api/formations/utilisateur/{self.user_id}", headers=self.headers)
             log_test("List Formations", resp.status_code == 200)
         except Exception as e:
             log_test("Formations Testing", False, str(e))
@@ -190,24 +196,44 @@ class TalentPredictTester:
 
     def test_ai_routes(self):
         try:
-            # AI: Job Match (POST)
-            match_payload = {
-                "candidate_id": self.user_id,
-                "job_description": "Python Developer",
-                "candidate_skills": [{"name": "Python", "score": 90}]
+            # AI: Scenario Generate (POST)
+            scen_payload = {
+                "role": "Frontend Developer",
+                "level": "Mid-Level"
             }
-            resp = requests.post(f"{AI_URL}/api/jobs/match", json=match_payload, timeout=10)
-            log_test("AI: Job Match", resp.status_code == 200)
+            resp = requests.post(f"{AI_URL}/api/test/scenario/generate", json=scen_payload, timeout=60)
+            log_test("AI: Scenario Generate", resp.status_code == 200)
             
-            # AI: Interview Generate (POST)
-            interview_payload = {
+            # AI: Scenario Evaluate (POST)
+            eval_payload = {
+                "scenario": "You are leading a project and a team member is constantly late.",
+                "response": "I would talk to them privately to understand the root cause and set clear expectations."
+            }
+            resp = requests.post(f"{AI_URL}/api/test/scenario/evaluate", json=eval_payload, timeout=60)
+            log_test("AI: Scenario Evaluate", resp.status_code == 200)
+
+            # AI: Career Prediction (POST)
+            pred_payload = {
+                "candidate_id": self.user_id,
+                "full_name": "API Tester",
+                "skills": ["Python", "Docker"],
+                "test_results": [],
+                "target_role": "Backend Engineer",
+                "language": "en"
+            }
+            resp = requests.post(f"{AI_URL}/api/career/prediction", json=pred_payload, timeout=60)
+            log_test("AI: Career Prediction", resp.status_code == 200)
+
+            # AI: Learning Plan (POST)
+            plan_payload = {
                 "candidate_id": self.user_id,
                 "target_role": "Backend Engineer",
-                "focus_skills": ["Python", "APIs"]
+                "experience_level": "intermediate",
+                "weak_skills": [{"name": "Docker", "score": 25.0}],
+                "language": "en"
             }
-            print("⏳ Generating AI Interview (may take a few seconds)...")
-            resp = requests.post(f"{AI_URL}/api/career/interview/generate", json=interview_payload, timeout=20)
-            log_test("AI: Generate Interview", resp.status_code == 200)
+            resp = requests.post(f"{AI_URL}/api/career/learning-plan", json=plan_payload, timeout=180)
+            log_test("AI: Learning Plan", resp.status_code == 200)
         except Exception as e:
             log_test("AI Service Direct Testing", False, str(e))
 

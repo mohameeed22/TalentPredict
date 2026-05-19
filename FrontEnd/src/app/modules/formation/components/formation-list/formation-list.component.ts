@@ -1,5 +1,6 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { FormationService } from '../../services/formation.service';
 import { FormationResponse, StatutFormation, TypeFormation } from '../../models/formation.model';
@@ -18,6 +19,7 @@ import { catchError, map, of, forkJoin } from 'rxjs';
 import { TestApiService } from '../../../skill-test/services/test-api.service';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { environment } from '../../../../../environments/environment';
 
 type DeadlineRiskLevel = 'on-track' | 'at-risk' | 'late';
 
@@ -60,6 +62,14 @@ interface CalendarEvent {
   formationId?: string;
 }
 
+interface CandidateProgressItem {
+  test_type?: string;
+  overall_score?: number;
+  skill_scores?: Record<string, number>;
+  taken_at: string;
+  passed?: boolean;
+}
+
 @Component({
   selector: 'app-formation-list',
   standalone: true,
@@ -67,13 +77,14 @@ interface CalendarEvent {
   templateUrl: './formation-list.component.html',
   styleUrl: './formation-list.component.scss'
 })
-export class FormationListComponent implements OnInit, OnDestroy {
+export class FormationListComponent implements OnInit {
   private formationService = inject(FormationService);
   private authService = inject(AuthService);
   private skillsService = inject(SkillsService);
   private softSkillsService = inject(SoftSkillsService);
   private careerService = inject(CareerService);
   private testApi = inject(TestApiService);
+  private http = inject(HttpClient);
   currentUserId = '';
 
   readonly kanbanColumns: KanbanColumn[] = [
@@ -198,8 +209,7 @@ export class FormationListComponent implements OnInit, OnDestroy {
     }
   }
 
-  ngOnDestroy(): void {
-  }
+
 
   private loadLeaderboard(): void {
     this.gamificationLoading.set(true);
@@ -716,6 +726,24 @@ export class FormationListComponent implements OnInit, OnDestroy {
     return this.softWeakSkillSet.has(skill.toLowerCase()) ? TypeFormation.SOFT_SKILL : TypeFormation.TECH_SKILL;
   }
 
+  private buildTechWeakFromProgress(progress: CandidateProgressItem[]): NonNullable<LearningPlanRequest['weakSkills']> {
+    if (!progress?.length) return [];
+    const latest = progress[0];
+    const scores = latest?.skill_scores;
+    if (!scores || typeof scores !== 'object') return [];
+
+    return Object.entries(scores)
+      .filter(([name, value]) => !name.startsWith('_') && !isNaN(Number(value)))
+      .map(([name, value]) => {
+        const raw = Number(value);
+        const score100 = Math.max(0, Math.min(100, Math.round(Number.isFinite(raw) ? raw : 10)));
+        return { name, score: score100, required_level: 8 };
+      })
+      .filter(row => row.name.trim().length > 0)
+      .sort((a, b) => a.score - b.score)
+      .slice(0, 3);
+  }
+
   private initializeDefaults() {
     this.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
     this.authService.getProfile(this.currentUserId).subscribe(p => {
@@ -727,17 +755,22 @@ export class FormationListComponent implements OnInit, OnDestroy {
   private buildWeakSkillsFromUserData(userId: string) {
     return forkJoin({
       skills: this.skillsService.getUserSkills(userId).pipe(catchError(() => of([]))),
-      soft: this.softSkillsService.getLastAnalysis().pipe(catchError(() => of(null)))
+      soft: this.softSkillsService.getLastAnalysis().pipe(catchError(() => of(null))),
+      progress: this.http.get<CandidateProgressItem[]>(`${environment.apiUrl}/candidates/${userId}/progress`).pipe(
+        catchError(() => of([]))
+      )
     }).pipe(
-      map(({ skills, soft }: { skills: SkillResponse[], soft: any }) => {
-        const techWeak = skills.filter((s: SkillResponse) => s.type === TypeSkill.TECH)
+      map(({ skills, soft, progress }: { skills: SkillResponse[], soft: any, progress: CandidateProgressItem[] }) => {
+        const techWeakFromProgress = this.buildTechWeakFromProgress(progress);
+        const techWeakFromSkills = skills.filter((s: SkillResponse) => s.type === TypeSkill.TECH)
           .sort((a: SkillResponse, b: SkillResponse) => (a.niveau || 1) - (b.niveau || 1))
           .slice(0, 3)
-          .map((s: SkillResponse) => ({ name: s.nom, score: (s.niveau || 1) * 2, required_level: 8 }));
+          .map((s: SkillResponse) => ({ name: s.nom, score: (s.niveau || 1) * 20, required_level: 8 }));
+        const techWeak = techWeakFromProgress.length > 0 ? techWeakFromProgress : techWeakFromSkills;
         const softWeak = (Object.entries(soft?.mergedSoftSkills || {}) as [string, number][])
           .sort((a, b) => a[1] - b[1])
           .slice(0, 3)
-          .map(([k, v]) => ({ name: k, score: v, required_level: 8 }));
+          .map(([k, v]) => ({ name: k, score: v * 10, required_level: 8 }));
         
         const softKeys = new Set(softWeak.map(s => s.name.toLowerCase()));
         if (!softKeys.size) softKeys.add('communication');

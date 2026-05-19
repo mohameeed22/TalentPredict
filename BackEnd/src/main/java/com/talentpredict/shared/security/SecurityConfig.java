@@ -90,6 +90,12 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
+                        // Swagger UI & OpenAPI Documentation
+                        .requestMatchers(
+                            "/v3/api-docs/**",
+                            "/swagger-ui/**",
+                            "/swagger-ui.html"
+                        ).permitAll()
                         // NOTE: /camunda/** removed — Camunda is disabled. Re-add when re-enabled.
                         // User routes – ADMIN only
                         .requestMatchers(HttpMethod.POST, "/api/users").hasRole("ADMIN")

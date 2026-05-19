@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 MAX_QUESTIONS = 20
 MAX_PER_SKILL = 5
 OPTION_KEYS = ("A", "B", "C", "D")
-MAX_SKILLS_TO_QUERY = 4
-PER_SKILL_TIMEOUT_SECONDS = 45
+MAX_SKILLS_TO_QUERY = 4  # Allow more skills for richer question variety
+TOTAL_TIMEOUT_SECONDS = 90  # Longer timeout now that Ollama connectivity is fixed
 MIN_QUESTIONS_TARGET = 6
-DEFAULT_MIN_QUESTIONS = 6
+DEFAULT_MIN_QUESTIONS = 8
 DEFAULT_MAX_QUESTIONS = 12
 
 
@@ -42,18 +42,15 @@ def _resolve_target_question_count(num_skills: int, requested_count: int | None)
     return random.randint(dynamic_min, dynamic_max)
 
 
-def _build_prompt(skill: str, level: str, n: int) -> str:
-    return f"""You are a senior technical interviewer. Generate {n} multiple choice questions to assess a candidate's REAL practical skill in {skill} at {level} level.
+def _build_batch_prompt(skills: list[str], level: str, target_count: int) -> str:
+    skills_str = ", ".join(skills)
+    return (
+        f'Génère un tableau JSON de {target_count} QCM techniques en français sur : {skills_str} (niveau {level}).\n'
+        f'Chaque objet : {{"skill":"...","question":"...","options":{{"A":"...","B":"...","C":"...","D":"..."}},"correct":"A","difficulty":"hard"}}\n'
+        f'IMPORTANT: Réponds UNIQUEMENT avec le tableau JSON, sans texte avant ou après.'
+    )
 
-Rules:
-- Test PRACTICAL understanding, edge cases, runtime behavior, best practices — never definitions
-- Each question has exactly 4 options (A, B, C, D), only one correct
-- Mix medium and hard difficulty, no trivial questions
-- Output ONLY a valid JSON array, no explanation, no markdown
 
-Format:
-[{{"question":"...","options":{{"A":"...","B":"...","C":"...","D":"..."}},"correct":"A","difficulty":"hard"}}]
-"""
 
 
 def _normalize_options(raw: Any) -> dict[str, str] | None:
@@ -166,49 +163,109 @@ def _fallback_questions(skills: list[str], level: str, target_count: int | None 
     count = target_count if target_count is not None else max(len(skills), MIN_QUESTIONS_TARGET)
     count = min(MAX_QUESTIONS, max(1, count))
     difficulty = "hard" if level.strip().upper() in ("ADVANCED", "EXPERT") else "medium"
-    
-    # Pool of generic question templates to avoid "question replay"
+
+    # 10 distinct templates — enough for a 20-question test with no repeats
     templates = [
         {
             "q": "En {skill}, quelle pratique est la plus efficace pour réduire les bugs en production tout en gardant le code maintenable ?",
             "options": {
-                "A": "Ignorer les tests pour aller plus vite et s'appuyer sur des vérifications manuelles après la sortie.",
-                "B": "Écrire de gros fichiers mélangeant les responsabilités pour centraliser la logique.",
-                "C": "Utiliser des interfaces claires, des tests ciblés et imposer la validation des entrées.",
-                "D": "Dupliquer le code fonctionnel à plusieurs endroits pour éviter la refactorisation.",
+                "A": "Ignorer les tests pour aller plus vite.",
+                "B": "Écrire de gros fichiers mélangeant les responsabilités.",
+                "C": "Utiliser des interfaces claires, des tests ciblés et la validation des entrées.",
+                "D": "Dupliquer le code fonctionnel pour éviter la refactorisation.",
             },
-            "correct": "C"
+            "correct": "C",
         },
         {
             "q": "Lors de l'optimisation des performances d'une application {skill}, quelle est la première étape recommandée ?",
             "options": {
-                "A": "Réécrire immédiatement toute la base de code dans un langage de plus bas niveau.",
-                "B": "Profiler l'application pour identifier les goulots d'étranglement avant de faire des modifications.",
-                "C": "Ajouter plus de ressources matérielles sans vérifier l'efficacité du logiciel.",
-                "D": "Désactiver tous les journaux (logs) et la supervision pour économiser les cycles CPU.",
+                "A": "Réécrire toute la base de code dans un langage de plus bas niveau.",
+                "B": "Profiler l'application pour identifier les goulots d'étranglement.",
+                "C": "Ajouter plus de ressources matérielles sans analyser le logiciel.",
+                "D": "Désactiver tous les journaux pour économiser des cycles CPU.",
             },
-            "correct": "B"
+            "correct": "B",
         },
         {
-            "q": "Concernant la sécurité en {skill}, quelle approche offre la protection la plus robuste contre les vulnérabilités courantes ?",
+            "q": "Concernant la sécurité en {skill}, quelle approche offre la meilleure protection ?",
             "options": {
-                "A": "Faire confiance par défaut à toutes les entrées utilisateur pour améliorer l'expérience.",
+                "A": "Faire confiance par défaut à toutes les entrées utilisateur.",
                 "B": "Stocker les identifiants sensibles directement dans le code source.",
-                "C": "Mettre en œuvre une stratégie de sécurité multicouche avec des audits réguliers.",
-                "D": "Cacher le code source et supposer que l'obscurité garantit la sécurité.",
+                "C": "Mettre en œuvre une stratégie multicouche avec des audits réguliers.",
+                "D": "Compter uniquement sur l'obscurité du code.",
             },
-            "correct": "C"
+            "correct": "C",
         },
         {
-            "q": "Quel est l'un des principaux avantages de l'utilisation d'une architecture modulaire dans un projet {skill} ?",
+            "q": "Quel est le principal avantage d'une architecture modulaire dans un projet {skill} ?",
             "options": {
-                "A": "Cela rend la base de code plus difficile à comprendre pour les nouveaux développeurs.",
-                "B": "Cela permet une meilleure séparation des responsabilités et facilite les tests.",
-                "C": "Cela augmente considérablement le temps nécessaire pour toute petite modification.",
-                "D": "Cela oblige tous les développeurs à travailler simultanément sur le même fichier.",
+                "A": "Elle rend le code plus difficile à comprendre.",
+                "B": "Elle permet une meilleure séparation des responsabilités et facilite les tests.",
+                "C": "Elle allonge le temps nécessaire pour chaque modification.",
+                "D": "Elle oblige les développeurs à travailler sur le même fichier.",
             },
-            "correct": "B"
-        }
+            "correct": "B",
+        },
+        {
+            "q": "Dans un projet {skill}, quelle est la meilleure stratégie pour gérer les erreurs inattendues ?",
+            "options": {
+                "A": "Ignorer les exceptions pour ne pas perturber le flux principal.",
+                "B": "Logger toutes les erreurs et alerter l'équipe sans interrompre le service.",
+                "C": "Redémarrer l'application automatiquement à chaque erreur.",
+                "D": "Afficher les traces d'erreur complètes à l'utilisateur final.",
+            },
+            "correct": "B",
+        },
+        {
+            "q": "Quelle approche favorise la meilleure maintenabilité d'un code {skill} sur le long terme ?",
+            "options": {
+                "A": "Utiliser des noms de variables courts pour minimiser la frappe.",
+                "B": "Écrire le moins de commentaires possible pour alléger les fichiers.",
+                "C": "Respecter des conventions de nommage cohérentes et documenter les points complexes.",
+                "D": "Regrouper toute la logique métier dans un seul fichier centralisé.",
+            },
+            "correct": "C",
+        },
+        {
+            "q": "Comment le contrôle de version (Git) améliore-t-il le travail en équipe sur un projet {skill} ?",
+            "options": {
+                "A": "Il empêche plusieurs développeurs de travailler simultanément.",
+                "B": "Il permet de tracer les modifications, collaborer et revenir à un état stable.",
+                "C": "Il chiffre automatiquement tout le code source.",
+                "D": "Il remplace le besoin de tests automatisés.",
+            },
+            "correct": "B",
+        },
+        {
+            "q": "Lors de la revue de code d'une fonctionnalité {skill}, sur quoi se concentrer en priorité ?",
+            "options": {
+                "A": "Le style de formatage uniquement, en ignorant la logique.",
+                "B": "La lisibilité, la correction logique, la sécurité et les cas limites.",
+                "C": "Uniquement le nombre de lignes pour maintenir un code compact.",
+                "D": "La vitesse d'exécution brute, sans regarder la clarté.",
+            },
+            "correct": "B",
+        },
+        {
+            "q": "Quelle stratégie de test est la plus adaptée pour valider la logique métier en {skill} ?",
+            "options": {
+                "A": "Tester uniquement l'interface utilisateur après chaque déploiement.",
+                "B": "Écrire des tests unitaires isolés pour chaque composant de logique métier.",
+                "C": "Ne tester qu'en production pour avoir des données réelles.",
+                "D": "Déléguer tous les tests à l'équipe QA sans impliquer les développeurs.",
+            },
+            "correct": "B",
+        },
+        {
+            "q": "Dans un système {skill} à forte charge, quelle technique améliore la scalabilité ?",
+            "options": {
+                "A": "Augmenter la taille des transactions pour réduire leur nombre.",
+                "B": "Utiliser la mise en cache, le load balancing et la décomposition en services.",
+                "C": "Stocker toutes les données en mémoire vive sans persistance.",
+                "D": "Utiliser un seul serveur puissant pour centraliser les traitements.",
+            },
+            "correct": "B",
+        },
     ]
 
     questions: list[dict[str, Any]] = []
@@ -231,26 +288,6 @@ def _fallback_questions(skills: list[str], level: str, target_count: int | None 
     return questions
 
 
-async def _generate_for_skill(skill: str, level: str, n: int) -> list[dict[str, Any]]:
-    prompt = _build_prompt(skill, level, n)
-    try:
-        data = await asyncio.wait_for(
-            call_ollama_json(prompt, retry_stricter=False),
-            timeout=PER_SKILL_TIMEOUT_SECONDS,
-        )
-    except asyncio.TimeoutError:
-        logger.warning("Ollama timeout for skill %s after %ss", skill, PER_SKILL_TIMEOUT_SECONDS)
-        return []
-    except Exception as e:
-        logger.exception("Ollama failed for skill %s: %s", skill, e)
-        return []
-    if isinstance(data, dict):
-        data = [data]
-    if not isinstance(data, list):
-        return []
-    return data
-
-
 async def generate_test(
     skills: list[str],
     level: str,
@@ -258,7 +295,7 @@ async def generate_test(
     skill_scores: dict[str, float] | None = None,
     question_count: int | None = None,
 ) -> dict[str, Any]:
-    """Produce a variable-size adaptive MCQ set across skills."""
+    """Produce a variable-size adaptive MCQ set across skills using a single fast batch prompt."""
     skills_clean = [s.strip() for s in skills if s and s.strip()]
     if skill_scores:
         skills_clean.sort(
@@ -268,8 +305,8 @@ async def generate_test(
     skills_for_generation = skills_clean[:MAX_SKILLS_TO_QUERY]
     n_skills = len(skills_for_generation)
     target_count = _resolve_target_question_count(n_skills, question_count)
-    per = _questions_per_skill(n_skills, target_count)
-    if per == 0:
+    
+    if target_count == 0 or not skills_for_generation:
         test_id = str(uuid.uuid4())
         return {
             "test_id": test_id,
@@ -278,23 +315,45 @@ async def generate_test(
             "question_count": 0,
         }
 
-    tasks = [_generate_for_skill(sk, level, per) for sk in skills_for_generation]
-    results = await asyncio.gather(*tasks)
+    # Ask Ollama for the full target count in a single batch call.
+    # With num_predict=2048 tokens, Ollama can comfortably produce 8-12 MCQ items.
+    # The fallback pool will top up any shortfall with unique pre-written questions.
+    ai_target = min(target_count, 10)
+    prompt = _build_batch_prompt(skills_for_generation, level, ai_target)
+    raw_list = []
+    try:
+        data = await asyncio.wait_for(
+            call_ollama_json(prompt, retry_stricter=False, json_mode=False),
+            timeout=TOTAL_TIMEOUT_SECONDS,
+        )
+        if isinstance(data, dict):
+            raw_list = [data]
+        elif isinstance(data, list):
+            raw_list = data
+    except asyncio.TimeoutError:
+        logger.warning("Ollama batch generation timeout after %ss", TOTAL_TIMEOUT_SECONDS)
+    except Exception as e:
+        logger.exception("Ollama batch generation failed: %s", e)
 
     questions: list[dict[str, Any]] = []
     q_index = 0
-    for skill, raw_list in zip(skills_for_generation, results):
-        for item in raw_list:
-            if q_index >= MAX_QUESTIONS:
-                break
-            q_index += 1
-            normalized = _normalize_question_item(item, skill, q_index)
-            if normalized is None:
-                q_index -= 1
-                continue
-            questions.append(normalized)
+    
+    # Process and normalize the generated questions
+    for item in raw_list:
         if q_index >= MAX_QUESTIONS:
             break
+        q_index += 1
+        # Extract the skill mentioned in the JSON item or default to one of our target skills
+        item_skill = str(item.get("skill") or "").strip()
+        if not item_skill or item_skill not in skills_for_generation:
+            # Assign a skill from our target list dynamically based on index
+            item_skill = skills_for_generation[(q_index - 1) % len(skills_for_generation)]
+        
+        normalized = _normalize_question_item(item, item_skill, q_index)
+        if normalized is None:
+            q_index -= 1
+            continue
+        questions.append(normalized)
 
     min_target = min(max(MIN_QUESTIONS_TARGET, target_count), MAX_QUESTIONS)
 

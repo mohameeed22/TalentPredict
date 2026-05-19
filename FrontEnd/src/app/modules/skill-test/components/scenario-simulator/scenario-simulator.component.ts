@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef, OnDestroy } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -37,7 +37,7 @@ interface ScenarioEvaluation {
   templateUrl: './scenario-simulator.component.html',
   styleUrl: './scenario-simulator.component.scss'
 })
-export class ScenarioSimulatorComponent implements OnInit, OnDestroy {
+export class ScenarioSimulatorComponent implements OnInit {
   private testApi  = inject(TestApiService);
   private notify   = inject(NotificationService);
   private router   = inject(Router);
@@ -205,5 +205,5 @@ export class ScenarioSimulatorComponent implements OnInit, OnDestroy {
     void this.router.navigate(['/evaluation/results']);
   }
 
-  ngOnDestroy(): void {}
+
 }

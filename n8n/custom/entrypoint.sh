@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 # Colors for output
@@ -7,46 +7,46 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}=== TalentPredict n8n + PDF Server Entrypoint ===${NC}"
+echo "=== TalentPredict n8n + PDF Server Entrypoint ==="
 
 # Function to wait for a service
 wait_for_service() {
-  local url=$1
-  local max_attempts=30
-  local attempt=0
+  url=$1
+  max_attempts=30
+  attempt=0
 
-  echo -e "${YELLOW}Waiting for $url...${NC}"
+  echo "Waiting for $url..."
   while [ $attempt -lt $max_attempts ]; do
-    if curl -s "$url" > /dev/null 2>&1; then
-      echo -e "${GREEN}✓ Service available at $url${NC}"
+    if node -e "require('http').get('$url', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))" >/dev/null 2>&1; then
+      echo "✓ Service available at $url"
       return 0
     fi
     attempt=$((attempt + 1))
     sleep 2
   done
 
-  echo -e "${YELLOW}⚠ Service at $url may not be ready yet (continuing anyway)${NC}"
+  echo "⚠ Service at $url may not be ready yet (continuing anyway)"
   return 1
 }
 
 # Start PDF server in background
-echo -e "${GREEN}Starting PDF Extraction Server...${NC}"
+echo "Starting PDF Extraction Server..."
 cd /home/node/pdf-server
 node pdf-server.js &
 PDF_SERVER_PID=$!
-echo -e "${GREEN}✓ PDF Server started (PID: $PDF_SERVER_PID)${NC}"
+echo "✓ PDF Server started (PID: $PDF_SERVER_PID)"
 
 # Wait a moment for PDF server to be ready
 sleep 3
 if wait_for_service "http://localhost:3001/health"; then
-  echo -e "${GREEN}✓ PDF Server is responding${NC}"
+  echo "✓ PDF Server is responding"
 else
-  echo -e "${YELLOW}⚠ PDF Server may still be starting${NC}"
+  echo "⚠ PDF Server may still be starting"
 fi
 
 # Start n8n
-echo -e "${GREEN}Starting n8n Server...${NC}"
+echo "Starting n8n Server..."
 cd /home/node
 
 # Pass all arguments to n8n
-exec n8n "$@"
+exec /docker-entrypoint.sh "$@"

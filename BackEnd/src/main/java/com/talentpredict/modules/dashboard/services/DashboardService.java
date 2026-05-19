@@ -210,6 +210,7 @@ public class DashboardService {
                         double score = Double.parseDouble(scoreStr);
                         scores.put(skillName, score);
                     } catch (NumberFormatException ignored) {
+                        log.debug("Failed to parse soft skill score: {}", ignored.getMessage());
                     }
                 }
             }

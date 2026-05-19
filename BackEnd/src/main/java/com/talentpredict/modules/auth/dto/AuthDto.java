@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.util.UUID;
 
 public class AuthDto {
@@ -17,6 +16,7 @@ public class AuthDto {
 
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class Response {
         private String token;
         private String type = "Bearer";
@@ -25,14 +25,13 @@ public class AuthDto {
         private String role;
         private String nom;
         private String prenom;
-        /** Role-based redirect URL returned to frontend */
         private String redirectUrl;
         private Boolean emailVerified;
-
 
         public Response(String token, UUID id, String email, String role,
                 String nom, String prenom, String redirectUrl) {
             this.token = token;
+            this.type = "Bearer";
             this.id = id;
             this.email = email;
             this.role = role;
@@ -40,7 +39,6 @@ public class AuthDto {
             this.prenom = prenom;
             this.redirectUrl = redirectUrl;
             this.emailVerified = false;
-
         }
     }
 
@@ -48,114 +46,87 @@ public class AuthDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RegisterRequest {
-
         @NotBlank(message = "Last name is required")
         private String lastName;
-
         @NotBlank(message = "First name is required")
         private String firstName;
-
         @NotBlank(message = "Email is required")
         @Email(message = "Invalid email format")
         private String email;
-
         @NotBlank(message = "Password is required")
         @Size(min = 8, message = "Password must be at least 8 characters")
-        @Pattern(
-            regexp = PASSWORD_POLICY,
-            message = "Password must contain uppercase, lowercase, number, and special character")
+        @Pattern(regexp = PASSWORD_POLICY)
         private String password;
-
-        /** Optional phone number, used for SMS password reset */
         private String phoneNumber;
-
-        /**
-         * Role chosen at signup: USER (Employee) or ADMIN (HR Manager).
-         * Defaults to USER if null.
-         */
         private String role;
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class LoginRequest {
-
         @NotBlank(message = "Email is required")
         @Email(message = "Invalid email format")
         private String email;
-
         @NotBlank(message = "Password is required")
-        @Size(min = 8, message = "Password must be at least 8 characters")
         private String password;
-
-
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ResendVerificationRequest {
         @NotBlank(message = "Email is required")
-        @Email(message = "Invalid email format")
         private String email;
     }
 
-    /** TASK 3: Step 1 — user submits their email to request a reset link */
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ForgotPasswordRequest {
-        /** EMAIL or SMS */
         private DeliveryChannel channel = DeliveryChannel.EMAIL;
-
-        @Email(message = "Invalid email format")
         private String email;
-
-        /** E.164 recommended when SMS is used */
         private String phoneNumber;
     }
 
-    /** TASK 3: Step 2 — user submits the token + new password */
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ResetPasswordRequest {
         @NotBlank(message = "Token is required")
         private String token;
-
         @NotBlank(message = "New password is required")
-        @Size(min = 8, message = "Password must be at least 8 characters")
-        @Pattern(
-                regexp = PASSWORD_POLICY,
-                message = "Password must contain uppercase, lowercase, number, and special character")
+        @Pattern(regexp = PASSWORD_POLICY)
         private String newPassword;
     }
 
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class ChangePasswordRequest {
         @NotBlank(message = "Current password is required")
         private String currentPassword;
-
         @NotBlank(message = "New password is required")
-        @Size(min = 8, message = "Password must be at least 8 characters")
-        @Pattern(
-                regexp = PASSWORD_POLICY,
-                message = "Password must contain uppercase, lowercase, number, and special character")
+        @Pattern(regexp = PASSWORD_POLICY)
         private String newPassword;
     }
 
-    /** Generic message response */
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class MessageResponse {
         private String message;
     }
 
-    /** Response for token refresh endpoint */
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class RefreshResponse {
         private String accessToken;
         private String type = "Bearer";
     }
 
-
-
     public enum DeliveryChannel {
-        EMAIL,
-        SMS
+        EMAIL, SMS
     }
 }

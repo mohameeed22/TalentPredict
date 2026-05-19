@@ -45,7 +45,7 @@ public class PredictionService {
         log.info("Generating prediction for user: {}", userId);
         User user = authServiceImpl.getUserById(userId);
 
-        // Récupérer les données de l'utilisateur (safe load to avoid bad fraud_flags data crashing the prediction)
+        // Récupérer les données de l'utilisateur (safe load to avoid bad data crashing the prediction)
         List<CandidateTestResult> tests;
         try {
             tests = candidateTestResultRepository.findByUser_IdOrderByTakenAtDesc(userId);

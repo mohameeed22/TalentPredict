@@ -27,9 +27,9 @@ public class TalentPredictAiProxyService {
     private final ObjectMapper objectMapper;
 
     /**
-     * Fixed 10s timeout for AI service as per audit requirements
+     * Timeout for AI service (set to 30s for a smooth user experience)
      */
-    private static final long AI_TIMEOUT_SECONDS = 10;
+    private static final long AI_TIMEOUT_SECONDS = 30;
 
     public JsonNode postJson(String path, Object body) {
         try {

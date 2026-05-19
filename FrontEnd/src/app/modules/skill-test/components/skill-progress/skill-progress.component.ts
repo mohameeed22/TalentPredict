@@ -246,11 +246,23 @@ export class SkillProgressComponent implements OnInit {
     this.http.get<CandidateProgressItem[]>(url).subscribe({
       next: (data) => {
         this.progress = data || [];
+        if (this.progress.length === 0) {
+          const fallback = this.getLocalTechFallback();
+          if (fallback) {
+            this.progress = [fallback];
+          }
+        }
         this.loadingProgress = false;
       },
       error: (err) => {
         console.error('Error loading tech progress', err);
-        this.progressError = 'Impossible de charger vos sessions techniques.';
+        const fallback = this.getLocalTechFallback();
+        if (fallback) {
+          this.progress = [fallback];
+          this.progressError = '';
+        } else {
+          this.progressError = 'Impossible de charger vos sessions techniques.';
+        }
         this.loadingProgress = false;
       }
     });
@@ -334,5 +346,52 @@ export class SkillProgressComponent implements OnInit {
   private toNumber(value: unknown): number {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private getLocalTechFallback(): CandidateProgressItem | null {
+    if (this.activeTab !== 'TECH') {
+      return null;
+    }
+
+    const stored = sessionStorage.getItem('latestTechResult');
+    if (!stored) {
+      return null;
+    }
+
+    let parsed: any = null;
+    try {
+      parsed = JSON.parse(stored);
+    } catch {
+      return null;
+    }
+
+    const score = this.toNumber(parsed?.finalScore ?? parsed?.overall_score ?? 0);
+    const skillScores = parsed?.skillScores ?? parsed?.skill_scores ?? {};
+    if (!Number.isFinite(score)) {
+      return null;
+    }
+
+    let takenAt = new Date().toISOString();
+    let testType = 'MCQ';
+    const metaRaw = sessionStorage.getItem('latestTechResultMeta');
+    if (metaRaw) {
+      try {
+        const meta = JSON.parse(metaRaw);
+        if (meta?.taken_at) {
+          takenAt = String(meta.taken_at);
+        }
+        if (meta?.test_type) {
+          testType = String(meta.test_type);
+        }
+      } catch { }
+    }
+
+    return {
+      overall_score: score,
+      skill_scores: skillScores,
+      passed: !!parsed?.passed,
+      test_type: testType,
+      taken_at: takenAt
+    };
   }
 }

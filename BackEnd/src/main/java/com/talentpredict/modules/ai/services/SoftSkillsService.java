@@ -209,13 +209,17 @@ public class SoftSkillsService {
                     Object val = srcMap.get("overall_score");
                     if (val != null) {
                         try { score = Double.parseDouble(val.toString()); }
-                        catch (NumberFormatException ignored) {}
+                        catch (NumberFormatException ignored) {
+                            log.debug("Failed to parse overall_score: {}", ignored.getMessage());
+                        }
                     }
                     Object det = srcMap.get("summary") != null ? srcMap.get("summary") : srcMap.get("details");
                     if (det != null) details = det.toString();
                 } else if (directScore != null) {
                     try { score = Double.parseDouble(directScore.toString()); }
-                    catch (NumberFormatException ignored) {}
+                    catch (NumberFormatException ignored) {
+                        log.debug("Failed to parse direct score: {}", ignored.getMessage());
+                    }
                 }
                 sb.append("- ").append(key).append(": ").append(score).append(" | ").append(details).append("\n");
             }
@@ -226,6 +230,7 @@ public class SoftSkillsService {
             try {
                 sb.append(objectMapper.writeValueAsString(result.getScenarioEvaluation()));
             } catch (Exception e) {
+                log.warn("Failed to serialize scenario evaluation", e);
                 sb.append("{}");
             }
             sb.append("\n\n");
@@ -281,7 +286,9 @@ public class SoftSkillsService {
                         entry.put("overall_score", score);
                         entry.put("details", details);
                         sourceData.put(kv[0].trim(), entry);
-                    } catch (NumberFormatException ignored) {}
+                    } catch (NumberFormatException ignored) {
+                        log.debug("Failed to parse score for source: {}", ignored.getMessage());
+                    }
                 }
                 if (!sourceData.isEmpty()) dto.setSourceData(sourceData);
             }
@@ -290,7 +297,9 @@ public class SoftSkillsService {
             if (scenarioSection != null) {
                 try {
                     dto.setScenarioEvaluation(objectMapper.readValue(scenarioSection, Map.class));
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                    log.debug("Failed to parse scenario evaluation JSON: {}", ignored.getMessage());
+                }
             }
         }
         String reco = p.getRecommandationSoft();
@@ -322,7 +331,9 @@ public class SoftSkillsService {
                     rawScore = rawScore.substring(0, rawScore.length() - 3).trim();
                 }
                 skills.put(kv[0].trim(), Double.valueOf(rawScore));
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException ignored) {
+                log.debug("Failed to parse soft skill score: {}", ignored.getMessage());
+            }
         }
         return skills.isEmpty() ? null : skills;
     }

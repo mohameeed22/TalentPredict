@@ -51,9 +51,6 @@ export class TestResultsComponent implements OnInit, OnDestroy {
     linkedin: 'LinkedIn'
   };
 
-  // Advanced AI Features state
-  cvAuthenticityResult: any = null;
-  loadingCvAuthenticity = false;
 
   readonly personalityCards = [
     {
@@ -124,7 +121,6 @@ export class TestResultsComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
 
     if (this.result) {
-      this.checkAutoCvAuthenticity();
       return;
     }
 
@@ -180,7 +176,6 @@ export class TestResultsComponent implements OnInit, OnDestroy {
         this.cdr.detectChanges();
         sessionStorage.setItem('softSkillsResult',
           JSON.stringify(this.result));
-        this.checkAutoCvAuthenticity();
       },
       error: (err: HttpErrorResponse) => {
         console.error('[TestResults] ngOnInit: Error:', err.status, err.message);
@@ -540,40 +535,6 @@ export class TestResultsComponent implements OnInit, OnDestroy {
     this.router.navigate(['/evaluation/scenario']);
   }
 
-  private checkAutoCvAuthenticity(): void {
-    if (this.cvAuthenticityResult || this.loadingCvAuthenticity) return;
-    try {
-      const ctx = sessionStorage.getItem('techIntakeContext');
-      if (ctx) {
-        const parsed = JSON.parse(ctx);
-        if (parsed.cvText && parsed.cvText.length > 50) {
-          this.runCvAuthenticity(parsed.cvText);
-        }
-      }
-    } catch {}
-  }
-
-  runCvAuthenticity(cvText: string): void {
-    const user = this.authService.getCurrentUser();
-    if (!user || !cvText) return;
-
-    this.loadingCvAuthenticity = true;
-    this.testApiService.checkCvAuthenticity({
-      candidate_id: user.id,
-      cv_text: cvText
-    }).subscribe({
-      next: (res: any) => {
-        this.cvAuthenticityResult = res;
-        this.loadingCvAuthenticity = false;
-        this.cdr.detectChanges();
-      },
-      error: (err: any) => {
-        this.loadingCvAuthenticity = false;
-        // Silent error for auto-trigger
-        this.cdr.detectChanges();
-      }
-    });
-  }
 
   private toNumber(value: unknown): number {
     const parsed = Number(value);

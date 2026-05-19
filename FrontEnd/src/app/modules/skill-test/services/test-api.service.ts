@@ -101,14 +101,6 @@ export class TestApiService {
     );
   }
 
-  checkCvAuthenticity(body: {
-    candidate_id: string;
-    cv_text: string;
-  }): Observable<unknown> {
-    return this.http.post(`${this.base}/analysis/cv-authenticity`, body).pipe(
-      timeout({ first: this.evaluateTimeoutMs })
-    );
-  }
 
   generateReport(userId: string): Observable<Blob> {
     return this.http.post(`${this.base}/candidates/${userId}/generate-report`, {}, {

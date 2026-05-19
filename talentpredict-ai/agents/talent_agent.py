@@ -212,8 +212,8 @@ async def _generate_ollama_summary(
     linkedin_content: str | None = None,
 ) -> str:
     """Generate a brief profile summary using Ollama (no tools, simple prompt)."""
-    base_url = os.getenv("ANTHROPIC_BASE_URL", "http://localhost:11434/v1")
-    model = os.getenv("ANTHROPIC_MODEL", "llama3.2:latest")
+    base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/") + "/v1"
+    model = os.getenv("OLLAMA_MODEL", "llama3.2:latest")
 
     skill_names = [s["name"] for s in scored_skills[:10]]
     top_langs = []

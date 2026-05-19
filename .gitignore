@@ -90,3 +90,7 @@ application-*.properties
 build_output.txt
 build_output2.txt
 checkstyle.txt
+
+# Database dumps
+talentpredict_dump.sql
+

@@ -695,6 +695,10 @@ export class SkillTestQuizComponent implements OnInit, OnDestroy {
         // Persist complete tech result to sessionStorage so mes-resultats can display it fully
         try {
           sessionStorage.setItem('latestTechResult', JSON.stringify(this.result));
+          sessionStorage.setItem('latestTechResultMeta', JSON.stringify({
+            taken_at: new Date().toISOString(),
+            test_type: 'MCQ'
+          }));
         } catch {}
 
         // Auto-navigate to competences results if in that flow

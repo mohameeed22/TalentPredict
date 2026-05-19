@@ -21,7 +21,7 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String secret;
 
-    @Value("${jwt.access-token.expiration:900000}") // 15 minutes
+    @Value("${jwt.access-token.expiration:43200000}") // 12 hours
     private Long accessTokenExpiration;
 
     @Value("${jwt.refresh-token.expiration:604800000}") // 7 days
@@ -33,7 +33,7 @@ public class JwtService {
     }
 
     /**
-     * Generate a short-lived access token (15 minutes)
+     * Generate an access token (12 hours)
      */
     public String generateAccessToken(String username) {
         Map<String, Object> claims = new HashMap<>();

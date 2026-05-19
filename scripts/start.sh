@@ -97,7 +97,7 @@ sleep 5
 
 # Display service URLs
 echo -e "${GREEN}📊 Service URLs:${NC}"
-echo -e "  • ${BLUE}Frontend:${NC}           http://localhost"
+echo -e "  • ${BLUE}Frontend:${NC}           http://localhost:4200"
 echo -e "  • ${BLUE}Backend API:${NC}        http://localhost:8081/api"
 echo -e "  • ${BLUE}n8n UI:${NC}             http://localhost:5678"
 echo -e "  • ${BLUE}AI Service:${NC}         http://localhost:8000"
@@ -140,7 +140,7 @@ fi
 
 # Test Frontend
 echo -n "  Testing Frontend... "
-if curl -s http://localhost > /dev/null 2>&1; then
+if curl -s http://localhost:4200 > /dev/null 2>&1; then
   echo -e "${GREEN}✓${NC}"
 else
   echo -e "${YELLOW}⏳${NC} (still starting)"

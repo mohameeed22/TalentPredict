@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/test", tags=["test"])
 
 SUMMARY_TIMEOUT_SECONDS = 45
-FRAUD_TIMEOUT_SECONDS = 30
+
 CODE_EVAL_TIMEOUT_SECONDS = 60
 
 
@@ -105,7 +105,7 @@ class EvaluateBody(BaseModel):
     candidate_id: str
     answers: list[AnswerItem]
     skill_weights: dict[str, float] | None = None
-    fraud_context: dict[str, Any] | None = None
+
 
 
 @router.post("/evaluate")
@@ -206,7 +206,7 @@ async def scenario_generate(body: ScenarioGenerateBody) -> dict[str, Any]:
 class ScenarioEvaluateBody(BaseModel):
     scenario: str
     response: str
-    fraud_context: dict[str, Any] | None = None
+
 
 
 @router.post("/scenario/evaluate")
@@ -215,7 +215,3 @@ async def scenario_evaluate(body: ScenarioEvaluateBody) -> dict[str, Any]:
 
     return result
 
-
-# NOTE: The standalone fraud check (POST /fraud/check) has been consolidated
-# into POST /api/analysis/fraud-check which now accepts both full deep-analysis
-# payloads and biometrics-only payloads. See analysis_routes.py.
