@@ -4,7 +4,6 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
-import { environment } from '../../../../../environments/environment';
 
 @Component({
   selector: 'app-register',
@@ -53,6 +52,16 @@ export class RegisterComponent {
       };
       this.authService.register(formValue).subscribe({
         next: (response) => {
+          const email = this.registerForm.get('email')?.value || '';
+          const needsVerification = response?.emailVerified === false || !response?.token;
+          if (needsVerification) {
+            this.notificationService.success('Compte créé. Vérifiez votre e-mail pour activer votre accès.');
+            this.router.navigate(['/auth/verify-email'], {
+              queryParams: { email }
+            }).then(() => this.appRef.tick());
+            return;
+          }
+
           this.notificationService.success('Bienvenue ! Votre compte a été créé avec succès.');
           // Redirect using backend's URL or default to dashboard
           const redirectUrl = response.redirectUrl || '/dashboard';

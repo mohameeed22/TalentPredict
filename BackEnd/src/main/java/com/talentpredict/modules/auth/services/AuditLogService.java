@@ -22,7 +22,7 @@ public class AuditLogService {
     private void saveAudit(AuditLog audit) {
         auditLogRepository.save(Objects.requireNonNull(audit, "audit must not be null"));
     }
-
+//@Transactional annotation is used to manage database transactions declaratively
     @Transactional
     public void logLogin(User user, String ipAddress, String userAgent, String deviceId) {
         AuditLog audit = AuditLog.builder()

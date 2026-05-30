@@ -2,20 +2,27 @@
 
 ## 📚 Table des matières
 1. [Authentification](#authentification)
-2. [Comptes (Accounts)](#comptes-accounts)
-3. [Tests de Personnalité](#tests-de-personnalité)
-4. [Compétences (Skills)](#compétences-skills)
-5. [Formations](#formations)
-6. [Prédictions](#prédictions)
-7. [Dashboard](#dashboard)
-8. [Tickets Jira](#tickets-jira)
+2. [Utilisateurs (Users)](#utilisateurs-users)
+3. [Profils (Profiles)](#profils-profiles)
+4. [Soft Skills / Personnalité](#soft-skills--personnalité)
+5. [Compétences (Skills)](#compétences-skills)
+6. [Formations](#formations)
+7. [Prédictions de Carrière](#prédictions-de-carrière)
+8. [Dashboard](#dashboard)
+9. [Assessment & Analyse IA (Proxies)](#assessment--analyse-ia-proxies)
+10. [Tickets Jira (Obsolète)](#tickets-jira-obsolète)
 
-> **Base URL:** `http://localhost:8081`
-> **IDs:** Tous les identifiants sont des `UUID` (ex: `550e8400-e29b-41d4-a716-446655440000`)
+> **Base URL:** `http://localhost:8081`  
+> **Identifiants:** Tous les identifiants sont des `UUID` (ex: `550e8400-e29b-41d4-a716-446655440000`)
 
 ---
 
 ## 🔐 Authentification
+
+Toutes les routes sauf `/api/auth/*` nécessitent l'en-tête suivant :
+```
+Authorization: Bearer {token}
+```
 
 ### Inscription
 Créer un nouveau compte utilisateur.
@@ -24,7 +31,12 @@ Créer un nouveau compte utilisateur.
 
 **Request Body:**
 ```json
-
+{
+  "firstName": "Jean",
+  "lastName": "Dupont",
+  "email": "jean.dupont@example.com",
+  "password": "password123"
+}
 ```
 
 **Response:** `201 Created`
@@ -68,539 +80,471 @@ Se connecter avec un compte existant.
 
 ---
 
-## 👤 Comptes (Accounts)
+## 👤 Utilisateurs (Users)
 
-### Lister tous les comptes (Admin)
-**Endpoint:** `GET /api/accounts`
+Gestion des utilisateurs dans le système (portée globale et gamification).
 
-**Headers:**
-```
-Authorization: Bearer {token}
-```
+### Lister tous les utilisateurs (Admin)
+**Endpoint:** `GET /api/users`  
+**PreAuthorize:** `hasRole('ADMIN')`
 
 **Response:** `200 OK`
 ```json
 [
   {
     "id": "550e8400-e29b-41d4-a716-446655440000",
-    "username": "jdupont",
-    "email": "jean.dupont@example.com",
     "firstName": "Jean",
     "lastName": "Dupont",
-    "department": "IT",
-    "position": "Developer",
-    "hireDate": "2024-01-15",
-    "profilePictureUrl": null,
-    "isActive": true,
+    "email": "jean.dupont@example.com",
     "role": "USER",
-    "createdAt": "2026-02-02T10:30:00Z",
-    "updatedAt": "2026-02-02T10:30:00Z"
+    "xp": 350,
+    "level": 3
   }
 ]
 ```
 
-### Obtenir un compte par ID (Admin)
-**Endpoint:** `GET /api/accounts/{accountId}`
+### Obtenir le Leaderboard de Gamification
+Liste des 10 meilleurs utilisateurs triés par XP.
 
-### Mettre à jour un compte
-**Endpoint:** `PUT /api/accounts/{accountId}`
-
-**Request Body:**
-```json
-{
-  "firstName": "Jean",
-  "lastName": "Dupont",
-  "department": "Engineering",
-  "position": "Senior Developer",
-  "hireDate": "2024-01-15",
-  "profilePictureUrl": "https://example.com/photo.jpg"
-}
-```
-
-**Response:** `200 OK`
-
-### Supprimer un compte
-**Endpoint:** `DELETE /api/accounts/{accountId}`
-
-**Response:** `204 No Content`
-
----
-
-## 🧠 Tests de Personnalité
-
-### Soumettre un test
-Créer un nouveau test de personnalité avec analyse IA.
-
-**Endpoint:** `POST /api/tests/accounts/{accountId}`
-
-**Headers:**
-```
-Authorization: Bearer {token}
-```
-
-**Request Body:**
-```json
-{
-  "typeTest": "MBTI",
-  "reponses": {
-    "question1": "Extraverti",
-    "question2": "Intuitif",
-    "question3": "Pensée",
-    "question4": "Jugement"
-  }
-}
-```
-
-**Response:** `201 Created`
-```json
-{
-  "id": "660e8400-e29b-41d4-a716-446655440001",
-  "typeTest": "MBTI",
-  "reponses": {
-    "question1": "Extraverti",
-    "question2": "Intuitif",
-    "question3": "Pensée",
-    "question4": "Jugement"
-  },
-  "resultats": null,
-  "analyseLlm": "Analyse OpenAI GPT-4 du profil ENTJ...",
-  "score": 85,
-  "dateTest": "2026-02-02T10:30:00"
-}
-```
-
-### Lister les tests d'un utilisateur
-**Endpoint:** `GET /api/tests/accounts/{accountId}`
+**Endpoint:** `GET /api/users/leaderboard`  
+**PreAuthorize:** `hasAnyRole('USER', 'ADMIN')`
 
 **Response:** `200 OK`
 ```json
 [
   {
-    "id": "660e8400-e29b-41d4-a716-446655440001",
-    "typeTest": "MBTI",
-    "score": 85,
-    "dateTest": "2026-02-02T10:30:00",
-    "analyseLlm": "..."
+    "userId": "550e8400-e29b-41d4-a716-446655440000",
+    "firstName": "Jean",
+    "lastName": "Dupont",
+    "xp": 350,
+    "level": 3
   }
 ]
 ```
 
-### Obtenir un test spécifique
-**Endpoint:** `GET /api/tests/{testId}`
+### Créer un utilisateur (Admin)
+**Endpoint:** `POST /api/users`  
+**PreAuthorize:** `hasRole('ADMIN')`
+
+**Request Body:**
+```json
+{
+  "firstName": "Alice",
+  "lastName": "Martin",
+  "email": "alice.martin@example.com",
+  "password": "password123"
+}
+```
+
+**Response:** `201 Created`
+
+### Obtenir un utilisateur par ID
+**Endpoint:** `GET /api/users/{userId}`  
+**PreAuthorize:** `hasAnyRole('USER', 'ADMIN')` (Vérification de propriété pour les non-admins)
+
+### Mettre à jour un utilisateur
+**Endpoint:** `PUT /api/users/{userId}`  
+**PreAuthorize:** `hasAnyRole('USER', 'ADMIN')`
+
+### Obtenir les statistiques agrégées d'un utilisateur (Admin)
+Retourne les statistiques réelles d'apprentissage et d'analyse pour le panneau d'administration.
+
+**Endpoint:** `GET /api/users/{userId}/summary`  
+**PreAuthorize:** `hasRole('ADMIN')`
+
+**Response:** `200 OK`
+```json
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "formationsTotal": 12,
+  "formationsEnCours": 3,
+  "formationsTerminees": 7,
+  "predictionsCount": 2,
+  "latestPredictionScore": 0.85,
+  "latestPredictionDate": "2026-02-02T10:30:00Z",
+  "latestPredictionLabel": "COMPLETEE",
+  "githubUrl": "https://github.com/jdupont",
+  "linkedinUrl": "https://linkedin.com/in/jdupont"
+}
+```
+
+### Supprimer un utilisateur (Admin)
+**Endpoint:** `DELETE /api/users/{userId}`  
+**PreAuthorize:** `hasRole('ADMIN')`
+
+---
+
+## 📄 Profils (Profiles)
+
+Détails professionnels associés à un utilisateur, y compris l'analyse de CV et les liens réseaux sociaux.
+
+### Obtenir le profil par ID Utilisateur
+**Endpoint:** `GET /api/profiles/users/{id}`  
+**PreAuthorize:** `hasAnyRole('USER', 'ADMIN')`
+
+**Response:** `200 OK`
+```json
+{
+  "id": "220e8400-e29b-41d4-a716-446655440099",
+  "titreProfessionnel": "Développeur Full Stack Senior",
+  "description": "Spécialisé en architectures Java/Angular.",
+  "experienceAns": 6,
+  "cvUrl": "http://localhost:8081/uploads/cvs/cv_123.pdf",
+  "urlPhoto": "http://localhost:8081/uploads/photos/photo_123.jpg",
+  "githubUrl": "https://github.com/jdupont",
+  "lienLinkedin": "https://linkedin.com/in/jdupont",
+  "statutAnalyse": "SUCCESS",
+  "estPublie": true
+}
+```
+
+### Mettre à jour le profil (partiel)
+**Endpoint:** `PUT /api/profiles/users/{id}`  
+**PreAuthorize:** `hasAnyRole('USER', 'ADMIN')`
+
+### Uploader une photo de profil
+**Endpoint:** `POST /api/profiles/accounts/{id}/upload-photo`  
+**Consumes:** `multipart/form-data`  
+**Paramètre:** `file` (MultipartFile - Images uniquement)
+
+### Uploader et analyser un CV (PDF)
+Enregistre le PDF, met à jour le lien dans le profil, et extrait automatiquement les compétences et les détails professionnels (titre, bio, années d'expérience) via LLM.
+
+**Endpoint:** `POST /api/profiles/accounts/{id}/upload-cv`  
+**Consumes:** `multipart/form-data`  
+**Paramètre:** `file` (MultipartFile - Fichiers PDF uniquement)
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Votre profil a été mis à jour et 3 nouveaux skills ont été détectés depuis votre CV",
+  "status": "SUCCESS",
+  "skillsAjoutes": ["Docker", "Kubernetes", "Angular"],
+  "skillsDejaPresentss": ["Java", "Spring Boot"],
+  "totalDetectes": 5,
+  "extractedInfo": {
+    "title": "Développeur Cloud",
+    "experience": 5
+  }
+}
+```
+
+### Lancer une analyse de profil IA (Arrière-plan)
+Déclenche une analyse IA asynchrone complète du profil et des compétences de l'employeur.
+
+**Endpoint:** `POST /api/profiles/accounts/{id}/analyse-ia`  
+**Response:** `200 OK` (PROCESSING)
+
+### Suivre le statut de l'analyse IA (Polling)
+**Endpoint:** `GET /api/profiles/accounts/{id}/analyse-status`  
+**Response:** `200 OK`
+```json
+{
+  "status": "SUCCESS",
+  "timestamp": "2026-05-22T21:00:00Z",
+  "skillsFound": 8
+}
+```
+
+### Publier le profil
+**Endpoint:** `POST /api/profiles/accounts/{id}/publish`
+
+---
+
+## 🧠 Soft Skills / Personnalité
+
+Remplaçant l'ancien `/api/tests/*`, ce contrôleur gère l'évaluation comportementale MBTI/PCM et le simulateur de scénarios.
+
+### Analyser un questionnaire Soft Skills
+**Endpoint:** `POST /api/soft-skills/analyze`  
+**PreAuthorize:** `hasAnyRole('USER', 'ADMIN')`
+
+**Request Body:**
+```json
+{
+  "testType": "MBTI",
+  "answers": {
+    "q1": "A",
+    "q2": "B"
+  }
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "id": "e30e8400-e29b-41d4-a716-446655440001",
+  "testType": "MBTI",
+  "mbtiType": "ENTJ",
+  "pcmType": "PROMOTER",
+  "llmAnalysis": "Profil fort en leadership, axé sur les résultats...",
+  "createdAt": "2026-05-22T21:10:00Z"
+}
+```
+
+### Réévaluer une analyse Soft Skills
+**Endpoint:** `POST /api/soft-skills/reevaluate`
+
+### Sauvegarder les résultats d'un scénario de simulation
+**Endpoint:** `POST /api/soft-skills/scenario/save`
+
+### Obtenir l'historique de progression des Soft Skills
+**Endpoint:** `GET /api/soft-skills/progress`
+
+### Obtenir la dernière analyse comportementale
+**Endpoint:** `GET /api/soft-skills/last`
 
 ---
 
 ## 💼 Compétences (Skills)
 
-### Ajouter une compétence
-**Endpoint:** `POST /api/skills/accounts/{accountId}`
-
-**Headers:**
-```
-Authorization: Bearer {token}
-```
+### Ajouter une compétence à un utilisateur
+**Endpoint:** `POST /api/skills/accounts/{userId}`  
+**PreAuthorize:** `hasAnyRole('USER', 'ADMIN')` (vérification de propriété)
 
 **Request Body:**
 ```json
 {
-  "nom": "Communication",
-  "type": "SOFT",
+  "nom": "Spring Security",
+  "type": "TECH",
   "niveau": 4,
-  "description": "Excellente communication orale et écrite"
+  "description": "Sécurisation d'API REST"
 }
 ```
 
 **Response:** `201 Created`
-```json
-{
-  "id": "770e8400-e29b-41d4-a716-446655440002",
-  "nom": "Communication",
-  "type": "SOFT",
-  "niveau": 4,
-  "description": "Excellente communication orale et écrite",
-  "dateEvaluation": "2026-02-02T10:30:00",
-  "validee": false
-}
-```
 
-### Lister les compétences
-**Endpoint:** `GET /api/skills/accounts/{accountId}`
+### Lister les compétences d'un utilisateur
+**Endpoint:** `GET /api/skills/accounts/{userId}`
 
-**Response:** `200 OK`
-```json
-[
-  {
-    "id": "770e8400-e29b-41d4-a716-446655440002",
-    "nom": "Communication",
-    "type": "SOFT",
-    "niveau": 4,
-    "validee": true
-  },
-  {
-    "id": "770e8400-e29b-41d4-a716-446655440003",
-    "nom": "Java",
-    "type": "TECH",
-    "niveau": 5,
-    "validee": true
-  }
-]
-```
-
-### Filtrer par type
-**Endpoint:** `GET /api/skills/accounts/{accountId}/type/{type}`
-
-Types disponibles: `SOFT`, `TECH`
+### Filtrer les compétences par type (`SOFT`, `TECH`)
+**Endpoint:** `GET /api/skills/accounts/{userId}/type/{type}`
 
 ### Valider une compétence (Admin)
-**Endpoint:** `PUT /api/skills/{skillId}/valider`
+**Endpoint:** `PUT /api/skills/{skillId}/valider`  
+**PreAuthorize:** `hasRole('ADMIN')`
 
-**Response:** `200 OK`
+**Response:** `200 OK` (Met `validee` à `true` et octroie des XP à l'utilisateur)
 
 ### Supprimer une compétence
 **Endpoint:** `DELETE /api/skills/{skillId}`
-
-**Response:** `204 No Content`
 
 ---
 
 ## 🎓 Formations
 
-### Créer une formation
-**Endpoint:** `POST /api/formations/accounts/{accountId}`
+Gestion du plan de formation, progression et gamification liée à la complétion.
 
-**Headers:**
-```
-Authorization: Bearer {token}
-```
+### Assigner une formation à un utilisateur
+**Endpoint:** `POST /api/formations/utilisateur/{userId}`  
+**PreAuthorize:** `hasRole('ADMIN')` ou vérification de propriété
 
 **Request Body:**
 ```json
 {
-  "titre": "Leadership Avancé",
-  "description": "Formation intensive sur le leadership",
-  "type": "SOFT_SKILL",
-  "duree": 40,
-  "fournisseur": "LinkedIn Learning",
-  "url": "https://linkedin.com/learning/leadership",
-  "dateDebut": "2026-03-01T09:00:00"
+  "titre": "Docker pour les Développeurs",
+  "description": "Maîtriser les conteneurs",
+  "type": "TECH_SKILL",
+  "duree": 20,
+  "fournisseur": "Udemy",
+  "url": "https://udemy.com/docker",
+  "dateDebut": "2026-06-01T09:00:00Z"
 }
 ```
 
 **Response:** `201 Created`
-```json
-{
-  "id": "880e8400-e29b-41d4-a716-446655440004",
-  "titre": "Leadership Avancé",
-  "description": "Formation intensive sur le leadership",
-  "type": "SOFT_SKILL",
-  "duree": 40,
-  "fournisseur": "LinkedIn Learning",
-  "url": "https://linkedin.com/learning/leadership",
-  "statut": "PROPOSEE",
-  "dateProposition": "2026-02-02T10:30:00",
-  "dateDebut": "2026-03-01T09:00:00",
-  "dateFin": null,
-  "progression": 0
-}
-```
 
-### Lister les formations
-**Endpoint:** `GET /api/formations/accounts/{accountId}`
+### Lister les formations d'un utilisateur
+**Endpoint:** `GET /api/formations/utilisateur/{userId}`
 
-**Response:** `200 OK`
-```json
-[
-  {
-    "id": "880e8400-e29b-41d4-a716-446655440004",
-    "titre": "Leadership Avancé",
-    "statut": "EN_COURS",
-    "progression": 45,
-    "duree": 40
-  }
-]
-```
+### Lister toutes les formations du système (Admin)
+**Endpoint:** `GET /api/formations`  
+**PreAuthorize:** `hasRole('ADMIN')`
 
 ### Obtenir une formation par ID
-**Endpoint:** `GET /api/formations/{formationId}`
+**Endpoint:** `GET /api/formations/{id}`
 
-### Mettre à jour le statut
-**Endpoint:** `PUT /api/formations/{formationId}/statut?statut=EN_COURS`
+### Mettre à jour le statut d'une formation
+Met à jour l'avancement (`PROPOSEE`, `ACCEPTEE`, `EN_COURS`, `TERMINEE`, `ANNULEE`). Le passage à `TERMINEE` valide les compétences associées et accorde des XP.
 
-Statuts disponibles:
-- `PROPOSEE`
-- `ACCEPTEE`
-- `EN_COURS`
-- `TERMINEE`
-- `ANNULEE`
+**Endpoint:** `PUT /api/formations/{formationId}/statut?statut=TERMINEE`
 
-**Response:** `200 OK`
-
-### Mettre à jour la progression
+### Mettre à jour le pourcentage de progression
 **Endpoint:** `PUT /api/formations/{formationId}/progression?progression=75`
 
-**Response:** `200 OK`
+### Ajouter des notes de révision (Admin)
+**Endpoint:** `PUT /api/formations/{formationId}/review-notes`  
+**PreAuthorize:** `hasRole('ADMIN')`
+
+**Request Body:**
 ```json
 {
-  "id": "880e8400-e29b-41d4-a716-446655440004",
-  "titre": "Leadership Avancé",
-  "statut": "EN_COURS",
-  "progression": 75
+  "notes": "Excellent travail sur les modules de sécurité."
 }
 ```
+
+### Soumettre un Mini-Test (Quiz de fin)
+**Endpoint:** `PUT /api/formations/{formationId}/mini-test`  
+**Request Body:**
+```json
+{
+  "answers": {
+    "q1": "A",
+    "q2": "C"
+  }
+}
+```
+
+### Uploader un certificat de formation (PDF)
+**Endpoint:** `POST /api/formations/{formationId}/certificate`  
+**Consumes:** `multipart/form-data`  
+**Paramètre:** `file` (MultipartFile)
+
+### Supprimer une formation
+**Endpoint:** `DELETE /api/formations/{id}`
 
 ---
 
-## 🔮 Prédictions
+## 🔮 Prédictions de Carrière
 
-### Générer une prédiction
-Génère une analyse complète avec recommandations via OpenAI.
+Analyses prédictives basées sur le profil actuel de l'utilisateur (compétences, MBTI, etc.) générées via OpenRouter.
 
-**Endpoint:** `POST /api/predictions/accounts/{accountId}/generer`
+### Générer une prédiction de carrière
+**Endpoint:** `POST /api/predictions/users/{userId}/generer`  
+**PreAuthorize:** `hasAnyRole('USER', 'ADMIN')`
 
-**Headers:**
-```
-Authorization: Bearer {token}
-```
-
-**Response:** `201 Created`
+**Response:** `200 OK`
 ```json
 {
-  "id": "990e8400-e29b-41d4-a716-446655440005",
-  "datePrediction": "2026-02-02T10:30:00",
-  "analyse": "Analyse complète générée par OpenAI GPT-4...",
-  "recommandationSoft": "Développer les compétences en leadership...",
-  "recommandationTech": "Approfondir les connaissances en cloud computing...",
-  "scoreConfiance": 0.85,
-  "statut": "COMPLETEE",
-  "formationsProposees": [
-    {
-      "id": "880e8400-e29b-41d4-a716-446655440006",
-      "titre": "Cloud Architecture AWS",
-      "type": "TECH_SKILL"
-    }
-  ]
+  "id": "e40e8400-e29b-41d4-a716-446655440023",
+  "datePrediction": "2026-05-22T21:15:00Z",
+  "analyse": "Sur la base de vos compétences Spring Boot (5) et de votre profil MBTI ENTJ, vous êtes apte à évoluer vers...",
+  "recommandationSoft": "Renforcer la communication inter-équipes.",
+  "recommandationTech": "Acquérir des bases solides en System Design.",
+  "scoreConfiance": 0.88,
+  "statut": "COMPLETEE"
 }
 ```
 
-### Lister les prédictions
-**Endpoint:** `GET /api/predictions/accounts/{accountId}`
+### Lister les prédictions d'un utilisateur
+**Endpoint:** `GET /api/predictions/users/{userId}`
 
 ### Obtenir la dernière prédiction
-**Endpoint:** `GET /api/predictions/accounts/{accountId}/derniere`
-
-**Response:** `200 OK` ou `204 No Content`
+**Endpoint:** `GET /api/predictions/users/{userId}/derniere`
 
 ---
 
 ## 📊 Dashboard
 
-### Obtenir le dashboard complet
-Vue d'ensemble avec toutes les statistiques de l'utilisateur.
+Statistiques et données agrégées pour l'employé et l'administrateur.
 
-**Endpoint:** `GET /api/dashboard/accounts/{accountId}`
+### Obtenir le Dashboard Employé
+Retourne l'XP, les badges, les formations en cours et les indicateurs clés de performance.
 
-**Headers:**
-```
-Authorization: Bearer {token}
-```
+**Endpoint:** `GET /api/dashboard/users/{userId}`
 
 **Response:** `200 OK`
 ```json
 {
-  "accountId": "550e8400-e29b-41d4-a716-446655440000",
-  "nomComplet": "Jean Dupont",
-  "nombreTests": 3,
-  "nombreSkillsSoft": 5,
-  "nombreSkillsTech": 8,
-  "nombreFormationsTotal": 12,
-  "nombreFormationsEnCours": 3,
-  "nombreFormationsTerminees": 7,
-  "scoreEvaluationMoyen": 82.5,
-  "topSkills": [
-    {
-      "id": "770e8400-e29b-41d4-a716-446655440003",
-      "nom": "Java",
-      "type": "TECH",
-      "niveau": 5
-    },
-    {
-      "id": "770e8400-e29b-41d4-a716-446655440002",
-      "nom": "Leadership",
-      "type": "SOFT",
-      "niveau": 4
-    }
-  ],
-  "formationsRecentes": [
-    {
-      "id": "880e8400-e29b-41d4-a716-446655440004",
-      "titre": "Leadership Avancé",
-      "statut": "EN_COURS",
-      "progression": 75
-    }
-  ],
-  "dernierePrediction": {
-    "id": "990e8400-e29b-41d4-a716-446655440005",
-    "datePrediction": "2026-02-02T10:30:00",
-    "scoreConfiance": 0.85
+  "xp": 350,
+  "level": 3,
+  "formationsEnCours": 2,
+  "formationsTerminees": 5,
+  "skillsCount": 8,
+  "dernierePredictionScore": 0.88
+}
+```
+
+### Obtenir la vue d'ensemble du Dashboard RH / Admin
+Données de reporting agrégées sur l'ensemble de l'entreprise (nombre total d'utilisateurs, répartition des compétences, progression globale).
+
+**Endpoint:** `GET /api/dashboard/admin/overview`  
+**PreAuthorize:** `hasRole('ADMIN')`
+
+**Response:** `200 OK`
+```json
+{
+  "totalUsers": 45,
+  "totalFormations": 112,
+  "moyenXp": 420,
+  "skillDistribution": {
+    "Java": 18,
+    "Angular": 12,
+    "Docker": 8
   }
 }
 ```
 
 ---
 
-## 🎫 Tickets Jira
+## 🤖 Assessment & Analyse IA (Proxies)
 
-### Créer un ticket pour une formation
-**Endpoint:** `POST /api/tickets/formation/{formationId}`
+Endpoints de routage Spring Boot pour communiquer de manière sécurisée avec le service IA Python sous-jacent.
 
-**Headers:**
-```
-Authorization: Bearer {token}
-```
+### 1. Analyse Technique du GitHub (Simple)
+Analyse les dépôts publics d'un utilisateur selon ses compétences déclarées.
 
-**Response:** `201 Created`
+**Endpoint:** `POST /api/assessment/github/analyze`  
+**PreAuthorize:** `hasAnyRole('USER', 'ADMIN')`
+
+**Request Body:**
 ```json
 {
-  "id": "aa0e8400-e29b-41d4-a716-446655440007",
-  "jiraKey": "TRN-123",
-  "titre": "Formation: Leadership Avancé",
-  "description": "Demande de formation pour Jean Dupont...",
-  "statut": "OUVERT",
-  "priorite": "MOYENNE",
-  "assignee": null,
-  "urlJira": "https://your-domain.atlassian.net/browse/TRN-123",
-  "formationId": "880e8400-e29b-41d4-a716-446655440004",
-  "createdAt": "2026-02-02T10:30:00Z",
-  "updatedAt": "2026-02-02T10:30:00Z"
+  "username": "octocat",
+  "claimedSkills": ["Java", "Docker"]
 }
 ```
 
-### Lister les tickets d'une formation
-**Endpoint:** `GET /api/tickets/formation/{formationId}`
+### 2. Simulateur de Scénario Soft Skills
+*   **Générer un scénario :** `POST /api/assessment/scenario/generate`
+    *   **Body :** `{"role": "Tech Lead", "level": "Senior"}`
+*   **Évaluer une réponse :** `POST /api/assessment/scenario/evaluate`
+    *   **Body :** `{"scenario": "...", "response": "..."}`
 
-### Obtenir un ticket spécifique
-**Endpoint:** `GET /api/tickets/{ticketId}`
+### 3. Analyse de Candidat (Multipart Proxy)
+Transmet les détails de profil complets (GitHub, Portfolio, LinkedIn, CV PDF) au service Python.
 
-### Mettre à jour le statut (Admin)
-**Endpoint:** `PUT /api/tickets/{ticketId}/statut?statut=EN_COURS`
+**Endpoint:** `POST /api/analysis/analyze-candidate`  
+**Consumes:** `multipart/form-data`
 
-Statuts disponibles:
-- `OUVERT`
-- `EN_COURS`
-- `EN_ATTENTE`
-- `RESOLU`
-- `FERME`
+### 4. Analyse de Code GitHub Approfondie (Deep Proxy)
+**Endpoint:** `POST /api/analysis/github-deep`  
+**Request Body:** JSON avec `candidate_id` et détails de dépôts.
 
-**Response:** `200 OK`
-
----
-
-## 📝 Notes importantes
-
-### Headers requis
-Toutes les requêtes sauf `/api/auth/*` nécessitent:
-```
-Authorization: Bearer {token}
-Content-Type: application/json
-```
-
-### Identifiants
-Tous les IDs sont des **UUID** (format: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`).
-
-### Codes de statut HTTP
-- `200 OK` - Succès
-- `201 Created` - Ressource créée
-- `204 No Content` - Succès sans contenu
-- `400 Bad Request` - Erreur de validation
-- `401 Unauthorized` - Non authentifié
-- `403 Forbidden` - Accès refusé
-- `404 Not Found` - Ressource introuvable
-- `500 Internal Server Error` - Erreur serveur
-
-### Format des erreurs
-```json
-{
-  "timestamp": "2026-02-02T10:30:00",
-  "status": 400,
-  "error": "Validation Failed",
-  "message": "Erreur de validation des données",
-  "path": "/api/skills/accounts/550e8400-...",
-  "validationErrors": {
-    "niveau": "Le niveau minimum est 1"
-  }
-}
-```
-
-### Limites
-- Taille maximale des fichiers: 10MB
-- Token JWT valide 24h
-- Rate limiting: À définir selon les besoins
+### 5. Proxy Circuit-Breaker `/api/v1/analysis/*`
+Toutes les requêtes ci-dessous passent par un Circuit Breaker Resilience4j nommé `aiService` pour tolérer les pannes ou les ralentissements du service Python :
+*   **GitHub Proxy :** `POST /api/v1/analysis/github` (JSON payload)
+*   **Career Prediction Proxy :** `POST /api/v1/analysis/career-prediction` (JSON payload)
 
 ---
 
-## 🧪 Tests avec cURL (Windows CMD)
+## 🎫 Tickets Jira (Obsolète)
 
-### Exemple complet de workflow
-
-```bash
-# 1. Inscription
-curl -X POST http://localhost:8081/api/auth/register ^
-  -H "Content-Type: application/json" ^
-  -d "{\"lastName\":\"Dupont\",\"firstName\":\"Jean\",\"email\":\"jean.dupont@example.com\",\"password\":\"password123\"}"
-
-# 2. Sauvegarder le token retourné
-set TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-
-# 3. Soumettre un test
-curl -X POST http://localhost:8081/api/tests/accounts/{accountId} ^
-  -H "Authorization: Bearer %TOKEN%" ^
-  -H "Content-Type: application/json" ^
-  -d "{\"typeTest\":\"MBTI\",\"reponses\":{\"question1\":\"Extraverti\"}}"
-
-# 4. Ajouter des skills
-curl -X POST http://localhost:8081/api/skills/accounts/{accountId} ^
-  -H "Authorization: Bearer %TOKEN%" ^
-  -H "Content-Type: application/json" ^
-  -d "{\"nom\":\"Java\",\"type\":\"TECH\",\"niveau\":5}"
-
-# 5. Générer une prédiction
-curl -X POST http://localhost:8081/api/predictions/accounts/{accountId}/generer ^
-  -H "Authorization: Bearer %TOKEN%"
-
-# 6. Voir le dashboard
-curl -X GET http://localhost:8081/api/dashboard/accounts/{accountId} ^
-  -H "Authorization: Bearer %TOKEN%"
-```
+> [!WARNING]
+> **Fonctionnalité Supprimée**
+> Les fonctionnalités et tables de suivi de tickets Jira (`/api/tickets/*`) ont été retirées du backend en raison d'une refonte du processus d'approbation (qui se fait maintenant en interne via les notes de révision d'administration Spring Boot).
 
 ---
 
-## 🧪 Tests avec cURL (PowerShell)
+## 🧪 Tests de l'API avec cURL (PowerShell)
 
 ```powershell
-# 1. Inscription
-$response = Invoke-RestMethod -Method POST -Uri "http://localhost:8081/api/auth/register" `
+# 1. Connexion et récupération du Token
+$response = Invoke-RestMethod -Method POST -Uri "http://localhost:8081/api/auth/login" `
   -ContentType "application/json" `
-  -Body '{"lastName":"Dupont","firstName":"Jean","email":"jean.dupont@example.com","password":"password123"}'
+  -Body '{"email":"jean.dupont@example.com","password":"password123"}'
 
-# 2. Sauvegarder le token
 $TOKEN = $response.token
+$USER_ID = $response.id
 
-# 3. Ajouter des skills
-Invoke-RestMethod -Method POST -Uri "http://localhost:8081/api/skills/accounts/$($response.id)" `
-  -ContentType "application/json" `
-  -Headers @{ Authorization = "Bearer $TOKEN" } `
-  -Body '{"nom":"Java","type":"TECH","niveau":5}'
-
-# 4. Voir le dashboard
-Invoke-RestMethod -Method GET -Uri "http://localhost:8081/api/dashboard/accounts/$($response.id)" `
+# 2. Récupérer le Dashboard
+Invoke-RestMethod -Method GET -Uri "http://localhost:8081/api/dashboard/users/$USER_ID" `
   -Headers @{ Authorization = "Bearer $TOKEN" }
 ```
 
 ---
 
-## 🔗 Ressources
-
-- [Documentation Spring Boot](https://spring.io/projects/spring-boot)
-- [OpenAI API](https://platform.openai.com/docs)
-- [Jira REST API](https://developer.atlassian.com/cloud/jira/platform/rest/v3/)
-- [Camunda BPM](https://docs.camunda.org/)
+## 🔗 Ressources externes
+* [Documentation Spring Boot](https://spring.io/projects/spring-boot)
+* [OpenRouter documentation](https://openrouter.ai/docs)
+* [Resilience4j guide](https://resilience4j.readme.io/)

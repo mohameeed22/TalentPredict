@@ -45,9 +45,9 @@ export class TestResultsComponent implements OnInit, OnDestroy {
 
   readonly skillLabels: Record<string, string> = {
     communication: 'Communication', discipline: 'Discipline',
-    curiosity: 'Curiosité',        collaboration: 'Collaboration',
-    ownership: 'Ownership',        leadership: 'Leadership',
-    adaptability: 'Adaptabilité',  problem_solving: 'Résolution de problèmes',
+    curiosity: 'Curiosité', collaboration: 'Collaboration',
+    ownership: 'Ownership', leadership: 'Leadership',
+    adaptability: 'Adaptabilité', problem_solving: 'Résolution de problèmes',
     linkedin: 'LinkedIn'
   };
 
@@ -215,8 +215,10 @@ export class TestResultsComponent implements OnInit, OnDestroy {
 
     const merged = raw.mergedSoftSkills
       || raw.merged_soft_skills
-      || { communication:7, discipline:7, curiosity:7,
-           collaboration:7, ownership:7, leadership:7 };
+      || {
+      communication: 7, discipline: 7, curiosity: 7,
+      collaboration: 7, ownership: 7, leadership: 7
+    };
 
     const mergedScaled: Record<string, number> = Object.fromEntries(
       (Object.entries(merged)
@@ -272,14 +274,14 @@ export class TestResultsComponent implements OnInit, OnDestroy {
     const strengths = raw.top3Strengths
       || raw.top_3_strengths
       || Object.entries(merged)
-           .sort((a:any, b:any) => b[1] - a[1])
-           .slice(0, 3).map(([k]) => k);
+        .sort((a: any, b: any) => b[1] - a[1])
+        .slice(0, 3).map(([k]) => k);
 
     const weaknesses = raw.top3Weaknesses
       || raw.top_3_weaknesses
       || Object.entries(merged)
-           .sort((a:any, b:any) => a[1] - b[1])
-           .slice(0, 3).map(([k]) => k);
+        .sort((a: any, b: any) => a[1] - b[1])
+        .slice(0, 3).map(([k]) => k);
 
     // Scenario Evaluation fallback from sessionStorage if not in raw
     let scenarioEval = raw.scenarioEvaluation || raw.scenario_evaluation;
@@ -290,27 +292,27 @@ export class TestResultsComponent implements OnInit, OnDestroy {
           const parsed = JSON.parse(stored);
           scenarioEval = parsed.scenarioEvaluation;
         }
-      } catch {}
+      } catch { }
     }
 
     return {
-      userName:               raw.userName    || raw.user_name    || '',
-      userEmail:              raw.userEmail   || raw.user_email   || '',
-      overallScore:           toTenScale(overall),
-      mergedSoftSkills:       mergedScaled,
-      top3Strengths:          strengths,
-      top3Weaknesses:         weaknesses,
-      personalityType:        this.normalizeToPcmType(raw.personalityType || raw.personality_type || ''),
-      summary:                raw.summary     || '',
-      careerAdvice:           raw.careerAdvice || raw.career_advice || '',
-      keyStrengths:           raw.keyStrengths || raw.key_strengths || [],
-      keyWeaknesses:          raw.keyWeaknesses|| raw.key_weaknesses|| [],
+      userName: raw.userName || raw.user_name || '',
+      userEmail: raw.userEmail || raw.user_email || '',
+      overallScore: toTenScale(overall),
+      mergedSoftSkills: mergedScaled,
+      top3Strengths: strengths,
+      top3Weaknesses: weaknesses,
+      personalityType: this.normalizeToPcmType(raw.personalityType || raw.personality_type || ''),
+      summary: raw.summary || '',
+      careerAdvice: raw.careerAdvice || raw.career_advice || '',
+      keyStrengths: raw.keyStrengths || raw.key_strengths || [],
+      keyWeaknesses: raw.keyWeaknesses || raw.key_weaknesses || [],
       trainingRecommendations:
         typeof (raw.trainingRecommendations || raw.training_recommendations) === 'object'
           ? (raw.trainingRecommendations || raw.training_recommendations)
           : {},
-      sourceData:             sourceMapped,
-      scenarioEvaluation:     scenarioEval
+      sourceData: sourceMapped,
+      scenarioEvaluation: scenarioEval
     };
   }
 
@@ -341,14 +343,14 @@ export class TestResultsComponent implements OnInit, OnDestroy {
 
   getScoreColor(score: number): string {
     if (score >= 7.5) return '#2ecc71';
-    if (score >= 5)   return '#f39c12';
+    if (score >= 5) return '#f39c12';
     return '#e74c3c';
   }
 
   getScoreLabel(score: number): string {
-    if (score >= 8)   return 'Excellent';
+    if (score >= 8) return 'Excellent';
     if (score >= 6.5) return 'Bon';
-    if (score >= 5)   return 'Moyen';
+    if (score >= 5) return 'Moyen';
     return 'À améliorer';
   }
 
@@ -373,7 +375,7 @@ export class TestResultsComponent implements OnInit, OnDestroy {
 
   async exportResultPdf(): Promise<void> {
     if (this.exportingPdf || !this.result) return;
-    
+
     this.exportingPdf = true;
     this.cdr.detectChanges();
 
@@ -399,11 +401,11 @@ export class TestResultsComponent implements OnInit, OnDestroy {
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
-      
+
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      
+
       // Handle multiple pages if height exceeds A4
       let heightLeft = pdfHeight;
       let position = 0;
@@ -421,7 +423,7 @@ export class TestResultsComponent implements OnInit, OnDestroy {
 
       const fileName = `Rapport_SoftSkills_${this.result.userName.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`;
       pdf.save(fileName);
-      
+
       this.notify.success("Rapport PDF exporté avec succès.");
     } catch (error) {
       console.error('[TestResults] Export PDF Error:', error);
@@ -519,12 +521,12 @@ export class TestResultsComponent implements OnInit, OnDestroy {
     const github = Number(result?.sourceData?.github?.overall_score ?? 0);
     const pcm = Number(result?.sourceData?.pcm?.overall_score ?? 0);
     const linkedin = Number(result?.sourceData?.linkedin?.overall_score ?? 0);
-    
+
     // If we have ANY source score > 0, the analysis is valid enough to show.
     const hasAnySource = cv > 0 || github > 0 || pcm > 0 || linkedin > 0;
 
     const summaryBlank = !String(result.summary || '').trim();
-    
+
     // It's invalid ONLY if everything is zero AND there's no text analysis.
     return overallZero && mergedZero && !hasAnySource && summaryBlank;
   }

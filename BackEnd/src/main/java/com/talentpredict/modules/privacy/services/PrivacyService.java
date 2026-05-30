@@ -8,11 +8,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import org.springframework.data.domain.Pageable;
 
 import com.talentpredict.modules.auth.entities.AuditLog;
 import com.talentpredict.modules.auth.entities.RefreshToken;
@@ -106,7 +106,7 @@ public class PrivacyService {
     }
 
     @Transactional
-    public PrivacyDto.MessageResponse requestAccountDeletion(User user) {
+    public PrivacyDto.MessageResponse requestAccountDeletion(User user, String ipAddress) {
         UserPrivacySettings settings = getOrCreateSettings(user);
         settings.setDeleteRequestedAt(Instant.now());
         privacySettingsRepository.save(settings);
@@ -114,7 +114,7 @@ public class PrivacyService {
         auditLogService.logCustomEvent(
                 user,
                 "GDPR_DELETE_REQUESTED",
-                "127.0.0.1",
+                ipAddress,
                 "User requested account deletion",
                 null,
                 null);
@@ -139,7 +139,7 @@ public class PrivacyService {
     }
 
     @Transactional
-    public PrivacyDto.MessageResponse deleteAccount(User user, String confirmPhrase) {
+    public PrivacyDto.MessageResponse deleteAccount(User user, String confirmPhrase, String ipAddress) {
         if (!StringUtils.hasText(confirmPhrase)
                 || !DELETE_CONFIRM_PHRASE.equalsIgnoreCase(confirmPhrase.trim())) {
             throw new IllegalArgumentException(
@@ -158,7 +158,7 @@ public class PrivacyService {
         auditLogService.logCustomEvent(
                 user,
                 "GDPR_ACCOUNT_ANONYMIZED",
-                "127.0.0.1",
+                ipAddress,
                 "User account was anonymized via self-service deletion",
                 null,
                 null);

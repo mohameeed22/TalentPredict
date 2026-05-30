@@ -51,11 +51,11 @@
 
 TalentPredict uses **two parallel AI pipelines** to analyze candidate profiles:
 
-| | Flow A (Direct) | Flow B (Orchestrated) |
+| | Flow A (Proxy-Based) | Flow B (Orchestrated) |
 |---|---|---|
-| **Trigger** | Angular → Python directly | Angular → Java → Python + Claude |
-| **Entry** | `POST /analyze-candidate` (Python) | `POST /api/profiles/accounts/{id}/analyse-ia` (Java) |
-| **LLM** | Claude via agentic loop | OpenRouter (Claude) + optional Python |
+| **Trigger** | Angular → Java Proxy | Angular → Java Orchestrator |
+| **Entry** | `POST /api/analysis/analyze-candidate` (Java) | `POST /api/profiles/accounts/{id}/analyse-ia` (Java) |
+| **LLM** | Claude via Python agentic loop | OpenRouter (Claude) + optional Python |
 | **Sources** | GitHub · CV PDF · Portfolio · LinkedIn | CV · GitHub · LinkedIn · PCM personality test |
 | **Result** | `CandidateAnalysis` JSON to frontend | Skills persisted in DB + profile summary |
 | **Status** | Synchronous response | Async — frontend polls status endpoint |
@@ -63,9 +63,9 @@ TalentPredict uses **two parallel AI pipelines** to analyze candidate profiles:
 ```
 ┌──────────────────────────────────────────────────────────┐
 │                    Angular Frontend                       │
-│  GithubAnalyzerComponent ──────────────────────────────► │──► Python :8000
-│  UserProfileComponent ──────────────────────────────────►│──► Java   :8081 ──► Python :8000
-│  DashboardComponent ◄───────────────── predictions ──────│◄── Java   :8081
+│  GithubAnalyzerComponent ──► Java Proxy :8081 ──────────►│──► Python :8000
+│  UserProfileComponent ──────► Java Orchestrator :8081 ──►│──► Python :8000
+│  DashboardComponent ◄─────── predictions ───────────────│◄── Java   :8081
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -715,30 +715,43 @@ export const environment = {
 
 **File:** `FrontEnd/src/app/modules/skills/services/ai-analysis.service.ts`
 
-Calls the Python microservice **directly** (bypasses the Java backend for real-time analysis):
+Calls the Python microservice **via the Spring Boot proxy** (to automatically attach JWT authentication headers):
 
 ```typescript
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root'
+})
 export class AiAnalysisService {
-  private baseUrl = environment.aiServiceUrl; // http://localhost:8000
+  private http = inject(HttpClient);
+  // Route through Spring Boot proxy (/api/analysis/analyze-candidate)
+  // so that JWT auth headers are automatically attached by the interceptor.
+  private baseUrl = `${environment.apiUrl}/analysis`;
 
   analyzeCandidate(
     github: string,
     portfolio?: string,
     cvFile?: File,
     linkedinUrl?: string,
-    linkedinContent?: string,
+    linkedinContent?: string
   ): Observable<CandidateAnalysis> {
     const formData = new FormData();
     formData.append('github', github);
-    if (portfolio)       formData.append('portfolio', portfolio);
-    if (cvFile)          formData.append('cv_file', cvFile, cvFile.name);
-    if (linkedinUrl)     formData.append('linkedin_url', linkedinUrl);
-    if (linkedinContent) formData.append('linkedin_content', linkedinContent);
+    if (portfolio) {
+      formData.append('portfolio', portfolio);
+    }
+    if (cvFile) {
+      formData.append('cv_file', cvFile, cvFile.name);
+    }
+    if (linkedinUrl) {
+      formData.append('linkedin_url', linkedinUrl);
+    }
+    if (linkedinContent) {
+      formData.append('linkedin_content', linkedinContent);
+    }
 
     return this.http.post<CandidateAnalysis>(
       `${this.baseUrl}/analyze-candidate`,
-      formData,
+      formData
     );
   }
 }
@@ -873,14 +886,17 @@ The `dernierePrediction` field surfaces the latest AI career prediction on the d
 
 ## 5. Full Data Flow Diagrams
 
-### Flow A — Direct Frontend → Python Analysis
+### Flow A — Frontend → Spring Boot Proxy → Python Analysis
 
 ```
 User clicks "Analyser" (or auto-trigger on route load)
          │
          ▼
 GithubAnalyzerComponent.analyzeGithubProfile()
-   │  POST multipart/form-data  (github, portfolio, cv_file, linkedin_url, linkedin_content)
+   │  POST multipart/form-data (github, portfolio, cv_file, linkedin_url, linkedin_content)
+   ▼
+[Java Backend :8081]  POST /api/analysis/analyze-candidate
+   │  (attaches JWT headers and forwards request to the AI microservice)
    ▼
 [Python :8000]  POST /analyze-candidate
    │

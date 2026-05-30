@@ -7,6 +7,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -20,6 +21,7 @@ import com.talentpredict.modules.privacy.dto.PrivacyDto;
 import com.talentpredict.modules.privacy.services.PrivacyService;
 import com.talentpredict.shared.security.UserDetailsImpl;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -65,8 +67,11 @@ public class PrivacyController {
 
     @PostMapping("/request-deletion")
     public ResponseEntity<PrivacyDto.MessageResponse> requestDeletion(
-            @AuthenticationPrincipal UserDetailsImpl principal) {
-        return ResponseEntity.ok(privacyService.requestAccountDeletion(principal.getUser()));
+            @AuthenticationPrincipal UserDetailsImpl principal,
+            HttpServletRequest httpRequest) {
+        return ResponseEntity.ok(privacyService.requestAccountDeletion(
+                principal.getUser(),
+                resolveClientIp(httpRequest)));
     }
 
     @PostMapping("/apply-retention")
@@ -78,10 +83,20 @@ public class PrivacyController {
     @PostMapping("/delete-account")
     public ResponseEntity<PrivacyDto.MessageResponse> deleteAccount(
             @AuthenticationPrincipal UserDetailsImpl principal,
-            @Valid @RequestBody PrivacyDto.DeleteAccountRequest request) {
+            @Valid @RequestBody PrivacyDto.DeleteAccountRequest request,
+            HttpServletRequest httpRequest) {
         PrivacyDto.MessageResponse response = privacyService.deleteAccount(
                 principal.getUser(),
-                request.getConfirmPhrase());
+                request.getConfirmPhrase(),
+                resolveClientIp(httpRequest));
         return ResponseEntity.ok(response);
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (StringUtils.hasText(xForwardedFor)) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

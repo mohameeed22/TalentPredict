@@ -77,7 +77,7 @@ export class AuthService {
     };
     return this.http.post<AuthResponse>(`${this.baseUrl}/register`, backendPayload).pipe(
       tap(response => {
-        if (autoLogin) {
+        if (autoLogin && response?.token) {
           this.setSession(response);
         }
       })
@@ -302,6 +302,9 @@ export class AuthService {
   }
 
   private setSession(authResponse: AuthResponse): void {
+    if (!authResponse?.token) {
+      return;
+    }
     localStorage.setItem('token', authResponse.token);
     const user: AuthUser = {
       id: authResponse.id as string,

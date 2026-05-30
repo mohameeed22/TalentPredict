@@ -10,7 +10,7 @@ import { NotificationToastComponent } from './shared/components/notification-toa
   selector: 'app-root',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NotificationToastComponent, NotificationsCenterComponent],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.scss'
 })
 export class App implements OnInit, OnDestroy {
   private authService = inject(AuthService);

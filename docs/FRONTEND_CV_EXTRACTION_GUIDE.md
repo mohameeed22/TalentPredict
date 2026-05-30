@@ -1,7 +1,10 @@
-===============================================================================
-🔄 MODIFIED n8n WORKFLOW GUIDE
-(Text already extracted)
-===============================================================================
+# 🔄 Guide d'extraction de CV - Migration Terminée
+
+> [!NOTE]
+> **Statut de la Migration : TERMINÉE ✅**
+> Cette migration a été entièrement complétée et intégrée dans le code. Le service d'extraction utilise dorénavant l'approche hybride : extraction locale dans le navigateur via `pdfjs-dist` pour les actions instantanées de l'utilisateur, et extraction serveur via `Apache PDFBox` dans Spring Boot pour la persistance et l'analyse globale. Le serveur Node externe obsolète sur le port 3001 a été définitivement supprimé.
+
+---
 
 ## Change Summary
 

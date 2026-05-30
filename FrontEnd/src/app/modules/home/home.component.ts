@@ -17,7 +17,7 @@ import { AuthService } from '../auth/services/auth.service';
   standalone: true,
   imports: [RouterLink],
   templateUrl: './home.component.html',
-  styleUrl: './home.component.css'
+  styleUrl: './home.component.scss'
 })
 export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
   private router = inject(Router);

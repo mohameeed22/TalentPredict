@@ -19,7 +19,6 @@ import com.talentpredict.modules.auth.dto.AuthDto;
 import com.talentpredict.modules.auth.entities.EmailVerificationToken;
 import com.talentpredict.modules.auth.entities.PasswordResetToken;
 import com.talentpredict.modules.auth.entities.RefreshToken;
-
 import com.talentpredict.modules.auth.repositories.EmailVerificationTokenRepository;
 import com.talentpredict.modules.auth.repositories.PasswordResetTokenRepository;
 import com.talentpredict.modules.auth.repositories.RefreshTokenRepository;
@@ -82,8 +81,8 @@ public class AuthServiceImpl implements IAuthService {
         user.setEmail(request.getEmail());
         user.setPhoneNumber(request.getPhoneNumber());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setEmailVerified(true);
-        user.setEmailVerifiedAt(Instant.now());
+        user.setEmailVerified(false);
+        user.setEmailVerifiedAt(null);
 
 
         // Set role from request — default to USER for safety
@@ -99,6 +98,7 @@ public class AuthServiceImpl implements IAuthService {
 
         log.info("Creating user for {} with role={}", request.getEmail(), role);
         User created = userRepository.save(user);
+        sendVerificationEmail(created);
         return created;
     }
 
@@ -116,7 +116,7 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     @Transactional
-    public void recordFailedLoginAttempt(String email) {
+    public void recordFailedLoginAttempt(String email, String ipAddress) {
         userRepository.findByEmail(email).ifPresent(user -> {
             Integer currentAttempts = user.getFailedLoginAttempts();
             int nextAttempts = (currentAttempts != null ? currentAttempts : 0) + 1;
@@ -126,7 +126,7 @@ public class AuthServiceImpl implements IAuthService {
                 user.setLockUntil(Instant.now().plusSeconds(lockDurationMinutes * 60));
                 user.setFailedLoginAttempts(0);
                 log.warn("Account temporarily locked for {} after too many failed attempts", email);
-                auditLogService.logAccountLocked(email, "127.0.0.1"); // IP should come from HTTP request
+                auditLogService.logAccountLocked(email, ipAddress);
             }
 
             userRepository.save(user);
@@ -181,16 +181,15 @@ public class AuthServiceImpl implements IAuthService {
         rtToken.setRevoked(true);
         refreshTokenRepository.save(rtToken);
 
-        // Generate new access token and new refresh token
+        // Generate new access token; caller handles refresh token rotation
         String newAccessToken = jwtService.generateAccessToken(user.getEmail());
-        generateRefreshToken(user, rtToken.getDeviceId());
 
         log.info("Access token refreshed for user: {}", user.getEmail());
         return newAccessToken;
     }
 
     @Transactional
-    public String changePassword(AuthDto.ChangePasswordRequest request, User currentUser) {
+    public String changePassword(AuthDto.ChangePasswordRequest request, User currentUser, String ipAddress) {
         UUID currentUserId = Objects.requireNonNull(currentUser.getId(), "currentUser.id must not be null");
         User user = userRepository.findById(currentUserId)
             .orElseThrow(() -> new ResourceNotFoundException("user not found with id: " + currentUserId));
@@ -210,7 +209,7 @@ public class AuthServiceImpl implements IAuthService {
         refreshTokenRepository.revokeAllUserTokens(user);
 
         log.info("Password changed successfully for {}", user.getEmail());
-        auditLogService.logPasswordChange(user, "127.0.0.1");
+        auditLogService.logPasswordChange(user, ipAddress);
         return "Password updated successfully.";
     }
 
@@ -284,7 +283,7 @@ public class AuthServiceImpl implements IAuthService {
      * Invalidates all existing sessions after reset.
      */
     @Transactional
-    public String resetPassword(AuthDto.ResetPasswordRequest request) {
+    public String resetPassword(AuthDto.ResetPasswordRequest request, String ipAddress) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
                 .orElseThrow(() -> new IllegalArgumentException("Lien invalide ou expiré."));
 
@@ -307,7 +306,7 @@ public class AuthServiceImpl implements IAuthService {
         refreshTokenRepository.revokeAllUserTokens(user);
 
         log.info("Password successfully reset for account: {}", user.getEmail());
-        auditLogService.logPasswordReset(user, "127.0.0.1");
+        auditLogService.logPasswordReset(user, ipAddress);
         return "Mot de passe mis à jour avec succès !";
     }
 
@@ -330,7 +329,7 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     @Transactional
-    public String verifyEmailToken(String token) {
+    public String verifyEmailToken(String token, String ipAddress) {
         EmailVerificationToken verificationToken = emailVerificationTokenRepository.findByToken(token)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid verification link."));
 
@@ -353,7 +352,7 @@ public class AuthServiceImpl implements IAuthService {
         auditLogService.logCustomEvent(
                 user,
                 "EMAIL_VERIFIED",
-                "127.0.0.1",
+                ipAddress,
                 "Email address verified successfully",
                 null,
                 null);

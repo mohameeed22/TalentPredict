@@ -8,11 +8,13 @@ Docker (port 5678):
 
 Local (Single Machine):
   - PostgreSQL (port 5432) - Database
-  - Python CV Extractor (port 9000) - PDF/DOC text extraction
   - Python AI Service (port 8000) - Talent analysis agent
-  - Spring Boot Backend (port 8081) - API server
-  - Angular Frontend (port 4200) - Web UI
+  - Spring Boot Backend (port 8081) - API server (incorporates Apache PDFBox for server-side CV text extraction)
+  - Angular Frontend (port 4200) - Web UI (incorporates pdfjs-dist for client-side CV text extraction)
 ```
+
+> [!NOTE]
+> Le service Python CV Extractor (anciennement sur le port 9000) est obsolète/déprécié. L'extraction de texte est dorénavant directement intégrée dans l'application via une approche hybride client/serveur.
 
 ## Prérequis
 
@@ -79,15 +81,10 @@ ou juste laissez tourneren arrière-plan
 
 ---
 
-### Terminal 3: CV Extractor Service
+### [DÉPRÉCIÉ] Terminal 3: CV Extractor Service
 
-```powershell
-cd talentpredict-ai
-pip install -r requirements.txt
-python cv_extractor.py
-```
-
-✅ Attendez: "Uvicorn running on http://0.0.0.0:9000"
+> [!WARNING]
+> **Étape Obsolète / Non Requise :** Le service CV Extractor sur le port 9000 n'est plus utilisé. Vous pouvez sauter cette étape de démarrage.
 
 ---
 
@@ -127,7 +124,7 @@ Access: http://localhost:4200
 
 ## Flux de Données Simplifié
 
-### Ancien Flux (Problématique):
+### Flux Historique (Obsolète) :
 
 ```
 Angular → Backend → n8n
@@ -136,14 +133,20 @@ Angular → Backend → n8n
                   └─→ Ollama LLM
 ```
 
-### Nouveau Flux (Fixé):
+### Flux Actuel (Hybride & Proxy) :
 
 ```
-Angular → Backend → CV Extractor (port 9000)
-                 → (extracts text)
-                 → n8n (port 5678)
-                   ├─→ GitHub API
-                   └─→ Ollama LLM (localhost:11434)
+                       ┌──► [Client-Side] Angular (pdfjs-dist)
+                       │
+                       └──► [Server-Side] Spring Boot (Apache PDFBox)
+                                       │
+                                       ├─► [Python AI Service :8000] (via Spring Boot Proxy :8081)
+                                       │    └─► Agentic loop / Scraper / GitHub REST API
+                                       │
+                                       ├─► [n8n Webhook :5678]
+                                       │    └─► Workflows (GitHub / PCM Analysis)
+                                       │
+                                       └─► [Ollama :11434 / OpenRouter] (LLM Pipeline)
 ```
 
 ---
@@ -152,13 +155,9 @@ Angular → Backend → CV Extractor (port 9000)
 
 Tester chaque endpoint:
 
-### 1. CV Extractor (port 9000)
+### 1. CV Extractor (port 9000) — [DÉPRÉCIÉ]
 
-```powershell
-Invoke-WebRequest -Uri "http://localhost:9000/health" -UseBasicParsing
-```
-
-Expected: `{"status":"healthy",...}`
+*(Non requis car le service est obsolète)*
 
 ### 2. n8n (port 5678)
 
@@ -216,65 +215,11 @@ spring.datasource.password=11111111
 
 ---
 
-## Mise à Jour du Backend pour CV Extractor
+## Gestion de l'Extraction des CV (Hybride Client/Serveur)
 
-### 1. Créer le service pour appelle CV Extractor:
-
-File: `BackEnd/src/main/java/com/talentpredict/service/CvExtractorService.java`
-
-```java
-package com.talentpredict.service;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
-import java.io.IOException;
-
-@Slf4j
-@Service
-@RequiredArgsConstructor
-public class CvExtractorService {
-
-    private final RestTemplate restTemplate;
-
-    @Value("${cv.extractor.url:http://localhost:9000}")
-    private String cvExtractorUrl;
-
-    /**
-     * Extract text from CV file
-     */
-    public String extractCvText(MultipartFile cvFile) {
-        try {
-            if (cvFile == null || cvFile.isEmpty()) {
-                return "";
-            }
-
-            // Call CV Extractor service
-            String extractorUrl = cvExtractorUrl + "/extract";
-
-            // This would require MultipartFile support in RestTemplate
-            // For now, return empty - we'll handle file upload separately
-            log.info("Extracting text from CV: {}", cvFile.getOriginalFilename());
-
-            return ""; // Placeholder
-
-        } catch (Exception e) {
-            log.error("Failed to extract CV text", e);
-            return "";
-        }
-    }
-}
-```
-
-### 2. Modifier SoftSkillsController pour utiliser CV Extractor:
-
-- Pas besoin de PDF server dans n8n anymore
-- Backend appelle CV Extractor (port 9000)
-- CV Extractor renvoie le texte
-- Backend envoie le texte à n8n
+TalentPredict n'utilise plus de service d'extraction de CV externe sur le port 9000. À la place, l'extraction de texte est gérée de manière transparente :
+- **Côté Client (Frontend Angular) :** Géré par `pdfjs-dist` dans `CvExtractorService` lors du dépôt initial par le candidat.
+- **Côté Serveur (Backend Spring Boot) :** Géré par `CvAnalysisService` qui utilise **Apache PDFBox** pour extraire le texte du fichier PDF téléchargé, avant de l'envoyer au LLM via OpenRouter ou Ollama.
 
 ---
 
@@ -287,7 +232,6 @@ Les scripts de gestion ont été regroupés dans le dossier `scripts/` :
 | `scripts/start.sh` | Script de démarrage global (Bash) |
 | `scripts/manage-workflows.sh` | Import/Export des workflows n8n |
 | `scripts/db/init-databases.sql` | Initialisation des bases PostgreSQL |
-| `scripts/db/fix_db.sql` | Corrections structurelles de la DB |
 
 ---
 
@@ -312,18 +256,17 @@ net stop PostgreSQL-x64-16
 | --------------------------- | -------------------------------------------- |
 | Port 5678 déjà utilisé      | `docker container kill talentpredict-n8n`    |
 | PostgreSQL connexion échoue | Vérifier: `psql -U postgres`                 |
-| CV Extractor échoue         | `pip install PyPDF2 python-docx`             |
-| n8n workflows perdus        | Réimporter depuis workflows.json             |
+| n8n workflows perdus        | Réimporter depuis `n8n/workflows-import/`    |
 | Ollama not found            | Exécuter: `ollama serve` (separate terminal) |
 
 ---
 
 ## État Actuel Résumé
 
-✅ Architecture: n8n (Docker) + tout le reste (Local)
-✅ n8n: SQLite intégré dans volume
-✅ Base TalentPredict: PostgreSQL séparé
-✅ CV Extraction: Nouveau service Python (port 9000)
-✅ Flows: Optimisé, pas de dépendances Docker inutiles
+    ✅ Architecture: n8n (Docker) + tout le reste (Local)
+    ✅ n8n: SQLite intégré dans volume
+    ✅ Base TalentPredict: PostgreSQL séparé
+    ✅ CV Extraction: Intégration hybride (Frontend pdfjs-dist / Backend PDFBox)
+    ✅ Flows: Optimisé, pas de dépendances Docker inutiles
 
 🚀 **Status: PRÊT À DÉMARRER**

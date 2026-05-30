@@ -1,7 +1,6 @@
-package com.talentpredict.modules.security.services;
+ package com.talentpredict.modules.security.services;
 
 import java.util.List;
-
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -9,14 +8,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.talentpredict.modules.auth.entities.AuditLog;
 import com.talentpredict.modules.auth.entities.RefreshToken;
-
 import com.talentpredict.modules.auth.repositories.AuditLogRepository;
 import com.talentpredict.modules.auth.repositories.RefreshTokenRepository;
 import com.talentpredict.modules.auth.services.AuditLogService;
-
 import com.talentpredict.modules.security.dto.SecurityDto;
 import com.talentpredict.modules.user.entities.User;
-
 import com.talentpredict.shared.exception.ResourceNotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -67,21 +63,21 @@ public class SecurityDashboardService {
     }
 
     @Transactional
-    public SecurityDto.MessageResponse revokeSession(User user, UUID sessionId) {
+        public SecurityDto.MessageResponse revokeSession(User user, UUID sessionId, String ipAddress) {
         RefreshToken session = refreshTokenRepository.findByIdAndUser(sessionId, user)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found."));
 
         session.setRevoked(true);
         refreshTokenRepository.save(session);
-        auditLogService.logCustomEvent(user, "SESSION_REVOKED", "127.0.0.1",
+                auditLogService.logCustomEvent(user, "SESSION_REVOKED", ipAddress,
                 "Session revoked: " + sessionId, null, session.getDeviceId());
         return new SecurityDto.MessageResponse("Session revoked.");
     }
 
     @Transactional
-    public SecurityDto.MessageResponse revokeAllSessions(User user) {
+        public SecurityDto.MessageResponse revokeAllSessions(User user, String ipAddress) {
         refreshTokenRepository.revokeAllUserTokens(user);
-        auditLogService.logCustomEvent(user, "ALL_SESSIONS_REVOKED", "127.0.0.1",
+                auditLogService.logCustomEvent(user, "ALL_SESSIONS_REVOKED", ipAddress,
                 "All active sessions were revoked", null, null);
         return new SecurityDto.MessageResponse("All active sessions revoked.");
     }

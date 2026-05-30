@@ -73,6 +73,49 @@ Bienvenue dans la documentation complète de l'architecture modulaire du projet 
 
 ---
 
+### 4. **test_deploiement_sprint1.md**
+🧪 **Rapport de Test et Déploiement (Sprint 1)**
+
+**Contenu:**
+- **Stratégie QA Multi-niveaux :** Méthodologie unitaire (JUnit 5, Mockito), qualité de code (Maven Checkstyle) et intégration API (Postman).
+- **Couverture de Code JaCoCo :** Résultats et métriques de couverture des modules critiques (`AuthService`, `JwtUtil`, etc.).
+- **Plan de Validation E2E :** Tableau détaillé des cas d'utilisation fonctionnels et résultats de validation de bout en bout (TC-01 à TC-04).
+- **Registre de Débogage :** Retours d'expérience et solutions aux défis de déploiement (CORS, perte de contexte de sécurité JWT, connexions inter-conteneurs).
+- **Infrastructure Docker du Sprint 1 :** Présentation des conteneurs isolés (Angular Nginx, Spring Boot, PostgreSQL) et diagramme d'architecture réseau complet (`talentpredict-net`).
+- **Processus de Déploiement & IaC :** Description de l'orchestration, de la gestion des dépendances temporelles avec healthcheck et de la persistance via volumes Docker.
+
+**À lire** pour comprendre les processus d'assurance qualité, de conteneurisation et de déploiement sécurisé du Sprint 1.
+
+---
+
+### 5. **modele_donnees_sprint1.md**
+🗄️ **Modèle de Données et Schéma Relationnel (ERD) (Sprint 1)**
+
+**Contenu:**
+- **Diagramme ERD Mermaid :** Modélisation relationnelle complète (Crow's Foot notation) illustrant les entités liées (User, Role, Profile, PasswordResetToken).
+- **Dictionnaire des Données :** Tables exhaustives décrivant chaque colonne, type de données, contraintes de clés (PK, FK, UK) et nullabilité.
+- **Relations Inter-Entités :** Analyse précise des cardinalités (1:1, 1:N) et des règles de gestion métier.
+- **Alignement Physique vs JPA :** Comparaison technique détaillée entre le modèle relationnel physique (SQL) et l'implémentation logique objet réelle (JPA/Hibernate) avec UUIDs et Enums.
+
+**À lire** pour la validation et l'insertion de l'architecture des données dans le rapport académique du Sprint 1.
+
+---
+
+### 6. **modele_global_donnees_et_classes_sprint1.md**
+📐 **Modélisation Globale et Structurelle (Données & Classes) (Sprint 1) - [All-in-One]**
+
+**Contenu:**
+- **Modèle de Données Physique (ERD) :** Schéma relationnel complet en notation Crow's Foot avec Mermaid.
+- **Dictionnaire de Données :** Tables physiques complètes de toutes les entités clés (User, Role, Profile, Token).
+- **Diagramme de Classes UML (PlantUML) :** Modélisation orientée objet de toutes les couches du backend Spring Boot (Controller, Service, Repository, Entity, DTO).
+- **Alignement Structurel et Technique :** Comparaison des choix de conception physique (SQL) et de leur implémentation objet (JPA).
+- **Registre de Conformité :** Tableau récapitulatif des corrections demandées par l'encadrant et de leur résolution globale.
+
+**À lire** pour intégrer la modélisation structurelle et de données complète d'un seul bloc dans le rapport de PFE.
+
+---
+
+
 ## 🗂️ Organisation de la Documentation
 
 ```
@@ -80,6 +123,9 @@ pfe/
 ├── ARCHITECTURE_MODULAIRE.md          # Architecture complète
 ├── GUIDE_RAPIDE.md                    # Référence rapide
 ├── GUIDE_IMPLEMENTATION_MODULES.md    # Implémentation détaillée
+├── test_deploiement_sprint1.md        # Rapport de Test et Déploiement (Sprint 1)
+├── modele_donnees_sprint1.md          # Modèle de données et Schéma Relationnel (ERD) (Sprint 1)
+├── modele_global_donnees_et_classes_sprint1.md # Modélisation Globale (Données & Classes) [All-in-One]
 ├── README_DOCUMENTATION.md            # Ce fichier (index)
 └── documentation-architecture-technique.pdf  # Document source original
 ```

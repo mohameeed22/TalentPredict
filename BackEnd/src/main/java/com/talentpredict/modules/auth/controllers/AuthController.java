@@ -1,5 +1,6 @@
 package com.talentpredict.modules.auth.controllers;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -7,9 +8,14 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.talentpredict.modules.ai.services.ProfileAnalysisOrchestrator;
 import com.talentpredict.modules.auth.dto.AuthDto;
@@ -25,6 +31,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 
 @RestController
 @RequestMapping("/api/auth")
@@ -46,17 +53,20 @@ public class AuthController {
             HttpServletRequest httpRequest,
             HttpServletResponse response) {
         User user = authServiceImpl.createUser(request);
-        String accessToken = jwtService.generateAccessToken(user.getEmail());
-        String deviceId = resolveDeviceId(httpRequest);
-        String refreshToken = authServiceImpl.generateRefreshToken(user, deviceId);
+        boolean emailVerified = Boolean.TRUE.equals(user.getEmailVerified());
+        String accessToken = null;
 
-        // Return refresh token in HttpOnly cookie
-        Cookie cookie = buildRefreshCookie(refreshToken, 604800);
-        response.addCookie(cookie);
+        if (emailVerified) {
+            accessToken = jwtService.generateAccessToken(user.getEmail());
+            String deviceId = resolveDeviceId(httpRequest);
+            String refreshToken = authServiceImpl.generateRefreshToken(user, deviceId);
 
-        String redirectUrl = (user.getRole() == User.Role.ADMIN)
-                ? "/admin/dashboard"
-                : "/dashboard";
+            // Return refresh token in HttpOnly cookie
+            Cookie cookie = buildRefreshCookie(refreshToken, 604800);
+            response.addCookie(cookie);
+        }
+
+        String redirectUrl = emailVerified ? getRedirectUrl(user) : "/auth/verify-email";
 
         AuthDto.Response responseDto = new AuthDto.Response(
                 accessToken,
@@ -66,7 +76,7 @@ public class AuthController {
                 user.getLastName(),
                 user.getFirstName(),
                 redirectUrl);
-        responseDto.setEmailVerified(Boolean.TRUE.equals(user.getEmailVerified()));
+        responseDto.setEmailVerified(emailVerified);
 
         log.info("Registered: {} role={} → {}", user.getEmail(), user.getRole(), redirectUrl);
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
@@ -83,7 +93,7 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.LOCKED)
                 .body(new AuthDto.MessageResponse("Compte temporairement verrouillé."));
         } catch (BadCredentialsException ex) {
-            authServiceImpl.recordFailedLoginAttempt(request.getEmail());
+            authServiceImpl.recordFailedLoginAttempt(request.getEmail(), resolveClientIp(httpRequest));
             auditLogService.logFailedLogin(
                 request.getEmail(),
                 resolveClientIp(httpRequest),
@@ -136,12 +146,14 @@ public class AuthController {
     }
 
     @GetMapping("/verify-email")
-    public ResponseEntity<AuthDto.MessageResponse> verifyEmail(@RequestParam(value = "token", required = false) String token) {
+    public ResponseEntity<AuthDto.MessageResponse> verifyEmail(
+            @RequestParam(value = "token", required = false) String token,
+            HttpServletRequest httpRequest) {
         if (token == null || token.isEmpty()) {
             return ResponseEntity.badRequest().body(new AuthDto.MessageResponse("Le jeton de vérification est manquant."));
         }
         try {
-            String message = authServiceImpl.verifyEmailToken(token);
+            String message = authServiceImpl.verifyEmailToken(token, resolveClientIp(httpRequest));
             return ResponseEntity.ok(new AuthDto.MessageResponse(message));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(new AuthDto.MessageResponse(ex.getMessage()));
@@ -170,9 +182,10 @@ public class AuthController {
      */
     @PostMapping("/reset-password")
     public ResponseEntity<AuthDto.MessageResponse> resetPassword(
-            @Valid @RequestBody AuthDto.ResetPasswordRequest request) {
+            @Valid @RequestBody AuthDto.ResetPasswordRequest request,
+            HttpServletRequest httpRequest) {
         try {
-            String message = authServiceImpl.resetPassword(request);
+            String message = authServiceImpl.resetPassword(request, resolveClientIp(httpRequest));
             return ResponseEntity.ok(new AuthDto.MessageResponse(message));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(new AuthDto.MessageResponse(e.getMessage()));
@@ -182,8 +195,9 @@ public class AuthController {
     @PostMapping("/change-password")
     public ResponseEntity<AuthDto.MessageResponse> changePassword(
             @Valid @RequestBody AuthDto.ChangePasswordRequest request,
-            @AuthenticationPrincipal UserDetailsImpl principal) {
-        String message = authServiceImpl.changePassword(request, principal.getUser());
+            @AuthenticationPrincipal UserDetailsImpl principal,
+            HttpServletRequest httpRequest) {
+        String message = authServiceImpl.changePassword(request, principal.getUser(), resolveClientIp(httpRequest));
         return ResponseEntity.ok(new AuthDto.MessageResponse(message));
     }
 

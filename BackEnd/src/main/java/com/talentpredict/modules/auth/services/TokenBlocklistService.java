@@ -58,7 +58,7 @@ public class TokenBlocklistService {
             return blocked;
         } catch (Exception e) {
             log.error("Error checking token blocklist", e);
-            return false; // Default to allowing the token if check fails
+            return true; // Fail closed if blocklist check fails
         }
     }
 

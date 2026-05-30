@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,7 +17,7 @@ import com.talentpredict.modules.security.dto.SecurityDto;
 import com.talentpredict.modules.security.services.SecurityDashboardService;
 import com.talentpredict.shared.security.UserDetailsImpl;
 
-
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -42,14 +43,21 @@ public class SecurityController {
     @DeleteMapping("/sessions/{sessionId}")
     public ResponseEntity<SecurityDto.MessageResponse> revokeSession(
             @AuthenticationPrincipal UserDetailsImpl principal,
-            @PathVariable UUID sessionId) {
-        return ResponseEntity.ok(securityDashboardService.revokeSession(principal.getUser(), sessionId));
+            @PathVariable UUID sessionId,
+            HttpServletRequest httpRequest) {
+        return ResponseEntity.ok(securityDashboardService.revokeSession(
+                principal.getUser(),
+                sessionId,
+                resolveClientIp(httpRequest)));
     }
 
     @DeleteMapping("/sessions")
     public ResponseEntity<SecurityDto.MessageResponse> revokeAllSessions(
-            @AuthenticationPrincipal UserDetailsImpl principal) {
-        return ResponseEntity.ok(securityDashboardService.revokeAllSessions(principal.getUser()));
+            @AuthenticationPrincipal UserDetailsImpl principal,
+            HttpServletRequest httpRequest) {
+        return ResponseEntity.ok(securityDashboardService.revokeAllSessions(
+                principal.getUser(),
+                resolveClientIp(httpRequest)));
     }
 
     @GetMapping("/login-history")
@@ -64,6 +72,14 @@ public class SecurityController {
         boolean verified = Boolean.TRUE.equals(principal.getUser().getEmailVerified());
         String message = verified ? "EMAIL_VERIFIED" : "EMAIL_NOT_VERIFIED";
         return ResponseEntity.ok(new SecurityDto.MessageResponse(message));
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (StringUtils.hasText(xForwardedFor)) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
 

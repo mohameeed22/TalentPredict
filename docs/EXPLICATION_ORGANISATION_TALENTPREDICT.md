@@ -111,13 +111,13 @@ Logique du master workflow:
 
 ### 3.1 Role des sous-workflows
 
-- cv parser.json
+- CV Parser (1).json
   - Extrait le texte CV (appel service d'extraction PDF), puis LLM pour evaluer soft skills depuis le CV.
 
 - test PCM.json
   - Calcule des scores a partir de q1..q18 (communication, discipline, curiosite, collaboration, ownership, leadership), puis overall_score.
 
-- github.json
+- GitHub Analysis (3).json
   - Appelle l'API GitHub (profil + repos), construit un resume, puis LLM evalue les soft skills.
 
 ## 4) Integration Backend <-> n8n
@@ -223,10 +223,10 @@ DB (entites):
 
 n8n:
 
-- n8n-workflows-import/master soft skills agent (4).json
-- n8n-workflows-import/cv parser.json
-- n8n-workflows-import/test PCM.json
-- n8n-workflows-import/github.json
+- n8n/workflows-import/master soft skills agent (4).json
+- n8n/workflows-import/CV Parser (1).json
+- n8n/workflows-import/test PCM.json
+- n8n/workflows-import/GitHub Analysis (3).json
 
 ---
 

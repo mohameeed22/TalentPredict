@@ -124,14 +124,14 @@ export interface AuthRequest {
 }
 
 export interface AuthResponse {
-  token: string;
+  token?: string | null;
   type: string;
   id: string;
   email: string;
   role: string;
   nom: string;
   prenom: string;
-  redirectUrl: string;
+  redirectUrl?: string;
   emailVerified?: boolean;
 
 }
