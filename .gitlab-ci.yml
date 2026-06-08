@@ -1,10 +1,6 @@
 # ============================================================
 # Root GitLab CI/CD — TalentPredict (Monorepo)
 # ============================================================
-# Triggers separate child pipelines for backend and frontend.
-# Each child pipeline runs independently and only when its
-# directory has changes.
-# ============================================================
 
 stages:
   - trigger
@@ -32,3 +28,15 @@ frontend:
   rules:
     - changes:
         - FrontEnd/**
+
+# --------------------------------------------------
+# AI Service child pipeline
+# --------------------------------------------------
+ai:
+  stage: trigger
+  trigger:
+    include: talentpredict-ai/.gitlab-ci.yml
+    strategy: depend
+  rules:
+    - changes:
+        - talentpredict-ai/**
