@@ -20,9 +20,9 @@ variables:
 cache:
   key:
     files:
-      - AI/requirements.txt
+      - talentpredict-ai/requirements.txt
   paths:
-    - AI/.pip-cache/
+    - talentpredict-ai/.pip-cache/
   policy: pull-push
 
 # --------------------------------------------------
@@ -32,17 +32,17 @@ install:
   stage: install
   image: python:3.11-slim
   script:
-    - cd AI
+    - cd talentpredict-ai
     - pip install --cache-dir .pip-cache -r requirements.txt --quiet
 
 # --------------------------------------------------
-# Stage: build — verify the app starts without errors
+# Stage: build
 # --------------------------------------------------
 build:
   stage: build
   image: python:3.11-slim
   script:
-    - cd AI
+    - cd talentpredict-ai
     - pip install --cache-dir .pip-cache -r requirements.txt --quiet
     - python -c "import main; print('Build OK')"
 
@@ -59,7 +59,7 @@ docker:
   before_script:
     - echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USERNAME" --password-stdin
   script:
-    - cd AI
+    - cd talentpredict-ai
     - docker build
         --cache-from "$DOCKER_IMAGE:latest"
         -t "$DOCKER_IMAGE:$DOCKER_TAG"
