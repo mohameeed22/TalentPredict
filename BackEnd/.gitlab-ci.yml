@@ -49,7 +49,7 @@ build:
 
 # --------------------------------------------------
 # Stage: package
-# --------------------------------------------------
+# ---------          -----------------------------------------
 package:
   stage: package
   image: maven:3.9-eclipse-temurin-21
@@ -60,6 +60,8 @@ package:
     paths:
       - BackEnd/target/*.jar
     expire_in: 1 day
+
+
 
 # --------------------------------------------------
 # Stage: docker — pushes to Docker Hub
@@ -83,7 +85,7 @@ docker:
     - docker push "$DOCKER_IMAGE:$DOCKER_TAG"
     - docker push "$DOCKER_IMAGE:latest"
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: always    # ← run on every branch always
 
 # --------------------------------------------------
 # Stage: deploy — SSH into your server and run container
@@ -117,8 +119,8 @@ deploy:
           $DOCKER_IMAGE:$DOCKER_TAG
       "
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: manual
+    - when: manual    # ← always show but requires click to deploy
   environment:
     name: production
     url: http://$DEPLOY_SERVER_IP:8080
+
