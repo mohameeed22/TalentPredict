@@ -115,6 +115,9 @@ deploy:
           -e SPRING_DATASOURCE_USERNAME=$PROD_DB_USERNAME \
           -e SPRING_DATASOURCE_PASSWORD=$PROD_DB_PASSWORD \
           -e JWT_SECRET=$JWT_SECRET \
+          -e OPENAI_API_KEY=$OPENAI_API_KEY \
+          -e OLLAMA_BASE_URL=$OLLAMA_BASE_URL \
+          -e AI_DATABASE_URL=$AI_DATABASE_URL \
           -v /opt/talentpredict/uploads:/app/uploads \
           $DOCKER_IMAGE:$DOCKER_TAG
       "
