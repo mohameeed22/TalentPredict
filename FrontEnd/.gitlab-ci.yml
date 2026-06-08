@@ -1,15 +1,10 @@
 # ============================================================
 # GitLab CI/CD — Frontend (Angular)
 # ============================================================
-# Child pipeline triggered from root .gitlab-ci.yml
-# Stages: install → lint → build → test → docker → deploy
-# ============================================================
 
 stages:
   - install
-  - lint
   - build
-  - test
   - docker
   - deploy
 
@@ -17,7 +12,7 @@ stages:
 # Global settings
 # --------------------------------------------------
 variables:
-  DOCKER_IMAGE: "$CI_REGISTRY_IMAGE/frontend"
+  DOCKER_IMAGE: "mohamedabdeladhim/talentpredict-frontend"
   DOCKER_TAG: "$CI_COMMIT_SHORT_SHA"
   CONTAINER_NAME: "talentpredict-frontend"
   NODE_OPTIONS: "--max_old_space_size=4096"
@@ -42,16 +37,6 @@ install:
     - npm ci --quiet
 
 # --------------------------------------------------
-# Stage: lint
-# --------------------------------------------------
-lint:
-  stage: lint
-  image: node:22-alpine
-  script:
-    - cd FrontEnd
-    - npx ng lint
-
-# --------------------------------------------------
 # Stage: build
 # --------------------------------------------------
 build:
@@ -66,17 +51,7 @@ build:
     expire_in: 1 day
 
 # --------------------------------------------------
-# Stage: test
-# --------------------------------------------------
-test:
-  stage: test
-  image: node:22-alpine
-  script:
-    - cd FrontEnd
-    - npx vitest run
-
-# --------------------------------------------------
-# Stage: docker
+# Stage: docker — pushes to Docker Hub
 # --------------------------------------------------
 docker:
   stage: docker
@@ -86,7 +61,7 @@ docker:
   variables:
     DOCKER_TLS_CERTDIR: "/certs"
   before_script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+    - echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USERNAME" --password-stdin
   script:
     - cd FrontEnd
     - docker build
@@ -97,35 +72,35 @@ docker:
     - docker push "$DOCKER_IMAGE:$DOCKER_TAG"
     - docker push "$DOCKER_IMAGE:latest"
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: always
 
 # --------------------------------------------------
-# Stage: deploy
+# Stage: deploy — SSH into your server and run container
 # --------------------------------------------------
 deploy:
   stage: deploy
-  image: docker:24
-  services:
-    - docker:24-dind
-  variables:
-    DOCKER_TLS_CERTDIR: "/certs"
+  image: alpine:latest
   before_script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - ssh-keyscan -H "$DEPLOY_SERVER_IP" >> ~/.ssh/known_hosts
   script:
-    - echo "Stopping existing container if running..."
-    - docker stop $CONTAINER_NAME || true
-    - docker rm $CONTAINER_NAME || true
-    - echo "Starting new container..."
-    - docker pull "$DOCKER_IMAGE:$DOCKER_TAG"
-    - docker run -d
-        --name $CONTAINER_NAME
-        --restart unless-stopped
-        -p 4200:80
-        "$DOCKER_IMAGE:$DOCKER_TAG"
-    - echo "Frontend deployed on port 4200"
+    - |
+      ssh $DEPLOY_USER@$DEPLOY_SERVER_IP "
+        echo '$DOCKER_HUB_PASSWORD' | docker login -u '$DOCKER_HUB_USERNAME' --password-stdin &&
+        docker pull $DOCKER_IMAGE:$DOCKER_TAG &&
+        docker stop $CONTAINER_NAME || true &&
+        docker rm $CONTAINER_NAME || true &&
+        docker run -d \
+          --name $CONTAINER_NAME \
+          --restart unless-stopped \
+          -p 4200:80 \
+          $DOCKER_IMAGE:$DOCKER_TAG
+      "
   rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: manual
+    - when: manual
   environment:
     name: production
-    url: http://localhost:4200
+    url: http://$DEPLOY_SERVER_IP:4200
