@@ -40,3 +40,11 @@ ai:
   rules:
     - changes:
         - talentpredict-ai/**
+n8n:
+  stage: trigger
+  trigger:
+    include: n8n/.gitlab-ci.yml
+    strategy: depend
+  rules:
+    - changes:
+        - n8n/**        
