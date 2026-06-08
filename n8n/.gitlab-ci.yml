@@ -24,9 +24,11 @@ build:
   script:
     - cd n8n/custom
     - npm install --quiet
-    - node -e "require('./pdf-server.js'); console.log('Build OK')" || true
-    - echo "Validating workflows..."
+    - echo "Validating workflows.json..."
     - node -e "JSON.parse(require('fs').readFileSync('workflows.json')); console.log('workflows.json valid')"
+    - echo "Validating package.json..."
+    - node -e "JSON.parse(require('fs').readFileSync('package.json')); console.log('package.json valid')"
+    - echo "Build OK"
 
 # --------------------------------------------------
 # Stage: docker — pushes to Docker Hub
