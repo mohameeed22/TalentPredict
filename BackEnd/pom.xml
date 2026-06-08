@@ -130,14 +130,12 @@
         </dependency>
         -->
 
-        <!-- H2 Database (disabled - using PostgreSQL) -->
-        <!--
+        <!-- H2 in-memory database for unit/integration tests -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>runtime</scope>
+            <scope>test</scope>
         </dependency>
-        -->
 
         <!-- DevTools (rechargement auto en dev) -->
         <dependency>
@@ -276,6 +274,84 @@
                     <failsOnError>true</failsOnError>
                     <violationSeverity>warning</violationSeverity>
                 </configuration>
+            </plugin>
+
+            <!-- ══════════════════════════════════════════════
+                 JaCoCo — Code Coverage
+                 Usage :
+                   mvn verify                  → tests + rapport + gate
+                   mvn test jacoco:report       → tests + rapport uniquement
+                 Rapport HTML : target/site/jacoco/index.html
+            ══════════════════════════════════════════════ -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.13</version>
+                <executions>
+
+                    <!-- 1. Instrumenter le bytecode avant les tests -->
+                    <execution>
+                        <id>jacoco-prepare-agent</id>
+                        <goals><goal>prepare-agent</goal></goals>
+                    </execution>
+
+                    <!-- 2. Générer le rapport HTML/XML/CSV après la phase test -->
+                    <execution>
+                        <id>jacoco-report</id>
+                        <phase>verify</phase>
+                        <goals><goal>report</goal></goals>
+                        <configuration>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco</outputDirectory>
+                            <formats>
+                                <format>HTML</format>
+                                <format>XML</format>
+                                <format>CSV</format>
+                            </formats>
+                        </configuration>
+                    </execution>
+
+                    <!-- 3. Seuil de couverture minimum (quality gate CI) -->
+                    <execution>
+                        <id>jacoco-check</id>
+                        <phase>verify</phase>
+                        <goals><goal>check</goal></goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <!-- Classes exclues de la gate :
+                                         - Entités JPA (@Entity), DTOs, mappers
+                                         - Classes de configuration Spring
+                                         - Point d'entrée de l'application
+                                         - Exceptions métier (simples wrappers)
+                                    -->
+                                    <excludes>
+                                        <exclude>com/talentpredict/TalentPredictApplication.class</exclude>
+                                        <exclude>com/talentpredict/modules/**/entities/**</exclude>
+                                        <exclude>com/talentpredict/modules/**/dto/**</exclude>
+                                        <exclude>com/talentpredict/modules/**/mappers/**</exclude>
+                                        <exclude>com/talentpredict/shared/config/**</exclude>
+                                        <exclude>com/talentpredict/shared/exception/ErrorResponse.class</exclude>
+                                        <exclude>com/talentpredict/shared/exception/*Exception.class</exclude>
+                                    </excludes>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.70</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.60</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+
+                </executions>
             </plugin>
         </plugins>
     </build>
