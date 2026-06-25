@@ -8,7 +8,9 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:talent-predict-client": "node dist/talent-predict-client/server/server.mjs",
-    "lint": "ng lint"
+    "lint": "ng lint",
+    "deploy": "npm run build && wrangler deploy",
+    "preview": "npm run build && wrangler dev"
   },
   "prettier": {
     "printWidth": 100,
@@ -57,6 +59,7 @@
     "tailwindcss": "^4.1.12",
     "typescript": "~5.9.2",
     "typescript-eslint": "8.50.1",
-    "vitest": "^4.0.8"
+    "vitest": "^4.0.8",
+    "wrangler": "^4.105.0"
   }
 }
