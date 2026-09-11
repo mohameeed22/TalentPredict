@@ -379,12 +379,12 @@ For **Ollama**, the agent runs all tools directly then asks the local model for 
 
 ```ini
 # ── Option A: Anthropic native ──────────────────────────────
-ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_API_KEY=<your_anthropic_api_key>
 ANTHROPIC_MODEL=claude-sonnet-4-20250514
 
 # ── Option B: OpenRouter ─────────────────────────────────────
 ANTHROPIC_BASE_URL=https://openrouter.ai/api/v1
-ANTHROPIC_API_KEY=sk-or-...
+ANTHROPIC_API_KEY=<your_openrouter_api_key>
 ANTHROPIC_MODEL=anthropic/claude-sonnet-4
 
 # ── Option C: Ollama (local, no API key) ────────────────────
@@ -392,7 +392,7 @@ ANTHROPIC_BASE_URL=http://localhost:11434/v1
 ANTHROPIC_MODEL=llama3.2
 
 # ── Common ───────────────────────────────────────────────────
-GITHUB_TOKEN=ghp_...                  # optional, raises rate limit to 5000/hr
+GITHUB_TOKEN=<your_github_token>      # optional, raises rate limit to 5000/hr
 CORS_ORIGINS=http://localhost:4200,http://localhost:3000
 ```
 
@@ -560,7 +560,7 @@ public List<SkillDto.CreateRequest> analyzeProfile(ProfileDto.Response profile)
 
 Config:
 ```properties
-openrouter.apikey=sk-or-...
+openrouter.apikey=<your_openrouter_api_key>
 openrouter.model=anthropic/claude-sonnet-4-5
 openrouter.api.url=https://openrouter.ai/api/v1/chat/completions
 ```
@@ -1030,7 +1030,7 @@ uvicorn main:app --reload --port 8000
 cd BackEnd
 # Set in application.properties:
 #   talentpredict.ai.base-url=http://localhost:8000
-#   openrouter.apikey=sk-or-...
+#   openrouter.apikey=<your_openrouter_api_key>
 mvn spring-boot:run
 ```
 
@@ -1047,9 +1047,9 @@ ng serve          # http://localhost:4200
 cd talentpredict-ai
 docker build -t talentpredict-ai .
 docker run -p 8000:8000 \
-  -e ANTHROPIC_API_KEY=sk-ant-... \
+  -e ANTHROPIC_API_KEY=<your_anthropic_api_key> \
   -e ANTHROPIC_MODEL=claude-sonnet-4-20250514 \
-  -e GITHUB_TOKEN=ghp_... \
+  -e GITHUB_TOKEN=<your_github_token> \
   -e CORS_ORIGINS=http://localhost:4200 \
   talentpredict-ai
 ```
