@@ -64,9 +64,9 @@ if [ ! -f .env ]; then
   else
     echo -e "${YELLOW}⚠ No .env.example found. Creating minimal .env...${NC}"
     cat > .env << 'EOF'
-DB_PASSWORD=11111111
-JWT_SECRET=TalentPredictSecretKeyForJWTAuthenticationMustBeLongEnough256Bits
-N8N_ENCRYPTION_KEY=MinimumSixteenCharactersKey
+DB_PASSWORD=
+JWT_SECRET=
+N8N_ENCRYPTION_KEY=
 ANTHROPIC_API_KEY=
 GITHUB_TOKEN=
 EOF
